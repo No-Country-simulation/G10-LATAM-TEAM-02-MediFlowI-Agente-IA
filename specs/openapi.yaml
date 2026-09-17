@@ -7,6 +7,9 @@ info:
     de documentos clínicos y administrativos en el sector HealthTech.
     Proyecto desarrollado para la Hackathon ONE Grupo 10 (Oracle Next Education & Alura).
   version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
   contact:
     name: Equipo MediFlow (Grupo 10)
 
@@ -15,6 +18,8 @@ servers:
     description: Servidor de Desarrollo Local
   - url: https://api.mediflow.cloud
     description: Despliegue en OCI Compute (Always Free Ampere A1)
+
+security: []
 
 paths:
   /health:
@@ -54,6 +59,12 @@ paths:
                       oci_object_storage:
                         type: string
                         example: connected
+        '400':
+          description: Solicitud de monitoreo inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/triaje:
     post:
@@ -147,6 +158,18 @@ paths:
                   nueva_ruta_oci:
                     type: string
                     example: procesados/urgentes/DOC-CLIN-2026-8942.json
+        '400':
+          description: Datos de auditoría inválidos o incompletos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Documento clínico no encontrado para auditar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/metricas:
     get:
@@ -174,6 +197,12 @@ paths:
                   porcentaje_automatizacion:
                     type: number
                     example: 91.5
+        '400':
+          description: Parámetros de consulta de métricas inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
