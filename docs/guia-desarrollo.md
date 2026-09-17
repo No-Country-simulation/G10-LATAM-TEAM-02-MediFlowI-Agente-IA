@@ -19,8 +19,8 @@ Este manual acompaña al [Backlog Unificado (`docs/backlog.md`)](backlog.md). Si
 ### 1.1 Clonado y Activación del Entorno
 ```bash
 # 1. Clonar el repositorio
-git clone <url-del-repo>
-cd mediflow
+git clone https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA.git
+cd G10-LATAM-TEAM-02-MediFlowI-Agente-IA
 
 # 2. Crear y activar entorno virtual Python (Recomendado 3.11 o 3.12)
 python3 -m venv venv
@@ -76,7 +76,7 @@ Los datasets son archivos JSON que simulan las solicitudes de entrada a la API. 
 
 ---
 
-### 🧠 [T-05 & T-06] IA con Google Gemini Multimodal (`backend-api/app/agent/`)
+### 🧠 [T-05 & T-06] IA con Google Gemini Multimodal (`backend-api/app/services/gemini.py`)
 
 Para invocar el modelo Gemini usando la librería oficial `google-generativeai`:
 

@@ -138,9 +138,9 @@ HU-07: Dashboard de Visualización y Triaje en Vivo
 
 #### T-06 — Prompt de Sistema y Agente Extractor Multimodal con Google Gemini
 * **Prioridad:** `priority: critical` | **Tipo:** `type: ia-agent` | **Rol:** AI Engineer | **Complejidad:** Media (2-3h) | **Dependencia:** T-05
-* **Entregables:** `backend-api/app/agent/gemini_client.py` y `prompts.py`.
+* **Entregables:** `backend-api/app/services/gemini.py` (servicio y fallback) y `backend-api/app/agent/prompts.py` (prompts clínicos especializados).
 * **Criterios:**
-  - [ ] Prompt con rol de auditor clínico y tabla de correspondencia CIE-10.
+  - [ ] Prompt con rol de auditor clínico, directivas de cero alucinación y tabla CIE-10.
   - [ ] Soporte para llamadas con texto y archivos base64 usando el SDK `google-generativeai`.
 
 ---
