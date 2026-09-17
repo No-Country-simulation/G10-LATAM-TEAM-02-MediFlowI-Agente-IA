@@ -1,0 +1,183 @@
+{
+  "name": "MediFlow - Triaje Clínico & Notificaciones de Urgencia",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "triaje",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-triaje",
+      "name": "Webhook Ingesta Triaje",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.decision_enrutamiento.destino_principal }}",
+                    "rightValue": "Cola_Emergencia_Medica",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.decision_enrutamiento.destino_principal }}",
+                    "rightValue": "Cola_Auditoria_Humana",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-switch-enrutamiento",
+      "name": "Enrutamiento por Destino",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL || 'https://httpbin.org/post' }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=🚨 *ALERTA URGENCIA CRÍTICA MEDIFLOW*\n*Documento:* {{ $json.body.documento_id }}\n*Diagnóstico:* {{ $json.body.datos_extraidos.diagnostico_principal }} (CIE-10: {{ $json.body.datos_extraidos.cie10_sugerido }})\n*Paciente:* {{ $json.body.datos_extraidos.paciente.nombre }} ({{ $json.body.datos_extraidos.paciente.edad }} años)\n*Destino:* {{ $json.body.decision_enrutamiento.destino_principal }}\n*Detalle:* {{ $json.body.decision_enrutamiento.notificacion_generada.mensaje }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-alerta-guardia-slack",
+      "name": "Notificación Emergencia (Slack/Teams)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL || 'https://httpbin.org/post' }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=⚠️ *CASO DERIVADO A AUDITORÍA MÉDICA (HITL)*\n*Documento:* {{ $json.body.documento_id }}\n*Score de Confianza:* {{ $json.body.clasificacion.score_confianza_clasificacion }}\n*Motivo:* {{ $json.body.decision_enrutamiento.justificacion_enrutamiento }}\n*Acción:* Requiere validación médica en panel de triaje."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-alerta-hitl",
+      "name": "Alerta Auditoría HITL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"webhook_procesado\",\n  \"documento_id\": \"{{ $('Webhook Ingesta Triaje').item.json.body.documento_id }}\",\n  \"enrutado_a\": \"{{ $('Webhook Ingesta Triaje').item.json.body.decision_enrutamiento.destino_principal }}\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "node-responder-webhook",
+      "name": "Respuesta HTTP 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Ingesta Triaje": {
+      "main": [
+        [
+          {
+            "node": "Enrutamiento por Destino",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutamiento por Destino": {
+      "main": [
+        [
+          {
+            "node": "Notificación Emergencia (Slack/Teams)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Auditoría HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificación Emergencia (Slack/Teams)": {
+      "main": [
+        [
+          {
+            "node": "Respuesta HTTP 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta Auditoría HITL": {
+      "main": [
+        [
+          {
+            "node": "Respuesta HTTP 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,37 @@
+CENTRO MEDICO METROPOLITANO - SERVICIO DE DIAGNOSTICO POR IMAGENES
+Av. Santa Fe 3200, Ciudad Autonoma de Buenos Aires - Tel: (011) 4800-9000
+
+INFORME DE ANGIOTOMOGRAFIA COMPUTARIZADA DE TORAX CON CONTRASTE ENDOVENOSO
+Fecha de Emision: 17/09/2026 14:32
+Documento ID: DOC-CLIN-2026-8942
+Canal de Origen: Guardia_Emergencias
+
+DATOS DEL PACIENTE:
+Paciente: Carlos Eduardo Mendes, 52 anos
+Identificacion: DNI 28.491.823
+Cobertura: Plan Medico Integral - Nro Afiliado: 9940129-01
+
+DATOS DEL MEDICO SOLICITANTE:
+Medico Solicitante: Dra. Renata Silveira MP 145892
+Institucion: Servicio de Emergencias Medicas y Triage
+
+MOTIVO DEL ESTUDIO:
+Paciente masculino de 52 anos que ingresa con disnea subita, dolor toracico pleuritico derecho y taquicardia sinusal. Score de Wells: 6.5 (alta probabilidad clinica). Dimero D elevado (3.450 ng/mL).
+
+TECNICA DEL EXAMEN:
+Se realiza adquisicion helicoidal volumetrica en tomografo multidetector de 64 cortes desde los vertices pulmonares hasta las bases diafragmaticas, previa administracion de 80 mL de contraste iodado no ionico por via endovenosa con tecnica de bolus tracking en arteria pulmonar principal.
+
+HALLAZGOS CLINICOS:
+- Se observa defecto de replecion intraluminal parcial en la arteria pulmonar principal derecha con extension hacia las ramas lobares media e inferior.
+- Ausencia de signos de sobrecarga ventricular derecha aguda (relacion VD/VI preservada < 0.9).
+- En parenquima pulmonar se aprecia pequena area de consolidacion periferica en base pulmonar posterior derecha compatible con infarto pulmonar incipiente (signo de joroba de Hampton).
+- No se observan adenopatias mediastinicas significativas ni derrame pericardico.
+- Campos pulmonares restantes libres de lesiones focales activas.
+
+CONCLUSION DIAGNOSTICA:
+1. Hallazgo compatible con Tromboembolismo Pulmonar Agudo (TEP) en rama lobar inferior y media derecha.
+2. Signos radiologicos de infarto pulmonar periferico asociado.
+3. Se recomienda activacion inmediata de protocolo de anticoagulacion parenteral y evaluacion por emergentologia.
+
+CIE-10 Sugerido: I26.9 (Tromboembolia pulmonar sin mencion de cor pulmonale agudo)
+Firma Digital: Dr. Mariano Valenzuela - MN 84210 - Especialista en Diagnostico por Imagenes

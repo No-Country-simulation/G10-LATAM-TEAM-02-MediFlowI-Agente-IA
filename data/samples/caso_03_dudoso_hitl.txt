@@ -1,0 +1,16 @@
+NOTA DE GUARDIA RAPIDA - DOCUMENTO ESCANEADO (CALIDAD DEFICIENTE)
+Documento ID: DOC-CLIN-2026-9999
+Canal de Origen: Atencion_Primaria_Movil
+
+[Texto borroso e ilegible en cabecera del documento]
+Paciente: Juan P... [mancha sobre apellido], aprox. 40 anos?
+Identificacion: No legible
+
+Motivo: Refiere malestar gral... [ilegible] ... cefalea o dolor precordial no especificado.
+Medicacion actual: ... [mancha de tinta, ilegible] mg cada 8h?
+Diagnostico presuntivo: Cuadro inespecifico a determinar / posible reaccion medicamentosa?
+CIE-10: R69 (Causas de morbilidad desconocidas e inespecificadas)
+
+OBSERVACION DE TRIAJE:
+Documento escaneado con baja resolucion dpi, firmas y sellos incompletos.
+Requiere revision y auditoria humana presencial por medico auditor para confirmar dosificacion y autorizacion de cobertura.

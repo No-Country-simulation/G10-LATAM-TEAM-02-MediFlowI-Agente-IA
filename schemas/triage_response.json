@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RespuestaTriajeMediFlow",
+  "description": "Contrato formal de respuesta del sistema MediFlow con la clasificación, extracción clínica, decisión de enrutamiento y persistencia en OCI.",
+  "type": "object",
+  "required": [
+    "status",
+    "documento_id",
+    "clasificacion",
+    "datos_extraidos",
+    "decision_enrutamiento",
+    "almacenamiento_oci"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["procesado", "pendiente_auditoria", "error"],
+      "description": "Estado del ciclo de vida del triaje documental."
+    },
+    "documento_id": {
+      "type": "string",
+      "description": "Identificador único correlativo del documento."
+    },
+    "clasificacion": {
+      "type": "object",
+      "required": [
+        "tipo_documento",
+        "especialidad",
+        "nivel_prioridad",
+        "score_confianza_clasificacion"
+      ],
+      "properties": {
+        "tipo_documento": { "type": "string" },
+        "especialidad": { "type": "string" },
+        "nivel_prioridad": {
+          "type": "string",
+          "enum": ["Rutina", "Prioritario", "Urgente"]
+        },
+        "score_confianza_clasificacion": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "datos_extraidos": {
+      "type": "object",
+      "required": ["paciente", "diagnostico_principal"],
+      "properties": {
+        "paciente": {
+          "type": "object",
+          "properties": {
+            "nombre": { "type": "string" },
+            "nome": { "type": "string" },
+            "edad": { "type": ["integer", "null"] },
+            "identificacion": { "type": ["string", "null"] }
+          },
+          "anyOf": [
+            { "required": ["nombre"] },
+            { "required": ["nome"] }
+          ]
+        },
+        "medico_solicitante": {
+          "type": "object",
+          "properties": {
+            "nombre": { "type": ["string", "null"] },
+            "matricula": { "type": ["string", "null"] },
+            "institucion": { "type": ["string", "null"] }
+          }
+        },
+        "estudio_realizado": { "type": ["string", "null"] },
+        "diagnostico_principal": { "type": "string" },
+        "cie10_sugerido": { "type": ["string", "null"] },
+        "medicamentos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nombre"],
+            "properties": {
+              "nombre": { "type": "string" },
+              "dosis": { "type": ["string", "null"] },
+              "frecuencia": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "decision_enrutamiento": {
+      "type": "object",
+      "required": [
+        "destino_principal",
+        "requiere_auditoria_humana",
+        "justificacion_enrutamiento"
+      ],
+      "properties": {
+        "destino_principal": {
+          "type": "string",
+          "enum": [
+            "Cola_Emergencia_Medica",
+            "Cola_Auditoria_Humana",
+            "Farmacia_Hospitalaria",
+            "Historia_Clinica_Electronica",
+            "Auditoria_Autorizaciones"
+          ]
+        },
+        "requiere_auditoria_humana": { "type": "boolean" },
+        "justificacion_enrutamiento": { "type": "string" },
+        "notificacion_generada": {
+          "type": ["object", "null"],
+          "properties": {
+            "canal": { "type": "string" },
+            "mensaje": { "type": "string" }
+          },
+          "required": ["canal", "mensaje"]
+        }
+      }
+    },
+    "almacenamiento_oci": {
+      "type": "object",
+      "required": ["bucket", "ruta_objeto", "status_backup"],
+      "properties": {
+        "bucket": { "type": "string" },
+        "ruta_objeto": { "type": "string" },
+        "status_backup": {
+          "type": "string",
+          "enum": ["exito", "pendiente", "fallido"]
+        }
+      }
+    }
+  }
+}

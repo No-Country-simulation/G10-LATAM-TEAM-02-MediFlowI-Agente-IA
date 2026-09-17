@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentoClinicoInput",
+  "description": "Contrato de entrada para la ingesta y triaje de documentos clínicos en MediFlow.",
+  "type": "object",
+  "required": ["documento_id", "tipo_archivo", "canal_origen"],
+  "properties": {
+    "documento_id": {
+      "type": "string",
+      "description": "Identificador único del documento clínico.",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "tipo_archivo": {
+      "type": "string",
+      "enum": ["PDF", "IMAGEN", "TEXTO", "JSON"],
+      "description": "Formato de origen del archivo."
+    },
+    "documento_texto": {
+      "type": "string",
+      "description": "Contenido textual transcrito o extraído del documento."
+    },
+    "documento_base64": {
+      "type": "string",
+      "description": "Contenido del archivo en base64 para procesamiento visual multimodal (PDF o Imagen)."
+    },
+    "nombre_archivo_original": {
+      "type": "string",
+      "description": "Nombre original del archivo cargado (ej. informe_torax.pdf)."
+    },
+    "canal_origen": {
+      "type": "string",
+      "description": "Canal o departamento hospitalario que ingresa el documento.",
+      "examples": ["Guardia_Emergencias", "Consulta_Externa", "Portal_Paciente", "Laboratorio"]
+    },
+    "fecha_ingesta": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO 8601 de recepción del documento."
+    }
+  },
+  "anyOf": [
+    { "required": ["documento_texto"] },
+    { "required": ["documento_base64"] }
+  ]
+}

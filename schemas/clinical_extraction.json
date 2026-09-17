@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExtraccionClinicaLLM",
+  "description": "Esquema estructurado de entidades clínicas extraídas por el agente multimodal Gemini.",
+  "type": "object",
+  "required": [
+    "tipo_documento",
+    "especialidad",
+    "nivel_prioridad",
+    "score_confianza",
+    "paciente",
+    "diagnostico_principal"
+  ],
+  "properties": {
+    "tipo_documento": {
+      "type": "string",
+      "enum": [
+        "Informe de Estudio por Imagenes",
+        "Informe de Laboratorio",
+        "Receta Medica",
+        "Orden de Solicitud de Procedimiento",
+        "Epicrisis / Informe de Alta",
+        "Certificado Medico",
+        "Documento No Medico / Ilegible"
+      ]
+    },
+    "especialidad": {
+      "type": "string",
+      "description": "Especialidad médica vinculada al documento (ej. Radiología, Cardiología, Farmacología)."
+    },
+    "nivel_prioridad": {
+      "type": "string",
+      "enum": ["Rutina", "Prioritario", "Urgente"],
+      "description": "Nivel de gravedad clínica inferido del contenido."
+    },
+    "score_confianza": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Puntaje de certeza clínica y legibilidad (0.0 a 1.0)."
+    },
+    "paciente": {
+      "type": "object",
+      "required": ["nombre"],
+      "properties": {
+        "nombre": { "type": "string" },
+        "edad": { "type": ["integer", "null"] },
+        "genero": { "type": ["string", "null"], "enum": ["M", "F", "Otro", null] },
+        "identificacion": { "type": ["string", "null"] }
+      }
+    },
+    "medico_solicitante": {
+      "type": "object",
+      "properties": {
+        "nombre": { "type": ["string", "null"] },
+        "matricula": { "type": ["string", "null"] },
+        "institucion": { "type": ["string", "null"] }
+      }
+    },
+    "estudio_realizado": {
+      "type": ["string", "null"],
+      "description": "Nombre de la prueba diagnóstica, estudio radiológico o intervención realizada."
+    },
+    "diagnostico_principal": {
+      "type": "string",
+      "description": "Diagnóstico médico principal o hallazgo más relevante."
+    },
+    "cie10_sugerido": {
+      "type": ["string", "null"],
+      "description": "Código de clasificación internacional de enfermedades (CIE-10 / ICD-10) inferido.",
+      "pattern": "^[A-Z][0-9]{2}(\\.[0-9]{1,2})?$"
+    },
+    "medicamentos": {
+      "type": "array",
+      "description": "Lista de fármacos prescritos si el documento es una receta o plan terapéutico.",
+      "items": {
+        "type": "object",
+        "required": ["nombre"],
+        "properties": {
+          "nombre": { "type": "string" },
+          "dosis": { "type": ["string", "null"] },
+          "frecuencia": { "type": ["string", "null"] },
+          "duracion": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "hallazgos_criticos": {
+      "type": "array",
+      "description": "Alertas clínicas explícitas (ej. hemorragia, tromboembolismo, neumotórax, sobredosis).",
+      "items": { "type": "string" }
+    },
+    "es_ambiguo_o_incompleto": {
+      "type": "boolean",
+      "description": "Bandera activada si la letra es ilegible, faltan datos clave o hay contradicciones."
+    },
+    "motivo_ambiguedad": {
+      "type": ["string", "null"],
+      "description": "Explicación detallada en caso de ambigüedad o baja legibilidad."
+    }
+  }
+}
