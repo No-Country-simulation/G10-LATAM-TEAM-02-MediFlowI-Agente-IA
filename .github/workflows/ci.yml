@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop, feature/* ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   test-backend:
@@ -40,7 +40,10 @@ jobs:
       - name: Checkout Código
         uses: actions/checkout@v4
 
-      - name: Validar Sintaxis OpenAPI con Redocly CLI
-        uses: redocly/cli/actions/lint@v1
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
         with:
-          args: specs/openapi.yaml
+          node-version: 20
+
+      - name: Validar Sintaxis OpenAPI con Redocly CLI
+        run: npx --yes @redocly/cli lint specs/openapi.yaml
