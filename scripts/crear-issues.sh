@@ -25,9 +25,9 @@ fi
 echo "🏷️ Configurando labels del proyecto en el repositorio..."
 # Labels de Prioridad
 gh label create "priority: critical" --color "B60205" --description "Bloqueante – Sin esto otros integrantes no avanzan" --force 2>/dev/null || true
-gh label create "priority: high"     --color "D93F0B" --description "Core – Funcionalidad esencial del MVP" --force 2>/dev/null || true
+gh label create "priority: high"     --color "D93F0B" --description "Core – Requisito obligatorio evaluable del pliego" --force 2>/dev/null || true
 gh label create "priority: medium"   --color "FBCA04" --description "Importante – Componentes de integración y soporte" --force 2>/dev/null || true
-gh label create "priority: low"      --color "0E8A16" --description "Diferenciales y mejoras visuales/documentales" --force 2>/dev/null || true
+gh label create "priority: low"      --color "0E8A16" --description "Diferenciales y mejoras complementarias" --force 2>/dev/null || true
 
 # Labels de Estado
 gh label create "status: assigned"    --color "1D76DB" --description "Asignada a un integrante con fecha límite" --force 2>/dev/null || true
@@ -36,326 +36,418 @@ gh label create "status: in-review"   --color "5319E7" --description "Pull Reque
 
 # Labels de Categoría / Tipo
 gh label create "type: structure" --color "6366F1" --description "Estructura base, configuración y tooling" --force 2>/dev/null || true
-gh label create "type: schema"    --color "EC4899" --description "Contratos de datos JSON Schema / SDD" --force 2>/dev/null || true
-gh label create "type: dataset"   --color "8B5CF6" --description "Casos de prueba clínicos (PDF/imagen/texto)" --force 2>/dev/null || true
+gh label create "type: schema"    --color "EC4899" --description "Contratos de datos OpenAPI 3.0 y modelos Pydantic v2" --force 2>/dev/null || true
+gh label create "type: dataset"   --color "8B5CF6" --description "Casos de prueba clínicos oficiales (JSON / PDF)" --force 2>/dev/null || true
 gh label create "type: ia-agent"  --color "06B6D4" --description "Google Gemini, prompts y extracción CIE-10" --force 2>/dev/null || true
-gh label create "type: workflow"  --color "F97316" --description "Nodos de n8n, grafos condicionales y Webhooks" --force 2>/dev/null || true
-gh label create "type: cloud-oci" --color "EF4444" --description "Integración con OCI Object Storage Always Free" --force 2>/dev/null || true
-gh label create "type: frontend"  --color "10B981" --description "UI en React (Vite + TS), visor y panel HITL" --force 2>/dev/null || true
-gh label create "type: docs"      --color "64748B" --description "Documentación, diagramas y video demo" --force 2>/dev/null || true
+gh label create "type: workflow"  --color "F97316" --description "Grafos condicionales, reglas de negocio y n8n" --force 2>/dev/null || true
+gh label create "type: cloud-oci" --color "EF4444" --description "Integración con OCI Object Storage y VM Ampere A1" --force 2>/dev/null || true
+gh label create "type: frontend"  --color "10B981" --description "Dashboard en React (Vite + TS), Split-Screen y HITL" --force 2>/dev/null || true
+gh label create "type: docs"      --color "64748B" --description "Documentación técnica, diagramas y video demo" --force 2>/dev/null || true
 
-echo "📋 Creando Issues del Backlog Atómico (T-01 a T-18)..."
+echo "📋 Creando Issues del Backlog Consolidado (T-01 a T-13)..."
 
 # T-01
-echo "📌 Creando T-01: Scaffolding Base del Proyecto y Variables de Entorno..."
+echo "📌 Creando T-01: Scaffolding Base del Proyecto, Contratos OpenAPI y Variables de Entorno..."
 gh issue create \
-  --title "T-01 — Scaffolding Base del Proyecto y Variables de Entorno" \
+  --title "T-01 — Scaffolding Base del Proyecto, Contratos OpenAPI y Variables de Entorno" \
   --label "type: structure,priority: critical" \
-  --body "### Descripción
-Inicializar el esqueleto del repositorio con el archivo de ignorados \`.gitignore\`, la plantilla de configuración \`.env.example\` con las claves necesarias para Gemini y OCI, y el archivo base \`requirements.txt\`.
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: critical\` |
+| **Tipo** | \`type: structure\` |
+| **Dependencias** | Ninguna |
+| **Complejidad** | Media (2 horas) |
+| **Rol** | Team Leader / DevOps |
+| **Branch** | \`feature/T-00-arquitectura-base\` |
+| **Commit ejemplo** | \`chore(T-01): inicializar arquitectura base y contratos openapi\` |
+
+### Descripción
+Configurar el esqueleto arquitectónico del repositorio, el contrato canónico OpenAPI 3.0.3, las plantillas de variables de entorno, la exclusión de secretos y la orquestación inicial de Docker.
 
 ### Entregables
-- Archivo \`.gitignore\` con exclusiones para Python, Node, \`.env\`, \`.oci/\` y temporales.
-- Archivo `requirements.txt` con dependencias base (`pydantic`, `jsonschema`, `google-generativeai`, `oci`, `pytest`).
+- \`[CREAR]\` \`.gitignore\` — Exclusiones para Python, Node, temporales, \`.env\`, \`data_mock_oci/\` y \`.sf/\`.
+- \`[CREAR]\` \`.env.example\` — Plantilla con variables de entorno para Gemini y OCI.
+- \`[CREAR]\` \`docker-compose.yml\` — Orquestación de servicios locales (\`backend-api\` en puerto 8000).
+- \`[CREAR]\` \`specs/openapi.yaml\` — Contrato formal OpenAPI 3.0.3 con 4 endpoints.
+- \`[CREAR]\` \`.github/workflows/ci.yml\` — Pipeline de validación de OpenAPI con Redocly y matriz de Python 3.11–3.13.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 1: Configuración del Entorno de Desarrollo Local).
 
 ### Criterios de Aceptación
-- [ ] \`.gitignore\` previene subir credenciales o archivos sensibles al repositorio.
-- [ ] \`.env.example\` contiene todas las variables descritas con comentarios claros.
-- [ ] \`pip install -r requirements.txt\` se instala sin errores."
+- [ ] Contrato OpenAPI 3.0.3 validado sin errores con \`npx @redocly/cli lint specs/openapi.yaml\`.
+- [ ] \`.gitignore\` previene subida de secretos o archivos \`.env\`.
+- [ ] \`.env.example\` documenta todas las claves y puertos requeridos con explicaciones claras.
+- [ ] Estructura base de carpetas inicializada para frontend, backend-api, datasets, docs y specs."
 
 # T-02
-echo "📌 Creando T-02: Dataset Caso 1: Flujo Estándar de Receta Médica..."
+echo "📌 Creando T-02: Datasets Clínicos de Prueba para los 3 Escenarios Obligatorios..."
 gh issue create \
-  --title "T-02 — Dataset Caso 1: Flujo Estándar de Receta Médica" \
-  --label "type: dataset,priority: high" \
-  --body "### Descripción
-Crear el primer caso de prueba oficial obligatorio: una receta médica ambulatoria de rutina (tratamiento de mantenimiento crónico) sin signos de alarma que debe derivarse a Farmacia con alta confianza.
+  --title "T-02 — Datasets Clínicos de Prueba para los 3 Escenarios Obligatorios" \
+  --label "type: dataset,priority: critical" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: critical\` |
+| **Tipo** | \`type: dataset\` |
+| **Dependencias** | T-01 |
+| **Complejidad** | Media (2-3 horas) |
+| **Rol** | QA & Datasets Engineer |
+| **Branch** | \`feature/T-02-datasets-clinicos\` |
+| **Commit ejemplo** | \`test(T-02): agregar datasets para los 3 casos clinicos obligatorios\` |
+
+### Descripción
+Crear los 3 archivos JSON de datasets clínicos requeridos por el pliego del proyecto para simular y validar los tres flujos del sistema: (1) Receta médica de rutina ambulatoria, (2) Urgencia médica de Tromboembolismo Pulmonar Agudo (TEP), y (3) Caso ambiguo con baja legibilidad que requiere derivación a Human-in-the-Loop (HITL).
 
 ### Entregables
-- Archivo \`datasets/caso_1_estandar_receta.json\` conforme a \`schemas/input_document.json\`.
-- Documento de texto simulado con datos claros: paciente, médico, matrícula, diagnóstico, fármaco y posología.
-- JSON esperado de respuesta de triaje validado contra \`schemas/triage_response.json\`.
+- \`[CREAR]\` \`datasets/caso_1_estandar_receta.json\` — Payload JSON de receta médica ambulatoria (Enalapril / Metformina) sin hallazgos de alarma.
+- \`[CREAR]\` \`datasets/caso_2_urgencia_tep.json\` — Payload JSON basado en el caso oficial del pliego (\`Carlos Mendes, 52 años\`, AngioTC de tórax con TEP CIE-10 \`I26.9\`).
+- \`[CREAR]\` \`datasets/caso_3_ambiguo_hitl.json\` — Payload JSON con texto médico fragmentado o ilegible que fuerce confianza < 0.85.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Datasets Clínicos de Prueba).
 
 ### Criterios de Aceptación
-- [ ] El payload de entrada valida al 100% con \`schemas/input_document.json\`.
-- [ ] La prioridad clínica resultante esperada es \`Rutina\`.
-- [ ] El destino de enrutamiento esperado es \`Farmacia_Hospitalaria\`.
-- [ ] \`requiere_auditoria_humana\` esperado es \`false\`."
+- [ ] Los 3 JSON cumplen estrictamente el esquema \`DocumentoClinicoInput\` de \`specs/openapi.yaml\`.
+- [ ] El Caso 1 produce prioridad \`Rutina\`, destino \`Farmacia_Hospitalaria\` y \`requiere_auditoria_humana = false\`.
+- [ ] El Caso 2 produce prioridad \`Urgente\`, CIE-10 \`I26.9\`, destino \`Cola_Emergencia_Medica\` y payload de \`notificacion_generada\`.
+- [ ] El Caso 3 produce \`requiere_auditoria_humana = true\`, destino \`Cola_Auditoria_Humana\` y \`score_confianza < 0.85\`.
+- [ ] Los 3 archivos se pueden consumir directamente vía \`curl\` o script contra \`POST /api/v1/triaje\`."
 
 # T-03
-echo "📌 Creando T-03: Dataset Caso 2: Urgencia Médica de Tromboembolismo Pulmonar (TEP)..."
+echo "📌 Creando T-03: Modelos Pydantic v2 para Validación Clínica y Contratos Python..."
 gh issue create \
-  --title "T-03 — Dataset Caso 2: Urgencia Médica de Tromboembolismo Pulmonar (TEP)" \
-  --label "type: dataset,priority: critical" \
-  --body "### Descripción
-Crear el segundo caso oficial: informe radiológico de tomografía con hallazgo crítico de Tromboembolismo Pulmonar Agudo (TEP / CIE-10: I26.9). Debe activar la prioridad Urgente, derivación a Emergencias y disparo de alerta médica.
+  --title "T-03 — Modelos Pydantic v2 para Validación Clínica y Contratos Python" \
+  --label "type: schema,priority: high" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: high\` |
+| **Tipo** | \`type: schema\` |
+| **Dependencias** | T-01 |
+| **Complejidad** | Media (2 horas) |
+| **Rol** | AI Engineer / Backend |
+| **Branch** | \`feature/T-00-arquitectura-base\` |
+| **Commit ejemplo** | \`feat(T-03): implementar modelos pydantic v2 sincronizados con openapi\` |
+
+### Descripción
+Implementar los modelos de datos en Python usando Pydantic v2, sincronizados 1:1 con el contrato \`specs/openapi.yaml\` para garantizar tipado estricto en la API y en los agentes.
 
 ### Entregables
-- Archivo \`datasets/caso_2_urgencia_tep.json\` basado en el texto del enunciado oficial de la hackathon.
-- Payload de salida esperada con \`notificacion_generada\` y ruta en OCI \`procesados/urgentes/\`.
+- \`[CREAR]\` \`backend-api/app/models/schemas.py\` — Modelos Pydantic v2 (\`DocumentoClinicoInput\`, \`DatosClinicosExtraidos\`, \`RespuestaTriaje\`, \`AuditoriaRequest\`, etc.) con validaciones, enums y ejemplos.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Modelos Pydantic e IA).
 
 ### Criterios de Aceptación
-- [ ] El documento simula el caso de alta gravedad descrito en \`proyecto.md\`.
-- [ ] \`clasificacion.nivel_prioridad\` es \`Urgente\`.
-- [ ] \`decision_enrutamiento.destino_principal\` es \`Cola_Emergencia_Medica\`.
-- [ ] Contiene objeto \`notificacion_generada\` completo con canal y mensaje de alerta."
+- [ ] Sincronización exacta 1:1 con \`specs/openapi.yaml\` (nombres, tipos, enums y obligatoriedad).
+- [ ] Uso de sintaxis nativa de Pydantic v2 (\`ConfigDict\`, \`Field(..., examples=[...])\`).
+- [ ] Validación de enums clínicos: \`NivelPrioridadEnum\`, \`DestinoPrincipalEnum\`, \`CanalOrigenEnum\`."
 
 # T-04
-echo "📌 Creando T-04: Dataset Caso 3: Caso Ambiguo con Derivación a Human-in-the-Loop (HITL)..."
+echo "📌 Creando T-04: Prompt de Sistema y Extracción Multimodal con Google Gemini..."
 gh issue create \
-  --title "T-04 — Dataset Caso 3: Caso Ambiguo con Derivación a Human-in-the-Loop (HITL)" \
-  --label "type: dataset,priority: high" \
-  --body "### Descripción
-Crear el tercer caso oficial: un documento médico escaneado con baja resolución, letra manuscrita de difícil lectura o datos clínicos contradictorios que produzcan un score de confianza < 0.85 y obliguen a revisión humana.
+  --title "T-04 — Prompt de Sistema y Extracción Multimodal con Google Gemini" \
+  --label "type: ia-agent,priority: critical" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: critical\` |
+| **Tipo** | \`type: ia-agent\` |
+| **Dependencias** | T-03 |
+| **Complejidad** | Alta (3 horas) |
+| **Rol** | AI & Prompt Engineer |
+| **Branch** | \`feature/T-04-gemini-prompts-extraccion\` |
+| **Commit ejemplo** | \`feat(T-04): implementar prompt de auditoria clinica y servicio gemini\` |
+
+### Descripción
+Diseñar y afinar el prompt de sistema clínico especializado para Google Gemini 1.5 Flash y completar la integración en \`gemini.py\` mediante el SDK \`google-generativeai\`, garantizando extracción JSON estructurada, propuesta de códigos CIE-10 y mecanismo de fallback determinista.
 
 ### Entregables
-- Archivo \`datasets/caso_3_ambiguo_hitl.json\`.
-- Payload de salida esperado con \`status: pendiente_auditoria\`, destino \`Cola_Auditoria_Humana\` y \`requiere_auditoria_humana: true\`.
+- \`[CREAR]\` \`backend-api/app/agent/prompts.py\` — Prompt de sistema médico con instrucciones de rol, directivas de cero alucinación, directivas de extracción de entidades y tabla de códigos CIE-10 de referencia.
+- \`[MODIFICAR]\` \`backend-api/app/services/gemini.py\` — Implementación de la llamada a \`google.generativeai\`, soporte para texto e imágenes en base64, parseo estructurado y fallback heurístico ante fallas de red o ausencia de API key.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Prompt de Sistema e Invocación Gemini).
 
 ### Criterios de Aceptación
-- [ ] \`score_confianza_clasificacion\` es inferior a 0.85 (ej. 0.62).
-- [ ] \`decision_enrutamiento.destino_principal\` es \`Cola_Auditoria_Humana\`.
-- [ ] Se documenta el campo \`motivo_ambiguedad\` explicando los datos ilegibles.
-- [ ] La ruta de persistencia esperada es \`auditoria_humana/\`."
+- [ ] El prompt extrae de forma confiable paciente, médico, diagnóstico, código CIE-10 sugerido y medicamentos.
+- [ ] Soporta documentos en texto plano e imágenes médicas base64 (multimodal).
+- [ ] Si la API Key no está configurada o la red falla, el fallback heurístico responde en menos de 200ms sin romper la ejecución.
+- [ ] La salida generada se valida limpiamente contra el modelo \`DatosClinicosExtraidos\`."
 
 # T-05
-echo "📌 Creando T-05: Modelos Pydantic para Validación Clínica en Python..."
+echo "📌 Creando T-05: Grafo de Decisión Condicional y Reglas de Enrutamiento..."
 gh issue create \
-  --title "T-05 — Modelos Pydantic para Validación Clínica en Python" \
-  --label "type: schema,priority: high" \
-  --body "### Descripción
-Implementar las clases Pydantic v2 en \`src/models.py\` correspondientes a los JSON Schemas de entrada, extracción clínica y respuesta de triaje, permitiendo tipado estricto en los scripts de Python y en la UI.
+  --title "T-05 — Grafo de Decisión Condicional y Reglas de Enrutamiento" \
+  --label "type: workflow,priority: critical" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: critical\` |
+| **Tipo** | \`type: workflow\` |
+| **Dependencias** | T-03 |
+| **Complejidad** | Media (2-3 horas) |
+| **Rol** | Backend Engineer |
+| **Branch** | \`feature/T-05-grafo-decision-enrutamiento\` |
+| **Commit ejemplo** | \`feat(T-05): implementar bifurcaciones condicionales y reglas de enrutamiento\` |
+
+### Descripción
+Implementar el motor de enrutamiento y reglas clínicas condicionales en \`graph.py\` para evaluar la gravedad del documento, el score de confianza y determinar el destino departamental correspondiente.
 
 ### Entregables
-- Módulo \`src/models.py\` con \`DocumentoInput\`, \`Paciente\`, \`Medico\`, \`ExtraccionClinica\`, \`DecisionEnrutamiento\` y \`RespuestaTriaje\`.
-- Métodos de serialización y validación \`model_validate_json()\`.
+- \`[MODIFICAR]\` \`backend-api/app/agent/graph.py\` — Grafo de decisión que evalúa el diagnóstico extraído, palabras clave de riesgo vital, nivel de confianza y tipo de documento para generar la clasificación y enrutamiento final.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Lógica del Grafo Condicional).
 
 ### Criterios de Aceptación
-- [ ] Validación estricta con Pydantic v2 sin errores de tipos.
-- [ ] Serialización con alias compatibles (\`nome\` / \`nombre\`).
-- [ ] Métodos auxiliares para determinar automáticamente si requiere auditoría humana."
+- [ ] Detecta hallazgos críticos (TEP, infarto, hemorragia, shock) y asigna prioridad \`Urgente\`, destino \`Cola_Emergencia_Medica\` y objeto \`notificacion_generada\`.
+- [ ] Si \`score_confianza < 0.85\` o faltan datos esenciales, deriva a \`Cola_Auditoria_Humana\` con \`requiere_auditoria_humana = true\`.
+- [ ] Documentos de rutina sin anomalías: asigna \`Farmacia_Hospitalaria\` si es receta o \`Historia_Clinica_Electronica\` si es estudio general.
+- [ ] Genera el objeto completo \`RespuestaTriaje\` cumpliendo al 100% el contrato de la API."
 
 # T-06
-echo "📌 Creando T-06: Prompt de Sistema y Agente Extractor Multimodal con Google Gemini..."
+echo "📌 Creando T-06: Automatización y Alertas Hospitalarias en n8n..."
 gh issue create \
-  --title "T-06 — Prompt de Sistema y Agente Extractor Multimodal con Google Gemini" \
-  --label "type: ia-agent,priority: critical" \
-  --body "### Descripción
-Diseñar e implementar el módulo en Python (\`src/gemini_extractor.py\`) que consume la API de Google Gemini (Gemini 1.5 Flash / 2.0 Flash) con *Structured Outputs* o modo JSON para extraer las entidades clínicas y calcular el score de confianza.
+  --title "T-06 — Automatización y Alertas Hospitalarias en n8n" \
+  --label "type: workflow,priority: high" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: high\` |
+| **Tipo** | \`type: workflow\` |
+| **Dependencias** | T-04, T-05 |
+| **Complejidad** | Alta (3 horas) |
+| **Rol** | Workflow & DevOps Engineer |
+| **Branch** | \`feature/T-06-n8n-automatizacion-alertas\` |
+| **Commit ejemplo** | \`feat(T-06): configurar servicio n8n y workflow de alertas de triaje\` |
+
+### Descripción
+Configurar el entorno de n8n en Docker y construir el workflow automatizado que recibe el webhook de triaje, evalúa la bifurcación condicional y despacha alertas a canales hospitalarios (Slack/Discord/Webhook).
 
 ### Entregables
-- Módulo \`src/gemini_extractor.py\`.
-- Prompt clínico en \`src/prompts.py\` con instrucciones de rol, detección de CIE-10 y reglas de evaluación de legibilidad.
-- Soporte para entrada en texto plano e imágenes/PDFs en base64.
+- \`[MODIFICAR]\` \`docker-compose.yml\` — Agregar servicio \`n8n\` en puerto 5678 con volumen de datos persistente.
+- \`[CREAR]\` \`workflows/mediflow_triaje_workflow.json\` — Workflow exportado de n8n con nodo Webhook de entrada, integración con la API de MediFlow, bifurcación condicional por severidad y nodos de alerta para guardia médica.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Automatización y Alertas Hospitalarias en n8n).
 
 ### Criterios de Aceptación
-- [ ] La salida de Gemini se ajusta al modelo \`ExtraccionClinica\` sin fallos de parseo.
-- [ ] Reconoce correctamente cuadros de riesgo vital marcando \`nivel_prioridad: Urgente\`.
-- [ ] Infiere el código CIE-10 adecuado (ej. \`I26.9\` para TEP)."
+- [ ] \`docker compose up -d\` levanta el servicio n8n accesible en \`http://localhost:5678\`.
+- [ ] El workflow se puede importar en cualquier instancia de n8n sin errores de nodos faltantes.
+- [ ] Ante documentos de prioridad \`Urgente\`, el workflow dispara la notificación de alerta con datos clínicos clave.
+- [ ] Ante documentos de rutina o HITL, el workflow ejecuta la acción correspondiente sin disparar alertas sonoras de urgencia."
 
 # T-07
-echo "📌 Creando T-07: Motor de Lógica de Decisión Condicional y Reglas de Enrutamiento..."
+echo "📌 Creando T-07: Frontend: Panel Human-in-the-Loop para Auditoría Médica y Aprobación 1-clic..."
 gh issue create \
-  --title "T-07 — Motor de Lógica de Decisión Condicional y Reglas de Enrutamiento" \
-  --label "type: workflow,priority: critical" \
-  --body "### Descripción
-Construir la función de evaluación condicional (\`src/routing_engine.py\`) que recibe la extracción de Gemini y aplica el árbol de decisiones: evalúa score de confianza (< 0.85 ➔ Auditoría), detecta urgencias críticas (➔ Guardia + Alerta) y enruta el resto según especialidad/tipo de documento.
+  --title "T-07 — Frontend: Panel Human-in-the-Loop para Auditoría Médica y Aprobación 1-clic" \
+  --label "type: frontend,priority: high" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: high\` |
+| **Tipo** | \`type: frontend\` |
+| **Dependencias** | T-11 |
+| **Complejidad** | Media (2-3 horas) |
+| **Rol** | Frontend Engineer |
+| **Branch** | \`feature/T-07-frontend-panel-hitl\` |
+| **Commit ejemplo** | \`feat(T-07): crear componente PanelHITL para auditoria medica 1-clic\` |
+
+### Descripción
+Desarrollar el panel de auditoría clínica en la aplicación React para que un auditor médico pueda inspeccionar casos ambiguos (\`score_confianza < 0.85\`), corregir datos y aprobar o rechazar el triaje con 1 clic.
 
 ### Entregables
-- Módulo \`src/routing_engine.py\` con función \`evaluar_enrutamiento(extraccion) -> DecisionEnrutamiento\`.
-- Pruebas unitarias en \`tests/test_routing.py\` validando las tres ramas del árbol de decisión.
+- \`[CREAR]\` \`frontend/src/components/PanelHITL.tsx\` — Componente interactivo de auditoría médica con formulario editable de campos clínicos.
+- \`[MODIFICAR]\` \`frontend/src/App.tsx\` — Integración del panel que se activa condicionalmente cuando \`requiere_auditoria_humana === true\`.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Panel Human-in-the-Loop).
 
 ### Criterios de Aceptación
-- [ ] Confianza < 0.85 desvía obligatoriamente a \`Cola_Auditoria_Humana\` con \`requiere_auditoria_humana = true\`.
-- [ ] Prioridad \`Urgente\` desvía a \`Cola_Emergencia_Medica\` y genera mensaje de alerta médica.
-- [ ] Recetas estándar van a \`Farmacia_Hospitalaria\` y estudios a \`Historia_Clinica_Electronica\`."
+- [ ] Se despliega automáticamente cuando el resultado del triaje indica \`requiere_auditoria_humana = true\`.
+- [ ] Permite al auditor editar campos extraídos (nombre del paciente, diagnóstico principal, código CIE-10).
+- [ ] Dispone de botones de acción: '✅ Aprobar Extracción (1-clic)' y '❌ Rechazar'.
+- [ ] Consume el endpoint \`POST /api/v1/auditoria/{documento_id}\` con \`auditor_id\`, \`resolucion\` y \`motivo\`.
+- [ ] Proporciona retroalimentación visual clara al completar la resolución."
 
 # T-08
-echo "📌 Creando T-08: Conector de Persistencia en OCI Object Storage (Always Free)..."
+echo "📌 Creando T-08: Suite de Pruebas Automatizadas y Validación de Contratos..."
 gh issue create \
-  --title "T-08 — Conector de Persistencia en OCI Object Storage (Always Free)" \
-  --label "type: cloud-oci,priority: high" \
-  --body "### Descripción
-Implementar el cliente de integración con Oracle Cloud Infrastructure (\`src/oci_storage.py\`) utilizando el SDK de Python \`oci\`. Debe soportar subida de objetos y segregación por carpetas (\`/recibidos\`, \`/procesados/urgentes\`, \`/auditoria_humana\`), con modo fallback/mock para desarrollo local.
+  --title "T-08 — Suite de Pruebas Automatizadas y Validación de Contratos" \
+  --label "type: dataset,priority: high" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: high\` |
+| **Tipo** | \`type: dataset\` |
+| **Dependencias** | T-02, T-05 |
+| **Complejidad** | Media (2 horas) |
+| **Rol** | QA & Datasets Engineer / Backend |
+| **Branch** | \`feature/T-08-suite-pruebas-contrato\` |
+| **Commit ejemplo** | \`test(T-08): ampliar tests de contrato para 3 casos y auditoria hitl\` |
+
+### Descripción
+Implementar la suite de pruebas automatizadas con \`pytest\` para validar de punta a punta los contratos OpenAPI y las reglas de negocio en los 3 casos clínicos obligatorios.
 
 ### Entregables
-- Módulo \`src/oci_storage.py\` con métodos \`subir_documento()\` y \`verificar_bucket()\`.
-- Soporte para autenticación por archivo de configuración de OCI (\`~/.oci/config\`) o variables de entorno.
-- Modo simulación local para pruebas cuando no se cuente con credenciales activas.
+- \`[MODIFICAR]\` \`backend-api/tests/test_contract.py\` — Pruebas unitarias y de integración para Caso 1 (Rutina), Caso 2 (Urgencia TEP), Caso 3 (Ambiguo HITL), Endpoint de Auditoría (\`POST /api/v1/auditoria/{id}\`) y Métricas (\`GET /api/v1/metricas\`).
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Ejecución de Pruebas de Contrato Automatizadas).
 
 ### Criterios de Aceptación
-- [ ] Sube correctamente el archivo JSON y el documento original con la ruta segregada por estado.
-- [ ] Retorna el bloque \`almacenamiento_oci\` conforme al schema (\`bucket\`, \`ruta_objeto\`, \`status_backup: exito\`).
-- [ ] Incluye manejo de excepciones y reintentos en caso de timeout de red."
+- [ ] Ejecutar \`pytest backend-api/tests/ -v\` resulta en 100% de pruebas aprobadas (mínimo 5 tests).
+- [ ] Valida esquemas de respuesta exitosa (200) y de error tipado (400, 404).
+- [ ] Valida que el caso TEP active la alerta crítica y que el caso ambiguo active HITL.
+- [ ] La suite se ejecuta limpiamente en el pipeline de GitHub Actions (\`.github/workflows/ci.yml\`)."
 
 # T-09
-echo "📌 Creando T-09: Configuración de Docker Compose para n8n Local..."
+echo "📌 Creando T-09: Conector de Persistencia en OCI Object Storage con Instance Principal y Mock Local..."
 gh issue create \
-  --title "T-09 — Configuración de Docker Compose para n8n Local" \
-  --label "type: workflow,priority: medium" \
-  --body "### Descripción
-Crear el archivo \`docker-compose.yml\` para levantar una instancia local de n8n con persistencia en volumen y variables de entorno preconfiguradas, permitiendo que el equipo diseñe y pruebe flujos sin coste.
+  --title "T-09 — Conector de Persistencia en OCI Object Storage con Instance Principal y Mock Local" \
+  --label "type: cloud-oci,priority: high" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: high\` |
+| **Tipo** | \`type: cloud-oci\` |
+| **Dependencias** | T-01 |
+| **Complejidad** | Media (2-3 horas) |
+| **Rol** | Cloud & OCI Engineer |
+| **Branch** | \`feature/T-09-conector-oci-storage\` |
+| **Commit ejemplo** | \`feat(T-09): implementar conector oci storage con instance principal y mock\` |
+
+### Descripción
+Implementar el servicio conector con OCI Object Storage en \`oci.py\` que soporte autenticación segura por Instance Principal (sin credenciales estáticas), persistencia de metadatos JSON y modo Mock local transparente.
 
 ### Entregables
-- Archivo \`docker-compose.yml\` en la raíz configurando el servicio \`n8n\`.
-- Documentación breve en \`docs/n8n_setup.md\` con comandos \`docker compose up -d\` y credenciales por defecto.
+- \`[MODIFICAR]\` \`backend-api/app/services/oci.py\` — Servicio OCI con soporte para autenticación Instance Principal, segregación en carpetas según triaje (\`/recibidos/\`, \`/procesados/urgentes/\`, \`/procesados/farmacia/\`, \`/auditoria_humana/\`) y persistencia local simulada en \`data_mock_oci/\`.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Persistencia en OCI Object Storage).
 
 ### Criterios de Aceptación
-- [ ] \`docker compose up -d\` levanta n8n en el puerto \`5678\`.
-- [ ] Los datos y credenciales persisten tras reiniciar el contenedor (\`n8n_data\` volumen)."
+- [ ] Si \`OCI_MOCK_MODE=true\`, persiste los archivos localmente en \`data_mock_oci/\` simulando la estructura del bucket sin requerir cuenta OCI activa.
+- [ ] Si se ejecuta en una VM de OCI, se autentica mediante \`InstancePrincipalsSecurityTokenSigner\` sin claves privadas en disco.
+- [ ] Los documentos y sus metadatos se organizan en las subcarpetas del bucket según la decisión del triaje.
+- [ ] Permite consultar el estado de persistencia de un documento mediante su \`documento_id\`."
 
 # T-10
-echo "📌 Creando T-10: Workflow de n8n: Webhook, Nodos de IA y Bifurcación Condicional..."
+echo "📌 Creando T-10: Guía y Script para Despliegue en OCI Compute VM Ampere A1 (Always Free)..."
 gh issue create \
-  --title "T-10 — Workflow de n8n: Webhook, Nodos de IA y Bifurcación Condicional" \
-  --label "type: workflow,priority: critical" \
-  --body "### Descripción
-Construir y exportar el workflow visual completo en n8n: Webhook de entrada (\`POST /webhook/triaje\`), nodo de consulta al LLM Gemini (o API Python), nodos de bifurcación condicional (\`Switch\` / \`IF\`) y nodo de respuesta HTTP con el JSON estructurado.
+  --title "T-10 — Guía y Script para Despliegue en OCI Compute VM Ampere A1 (Always Free)" \
+  --label "type: cloud-oci,priority: medium" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: medium\` |
+| **Tipo** | \`type: cloud-oci\` |
+| **Dependencias** | T-01, T-09 |
+| **Complejidad** | Media (2 horas) |
+| **Rol** | Cloud & DevOps Engineer |
+| **Branch** | \`feature/T-10-guia-script-despliegue-oci\` |
+| **Commit ejemplo** | \`docs(T-10): crear guia de despliegue en vm ampere a1 y script de setup\` |
+
+### Descripción
+Elaborar la guía técnica paso a paso y el script de aprovisionamiento automatizado para desplegar la arquitectura completa de MediFlow en una instancia OCI Compute VM Ampere A1 (Always Free: 4 OCPU, 24 GB RAM, Ubuntu 22.04).
 
 ### Entregables
-- Archivo exportado \`workflows/mediflow_triaje_workflow.json\` importable en cualquier n8n.
-- Diagrama del workflow en captura de pantalla para el README.
-- Conexión con los 3 flujos de salida (Urgente, Estándar, Auditoría).
+- \`[CREAR]\` \`docs/oci_deployment_guide.md\` — Manual de arquitectura y despliegue en OCI con pasos para creación de VM, VCN, Security Lists e IAM Dynamic Group para Instance Principal.
+- \`[CREAR]\` \`scripts/deploy-oci.sh\` — Script bash de aprovisionamiento en la VM (instalación de Docker, clonado, docker compose y apertura de puertos).
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Despliegue en OCI Compute VM Ampere A1).
 
 ### Criterios de Aceptación
-- [ ] El webhook recibe un payload de entrada y responde con el JSON de salida formal de MediFlow.
-- [ ] El nodo condicional evalúa el score de confianza y el nivel de urgencia.
-- [ ] El archivo exportado se importa sin errores en una instalación limpia de n8n."
+- [ ] La guía cubre detalladamente la apertura de puertos en OCI Ingress Rules (8000, 8501, 5678).
+- [ ] Documenta la configuración del Dynamic Group y política IAM para que la VM tenga permiso \`manage objects\` en el bucket sin claves estáticas.
+- [ ] El script \`deploy-oci.sh\` es idempotente y funcional en Ubuntu 22.04 LTS aarch64/x86_64."
 
 # T-11
-echo "📌 Creando T-11: Integración de Notificaciones de Alerta en n8n (Slack / Webhook)..."
+echo "📌 Creando T-11: Frontend: Dashboard Clínico en React (Vite + TS), Selector de Casos Demo y Visor Split-Screen..."
 gh issue create \
-  --title "T-11 — Integración de Notificaciones de Alerta en n8n (Slack / Webhook)" \
-  --label "type: workflow,priority: medium" \
-  --body "### Descripción
-Añadir al workflow de n8n un nodo de notificación instantánea (Slack Webhook, Discord o Email) que se dispare exclusivamente cuando el triaje detecte prioridad \`Urgente\`.
+  --title "T-11 — Frontend: Dashboard Clínico en React (Vite + TS), Selector de Casos Demo y Visor Split-Screen" \
+  --label "type: frontend,priority: critical" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: critical\` |
+| **Tipo** | \`type: frontend\` |
+| **Dependencias** | T-01, T-02 |
+| **Complejidad** | Alta (3-4 horas) |
+| **Rol** | Frontend Engineer |
+| **Branch** | \`feature/T-11-frontend-dashboard-splitscreen\` |
+| **Commit ejemplo** | \`feat(T-11): crear dashboard clinico en react con visor split-screen\` |
+
+### Descripción
+Construir la interfaz de usuario en React 18 con Vite y TypeScript, incorporando el selector interactivo de los 3 casos demo, carga de archivos y el layout clínico Split-Screen para visualización ergonómica en tiempo real.
 
 ### Entregables
-- Nodo de Slack/Webhook integrado en \`workflows/mediflow_triaje_workflow.json\`.
-- Mensaje formateado con icono de alerta roja, nombre del paciente, diagnóstico crítico (ej. TEP) y canal emisor.
+- \`[MODIFICAR]\` \`frontend/package.json\` — Dependencias de React 18, Vite, Lucide-React y tooling de build.
+- \`[MODIFICAR]\` \`frontend/vite.config.ts\` — Configuración de Vite con proxy hacia backend en puerto 8000 y servidor en 8501.
+- \`[CREAR]\` \`frontend/src/App.tsx\` — Aplicación principal con Header clínico, selector rápido de casos demo (1-clic), layout Split-Screen y badges cromáticos de prioridad.
+- \`[CREAR]\` \`frontend/src/index.css\` — Estilos globales con paleta oscura hospitalaria de alto contraste.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Frontend en React 18 + Vite).
 
 ### Criterios de Aceptación
-- [ ] Se envía un mensaje al canal configurado cuando la prioridad es \`Urgente\`.
-- [ ] No envía notificaciones en casos de \`Rutina\` o \`Prioritario\`."
+- [ ] La interfaz corre en \`http://localhost:8501\` con tiempo de carga rápido y sin errores de consola.
+- [ ] Los 3 botones demo cargan instantáneamente los textos correspondientes a los casos oficiales.
+- [ ] El layout Split-Screen muestra el documento fuente a la izquierda y el diagnóstico estructurado con CIE-10 a la derecha.
+- [ ] Muestra badges cromáticos dinámicos según la prioridad (Rojo Urgente pulsante, Ámbar Prioritario, Verde Rutina).
+- [ ] Se conecta fluidamente con \`POST /api/v1/triaje\` y maneja estados de carga y errores."
 
 # T-12
-echo "📌 Creando T-12: UI React: Selector de Casos Demo y Subida de Archivos..."
+echo "📌 Creando T-12: Documentación Final: README.md del Proyecto y Diagramas de Arquitectura..."
 gh issue create \
-  --title "T-12 — UI React: Selector de Casos Demo y Subida de Archivos" \
-  --label "type: frontend,priority: high" \
-  --body "### Descripción
-Construir la pantalla principal en React 18 + Vite (\`frontend/src/App.tsx\`) con la barra superior de métricas del hospital, selector de casos preconfigurados de prueba (Caso 1, 2 y 3) y componente de subida de archivos para PDFs o imágenes.
+  --title "T-12 — Documentación Final: README.md del Proyecto y Diagramas de Arquitectura" \
+  --label "type: docs,priority: critical" \
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: critical\` |
+| **Tipo** | \`type: docs\` |
+| **Dependencias** | T-06, T-09, T-11 |
+| **Complejidad** | Media (2 horas) |
+| **Rol** | Team Leader / QA |
+| **Branch** | \`feature/T-12-documentacion-final-readme\` |
+| **Commit ejemplo** | \`docs(T-12): actualizar readme con arquitectura completa y casos demo\` |
+
+### Descripción
+Consolidar el \`README.md\` principal del repositorio con la presentación ejecutiva del proyecto, diagramas de arquitectura en Mermaid, tabla de cumplimiento de requisitos de la hackathon e instrucciones de ejecución local y en la nube.
 
 ### Entregables
-- Proyecto configurado con Vite + React + TypeScript en \`frontend/\`.
-- Tipos de TypeScript autogenerados con \`frontend/scripts/generate-api.sh\`.
-- Selector rápido con un clic para cargar los datos de \`datasets/\` sin necesidad de buscar archivos.
+- \`[MODIFICAR]\` \`README.md\` — Documento de presentación principal con badges de build, resumen del problema, arquitectura técnica, guía rápida de inicio (\`docker compose up -d\`) y evidencia de los 3 casos clínicos.
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Documentación Final).
 
 ### Criterios de Aceptación
-- [ ] La aplicación inicia limpiamente con \`npm run dev\` en el puerto 8501.
-- [ ] Permite alternar entre los 3 casos demo cargando sus textos y metadatos al instante.
-- [ ] Soporta subir archivos PDF o imágenes vía drag & drop."
+- [ ] Incluye diagrama de flujo del agente y grafo de decisión en sintaxis Mermaid.
+- [ ] Describe claramente cómo MediFlow utiliza Oracle Cloud Infrastructure Always Free (Object Storage, VM Ampere A1).
+- [ ] Explica los 3 casos clínicos de prueba obligatorios con ejemplos de entrada/salida.
+- [ ] Enlaces funcionales a la documentación técnica interna (\`docs/\`)."
 
 # T-13
-echo "📌 Creando T-13: UI React: Visor Split-Screen y Panel de Resultados de Triaje..."
+echo "📌 Creando T-13: Preparación del Guión, Pitch y Video Demo..."
 gh issue create \
-  --title "T-13 — UI React: Visor Split-Screen y Panel de Resultados de Triaje" \
-  --label "type: frontend,priority: high" \
-  --body "### Descripción
-Implementar el layout Split-Screen en React (2 columnas): columna izquierda mostrando el documento fuente y columna derecha mostrando los datos clínicos extraídos, badges cromáticos de prioridad (Rojo/Ámbar/Verde), código CIE-10 y destino de enrutamiento.
-
-### Entregables
-- Componentes modulares en \`frontend/src/\`.
-- Badges con la paleta de \`docs/design_system.md\` para prioridad y CIE-10.
-- Integración con la API FastAPI en \`http://localhost:8000/api/v1/triaje\`.
-
-### Criterios de Aceptación
-- [ ] Muestra el documento original al lado de los datos extraídos por la IA.
-- [ ] Muestra badge rojo pulsante ante casos de urgencia con la notificación generada.
-- [ ] Visualiza el estado y ruta de respaldo en OCI Object Storage."
-
-# T-14
-echo "📌 Creando T-14: UI React: Panel Human-in-the-Loop (Auditoría Médica)..."
-gh issue create \
-  --title "T-14 — UI React: Panel Human-in-the-Loop (Auditoría Médica)" \
-  --label "type: frontend,priority: high" \
-  --body "### Descripción
-Construir la sección interactiva de auditoría humana: cuando el documento tenga baja confianza (< 0.85) o esté en \`auditoria_humana\`, la interfaz debe habilitar un formulario editable donde el médico pueda corregir campos dudosos y pulsar \`[Aprobar y Enrutar]\` o \`[Rechazar]\`.
-
-### Entregables
-- Componente de auditoría en \`frontend/src/\`.
-- Botón de aprobación con retroalimentación visual inmediata conectando a \`POST /api/v1/auditoria/{id}\`.
-- Actualización simulada o directa del estado en OCI Object Storage a \`/procesados/\`.
-
-### Criterios de Aceptación
-- [ ] Se activa automáticamente en casos con score < 0.85 o marcados como ambiguos.
-- [ ] Permite modificar el diagnóstico, médico o CIE-10 antes de aprobar.
-- [ ] Al hacer clic en Aprobar, muestra confirmación visual y actualiza el estado a \`procesado\`."
-
-# T-15
-echo "📌 Creando T-15: Suite de Pruebas Automatizadas de Extracción y Enrutamiento..."
-gh issue create \
-  --title "T-15 — Suite de Pruebas Automatizadas de Extracción y Enrutamiento" \
-  --label "type: dataset,priority: high" \
-  --body "### Descripción
-Crear el script de prueba integral \`tests/test_pipeline.py\` (usando \`pytest\` o \`unittest\`) que ejecute los 3 datasets de prueba contra el motor de routing y verifique que las respuestas cumplen 100% con los esquemas y las decisiones esperadas.
-
-### Entregables
-- Archivo \`tests/test_pipeline.py\`.
-- Ejecución reproducible con un comando (\`python -m pytest tests/\`).
-
-### Criterios de Aceptación
-- [ ] Pasan las 3 pruebas unitarias de los 3 casos clínicos obligatorios.
-- [ ] Todas las respuestas validan contra `schemas/triage_response.json`."
-
-# T-16
-echo "📌 Creando T-16: Documentación Final: README.md del Proyecto y Diagrama de Arquitectura..."
-gh issue create \
-  --title "T-16 — Documentación Final: README.md del Proyecto y Diagrama de Arquitectura" \
-  --label "type: docs,priority: critical" \
-  --body "### Descripción
-Redactar el `README.md` principal del repositorio según las exigencias del pliego de la hackathon: resumen ejecutivo, arquitectura visual, diagrama del grafo del agente, instrucciones paso a paso para clonar y ejecutar (React + n8n + OCI) y resumen de los 3 casos de demostración.
-
-### Entregables
-- Archivo `README.md` en la raíz con badges de tecnologías (ONE, OCI, Gemini, n8n, Python, React).
-- Diagrama de arquitectura y flujo del agente en Mermaid y capturas.
-- Guía de inicio rápido para los evaluadores.
-
-### Criterios de Aceptación
-- [ ] Contiene todas las secciones evaluables requeridas por el pliego.
-- [ ] Instrucciones claras que permiten a un tercero levantar el proyecto en 3 comandos.
-- [ ] Enlaces funcionales a la documentación en `docs/`."
-
-# T-17
-echo "📌 Creando T-17: Guía y Script para Despliegue en OCI Compute VM (Always Free)..."
-gh issue create \
-  --title "T-17 — Guía y Script para Despliegue en OCI Compute VM (Always Free)" \
-  --label "type: cloud-oci,priority: low" \
-  --body "### Descripción
-Documentar y preparar los scripts para el recurso diferencial opcional: despliegue de los contenedores de n8n y React en una máquina virtual Always Free de Oracle Cloud (Ubuntu/Oracle Linux) con IP pública.
-
-### Entregables
-- Guía \`docs/oci_deployment_guide.md\` con comandos para abrir puertos (5678, 8501) en Security Lists e iptables.
-- Script de aprovisionamiento \`scripts/deploy_oci_vm.sh\`.
-
-### Criterios de Aceptación
-- [ ] Instrucciones claras y probadas para desplegar en OCI Compute.
-- [ ] Explica cómo configurar las reglas de ingreso (*Ingress Rules*) en la VCN de Oracle Cloud."
-
-# T-18
-echo "📌 Creando T-18: Preparación del Guión y Grabación del Video de Demostración..."
-gh issue create \
-  --title "T-18 — Preparación del Guión y Grabación del Video de Demostración" \
+  --title "T-13 — Preparación del Guión, Pitch y Video Demo" \
   --label "type: docs,priority: high" \
-  --body "### Descripción
-Elaborar el guión de la demostración para el jurado cubriendo los 3 casos de prueba en menos de 5 minutos: 1. Demostración de receta rutinaria a farmacia, 2. Alerta de urgencia crítica TEP, 3. Caso ambiguo resuelto mediante Human-in-the-Loop, y persistencia en buckets de OCI.
+  --body "| Campo | Valor |
+|---|---|
+| **Prioridad** | \`priority: high\` |
+| **Tipo** | \`type: docs\` |
+| **Dependencias** | T-11, T-12 |
+| **Complejidad** | Media (2-3 horas) |
+| **Rol** | Team Leader & Equipo Completo |
+| **Branch** | \`feature/T-13-guion-video-demo\` |
+| **Commit ejemplo** | \`docs(T-13): crear guion estructurado para pitch y video de 5 minutos\` |
+
+### Descripción
+Redactar el guión de presentación para el pitch de la hackathon y grabar el video de demostración técnica (máximo 5 minutos) mostrando la ejecución en vivo de los 3 escenarios clínicos y la persistencia en OCI.
 
 ### Entregables
-- Guión de presentación en \`docs/pitch_demo_script.md\`.
-- Checklist de preparación para la grabación o presentación en vivo ante el jurado de Alura/Oracle.
+- \`[CREAR]\` \`docs/pitch_demo_script.md\` — Guión minuto a minuto para el video de presentación (introducción del problema, demo del caso urgente TEP, demo del caso HITL, arquitectura OCI y cierre de impacto).
+
+### Referencia técnica
+Ver \`docs/guia-desarrollo.md\` (Sección 2: Preparación del Guión y Pitch).
 
 ### Criterios de Aceptación
-- [ ] El guión cubre todos los puntos de la rúbrica de evaluación en el tiempo establecido.
-- [ ] Muestra explícitamente el bucket de OCI Object Storage con los archivos generados."
+- [ ] El guión está diseñado para un video demostrativo de no más de 5 minutos.
+- [ ] Demuestra en vivo el procesamiento de los 3 casos clínicos obligatorios en la UI.
+- [ ] Muestra evidencia visual de la alerta de urgencia y del panel de aprobación HITL en 1-clic.
+- [ ] Muestra los archivos resultantes almacenados en OCI Object Storage."
 
-echo "✅ ¡Todas las GitHub Issues de MediFlow (T-01 a T-18) y sus etiquetas han sido creadas con éxito!"
+echo "✅ Todos los 13 issues del backlog han sido procesados exitosamente."

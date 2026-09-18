@@ -1,6 +1,7 @@
 # 🔄 Guía de Flujo de Trabajo (Workflow) – MediFlow
 **Metodología:** Schema-Driven Development (SDD)  
 **Proyecto:** MediFlow – Hackathon ONE G10  
+**Repositorio Oficial:** [`https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA`](https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA)  
 **Equipo:** 8 Integrantes  
 **Versión del Documento:** 2.0.0  
 
@@ -31,8 +32,8 @@ Para garantizar un historial de Git limpio, semántico y profesional (evaluado e
 | `style` | Formato, espacios en blanco, estilos CSS/UI | `style(T-13): ajustar paleta semantica de badges de prioridad` |
 
 ### 1.2 Alcances (Scopes) del Proyecto
-El alcance debe corresponder al **ID de la tarea atómica** (`T-01` a `T-18`) o al área técnica afectada:
-* `(T-XX)`: Ejemplo `feat(T-06): prompt de extraccion multimodal`.
+El alcance debe corresponder al **ID de la tarea consolidada** (`T-01` a `T-13`) o al área técnica afectada:
+* `(T-XX)`: Ejemplo `feat(T-04): prompt de extraccion multimodal`.
 * `(schemas)`, `(n8n)`, `(gemini)`, `(oci)`, `(frontend)`, `(datasets)`, `(docs)`.
 
 ---
@@ -46,12 +47,12 @@ El proyecto utiliza tags de Git siguiendo la especificación **`vMAJOR.MINOR.PAT
 * **PATCH (`v0.X.Y`):** Correcciones de bugs o ajustes en schemas/prompts.
 
 ### Matriz de Hitos y Versiones
-* **`v0.1.0` (Hito 1):** Especificación SDD, JSON Schemas validados, HUs y Backlog inicial.
-* **`v0.2.0` (Hito 2):** Datasets clínicos oficiales (T-02, T-03, T-04) y modelos Pydantic (T-05).
-* **`v0.3.0` (Hito 3):** Agente Gemini (T-06), motor de routing (T-07) y persistencia OCI (T-08).
-* **`v0.4.0` (Hito 4):** Workflow n8n exportable (T-10) y alertas Slack (T-11).
-* **`v0.5.0` (Hito 5):** UI en React (Vite) con visualizador Split-Screen y panel HITL (T-12, T-13, T-14).
-* **`v1.0.0` (Hito Final):** MVP validado en los 3 casos clínicos con documentación final y demo.
+* **`v0.1.0` (Hito 1):** Especificación SDD, OpenAPI 3.0.3 validado, HUs y Backlog inicial (`T-01`).
+* **`v0.2.0` (Hito 2):** Datasets clínicos oficiales (`T-02`) y modelos Pydantic v2 (`T-03`).
+* **`v0.3.0` (Hito 3):** Agente Gemini (`T-04`), motor de routing (`T-05`) y persistencia OCI (`T-09`).
+* **`v0.4.0` (Hito 4):** Automatización en n8n y alertas (`T-06`).
+* **`v0.5.0` (Hito 5):** UI en React (Vite) con visualizador Split-Screen (`T-11`) y panel HITL (`T-07`).
+* **`v1.0.0` (Hito Final):** Pruebas de contrato (`T-08`), despliegue OCI (`T-10`), documentación final (`T-12`) y pitch demo (`T-13`).
 
 ---
 
@@ -69,7 +70,7 @@ Para coordinar eficientemente a los 8 integrantes del equipo, cada tarea del bac
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 2. SETUP DE RAMA                                            │
-│    git checkout main && git pull origin main                │
+│    git checkout develop && git pull origin develop          │
 │    git checkout -b feature/T-XX-descripcion                 │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -83,17 +84,17 @@ Para coordinar eficientemente a los 8 integrantes del equipo, cada tarea del bac
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. SINCRONIZACIÓN OBLIGATORIA CON MAIN (Evitar conflictos)  │
-│    git checkout main && git pull origin main                │
+│ 4. SINCRONIZACIÓN OBLIGATORIA CON DEVELOP (Evitar conflictos│
+│    git checkout develop && git pull origin develop          │
 │    git checkout feature/T-XX-descripcion                    │
-│    git merge main                                           │
+│    git merge develop                                        │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 5. PUSH Y APERTURA DE PULL REQUEST                          │
 │    git push -u origin feature/T-XX-descripcion              │
-│    Crear PR usando la plantilla .github/PULL_REQUEST_...    │
+│    Crear PR usando la plantilla hacia 'develop'             │
 │    Incluir 'Closes #XX' para auto-cierre                    │
 │    Estado: 🔍 status: in-review                             │
 └────────────────────────┬────────────────────────────────────┘
@@ -108,7 +109,7 @@ Para coordinar eficientemente a los 8 integrantes del equipo, cada tarea del bac
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 7. CIERRE Y MERGE (Squash and Merge)                        │
-│    Merge a main mediante Squash and Merge                   │
+│    Merge a develop mediante Squash and Merge                │
 │    Eliminar rama remota                                     │
 │    El Issue se cierra automáticamente y pasa a ✅ Done      │
 └─────────────────────────────────────────────────────────────┘
@@ -123,11 +124,11 @@ Revisar [`docs/backlog.md`](backlog.md) o el tablero de GitHub Projects. Tomar u
 
 ### Paso 2 — Setup de Rama
 ```bash
-git checkout main
-git pull origin main
+git checkout develop
+git pull origin develop
 git checkout -b feature/T-06-gemini-extractor
 ```
-> **Regla:** Siempre crear la rama desde `main` actualizado. Nunca desde otra rama de desarrollo.
+> **Regla:** Siempre crear la rama desde `develop` actualizado. Nunca desde otra rama de desarrollo.
 
 ### Paso 3 — Implementación y Commits
 ```bash
@@ -136,13 +137,13 @@ git add .
 git commit -m "feat(T-06): prompt de extraccion clinica con Gemini"
 ```
 
-### Paso 4 — Sincronización Obligatoria con `main`
+### Paso 4 — Sincronización Obligatoria con `develop`
 Antes de abrir el PR, sincronizar con lo que otros compañeros hayan mergeado:
 ```bash
-git checkout main
-git pull origin main
+git checkout develop
+git pull origin develop
 git checkout feature/T-06-gemini-extractor
-git merge main
+git merge develop
 ```
 * **Si NO hay conflictos:** Continuar al siguiente paso.
 * **Si HAY conflictos:** Resolverlos manualmente en el editor, guardar y:

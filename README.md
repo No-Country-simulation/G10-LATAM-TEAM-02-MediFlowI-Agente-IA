@@ -125,13 +125,13 @@ Cumpliendo estrictamente con el pliego y la política social del programa ONE, l
 
 ## 🧪 Los 3 Escenarios Clínicos de Prueba (Demostrables)
 
-El sistema incluye muestras clínicas sintéticas en `data/samples/` para validar los 3 flujos exigidos:
+El sistema incluye datasets clínicos en `datasets/` para validar los 3 flujos exigidos en la hackathon:
 
-| # | Escenario Clínico | Archivo de Muestra | Diagnóstico & CIE-10 | Score | Decisión de Enrutamiento | Destino en OCI |
+| # | Escenario Clínico | Archivo de Entrada | Diagnóstico & CIE-10 | Score | Decisión de Enrutamiento | Destino en OCI |
 |---|---|---|---|:---:|---|---|
-| **1** | **Flujo Estándar** | [`caso_02_receta_rutina.txt`](data/samples/caso_02_receta_rutina.txt) | Hipertensión Arterial (`I10`) | `0.99` | `Farmacia_Hospitalaria` | `/procesados/farmacia/` |
-| **2** | **Urgencia Médica Crítica** | [`caso_01_urgencia_tep.txt`](data/samples/caso_01_urgencia_tep.txt) | Tromboembolismo Pulmonar (`I26.9`) | `0.99` | `Cola_Emergencia_Medica` + Alerta | `/procesados/urgentes/` |
-| **3** | **Ambigüedad (HITL)** | [`caso_03_dudoso_hitl.txt`](data/samples/caso_03_dudoso_hitl.txt) | Borroso / Ilegible | `0.62` | `Cola_Auditoria_Humana` | `/auditoria_humana/` |
+| **1** | **Flujo Estándar** | [`datasets/caso_1_estandar_receta.json`](datasets/caso_1_estandar_receta.json) | Hipertensión Arterial (`I10`) | `0.95` | `Farmacia_Hospitalaria` | `/procesados/farmacia/` |
+| **2** | **Urgencia Médica Crítica** | [`datasets/caso_2_urgencia_tep.json`](datasets/caso_2_urgencia_tep.json) | Tromboembolismo Pulmonar (`I26.9`) | `0.99` | `Cola_Emergencia_Medica` + Alerta | `/procesados/urgentes/` |
+| **3** | **Ambigüedad (HITL)** | [`datasets/caso_3_ambiguo_hitl.json`](datasets/caso_3_ambiguo_hitl.json) | Borroso / Ilegible | `< 0.85` | `Cola_Auditoria_Humana` | `/auditoria_humana/` |
 
 ---
 
@@ -143,8 +143,8 @@ El sistema incluye muestras clínicas sintéticas en `data/samples/` para valida
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-organizacion/mediflow.git
-cd mediflow
+git clone https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA.git
+cd G10-LATAM-TEAM-02-MediFlowI-Agente-IA
 ```
 
 ### 2. Configurar variables de entorno
