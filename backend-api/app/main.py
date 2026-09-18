@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.models.schemas import (
     DocumentoClinicoInput,
     RespuestaTriaje,
+    AuditoriaRequest,
     AlmacenamientoOCI,
     StatusTriajeEnum,
     StatusBackupEnum
@@ -101,12 +102,13 @@ def procesar_triaje(doc: DocumentoClinicoInput):
         )
 
 @app.post("/api/v1/auditoria/{documento_id}", tags=["Human-in-the-Loop"])
-def resolver_auditoria(documento_id: str, payload: dict):
+def resolver_auditoria(documento_id: str, payload: AuditoriaRequest):
     """
     Resolución médica Human-in-the-Loop para documentos en revisión.
+    Tipado con AuditoriaRequest (Pydantic v2) alineado a specs/openapi.yaml.
     """
     nueva_ruta = f"procesados/auditados/{documento_id}.json"
-    oci_service.subir_documento(nueva_ruta, payload)
+    oci_service.subir_documento(nueva_ruta, payload.model_dump())
     return {
         "status": "auditoria_completada",
         "documento_id": documento_id,

@@ -119,3 +119,25 @@ class RespuestaTriaje(BaseModel):
     datos_extraidos: DatosClinicosExtraidos
     decision_enrutamiento: DecisionEnrutamiento
     almacenamiento_oci: AlmacenamientoOCI
+
+
+# --- Auditoría Human-in-the-Loop (alineado con specs/openapi.yaml) ---
+class DecisionAuditoriaEnum(str, Enum):
+    aprobado = "aprobado"
+    rechazado = "rechazado"
+
+
+class AuditoriaRequest(BaseModel):
+    """Request body para POST /api/v1/auditoria/{documento_id} según specs/openapi.yaml"""
+    model_config = ConfigDict(use_enum_values=True)
+    decision: DecisionAuditoriaEnum = Field(..., description="Decisión del auditor médico", examples=["aprobado"])
+    auditor_nombre: str = Field(..., description="Nombre del auditor médico", examples=["Dr. Alejandro Morales"])
+    comentarios: Optional[str] = Field(None, description="Observaciones clínicas del auditor", examples=["Confirmada dosis de heparina e indicación de guardia"])
+    datos_corregidos: DatosClinicosExtraidos = Field(..., description="Datos clínicos corregidos o confirmados por el auditor")
+
+
+class ErrorResponse(BaseModel):
+    """Respuesta de error estándar según specs/openapi.yaml"""
+    error: str = Field(..., examples=["ValidationError"])
+    mensaje: str = Field(..., examples=["El campo 'documento_id' es obligatorio y debe ser alfanumérico."])
+

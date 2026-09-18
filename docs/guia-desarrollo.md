@@ -259,16 +259,26 @@ interface PanelHITLProps {
 export const PanelHITL: React.FC<PanelHITLProps> = ({ documentoId, motivoAmbiguedad, onResuelto }) => {
   const [enviando, setEnviando] = useState(false);
 
-  const resolverAuditoria = async (resolucion: 'Aprobado' | 'Rechazado') => {
+  const resolverAuditoria = async (decision: 'aprobado' | 'rechazado') => {
     setEnviando(true);
     try {
       await fetch(`/api/v1/auditoria/${documentoId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          auditor_id: 'AUDITOR-MED-01',
-          resolucion: resolucion,
-          motivo: resolucion === 'Aprobado' ? 'Validado por auditoría médica 1-clic' : 'Documento rechazado por ilegibilidad'
+          decision: decision,
+          auditor_nombre: 'Dr. Auditor Médico',
+          comentarios: decision === 'aprobado' ? 'Validado por auditoría médica 1-clic' : 'Documento rechazado por ilegibilidad',
+          datos_corregidos: {
+            paciente: {
+              nombre: 'Carlos Eduardo Mendes',
+              edad: 52
+            },
+            diagnostico_principal: 'Tromboembolismo Pulmonar Agudo',
+            cie10_sugerido: 'I26.9',
+            medicamentos: [{ nombre: 'Heparina Sodica' }],
+            medico_solicitante: { nombre: 'Dra. Renata Silveira' }
+          }
         })
       });
       onResuelto();
@@ -286,10 +296,10 @@ export const PanelHITL: React.FC<PanelHITLProps> = ({ documentoId, motivoAmbigue
       </h4>
       <p style={{ fontSize: '14px', marginBottom: '12px' }}>{motivoAmbiguedad || 'Documento derivado para validación clínica manual.'}</p>
       <div style={{ display: 'flex', gap: '10px' }}>
-        <button onClick={() => resolverAuditoria('Aprobado')} disabled={enviando} style={{ flex: 1, padding: '10px', background: '#10B981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+        <button onClick={() => resolverAuditoria('aprobado')} disabled={enviando} style={{ flex: 1, padding: '10px', background: '#10B981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
           ✅ Aprobar Extracción (1-clic)
         </button>
-        <button onClick={() => resolverAuditoria('Rechazado')} disabled={enviando} style={{ flex: 1, padding: '10px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+        <button onClick={() => resolverAuditoria('rechazado')} disabled={enviando} style={{ flex: 1, padding: '10px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
           ❌ Rechazar
         </button>
       </div>

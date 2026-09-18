@@ -58,3 +58,38 @@ def test_triaje_hitl_ambiguo_contract():
     assert res["decision_enrutamiento"]["destino_principal"] == "Cola_Auditoria_Humana"
     assert res["decision_enrutamiento"]["requiere_auditoria_humana"] is True
     assert "auditoria_humana" in res["almacenamiento_oci"]["ruta_objeto"]
+
+
+def test_resolver_auditoria_contract():
+    """Valida contrato del endpoint POST /api/v1/auditoria/{documento_id} según openapi.yaml"""
+    payload = {
+        "decision": "aprobado",
+        "auditor_nombre": "Dr. Alejandro Morales",
+        "comentarios": "Confirmada dosis de heparina e indicación de guardia",
+        "datos_corregidos": {
+            "paciente": {
+                "nombre": "Carlos Eduardo Mendes",
+                "edad": 52
+            },
+            "diagnostico_principal": "Tromboembolismo Pulmonar Agudo",
+            "cie10_sugerido": "I26.9",
+            "medicamentos": [{"nombre": "Heparina Sodica"}],
+            "medico_solicitante": {"nombre": "Dra. Renata Silveira"}
+        }
+    }
+    response = client.post("/api/v1/auditoria/DOC-CLIN-2026-9999", json=payload)
+    assert response.status_code == 200
+    res = response.json()
+    assert res["status"] == "auditoria_completada"
+    assert res["documento_id"] == "DOC-CLIN-2026-9999"
+    assert "procesados/auditados/DOC-CLIN-2026-9999.json" in res["nueva_ruta_oci"]
+
+
+def test_resolver_auditoria_invalid_payload_contract():
+    """Valida que un payload sin los campos requeridos por openapi.yaml falle con 422 (Unprocessable Entity)"""
+    payload_invalido = {
+        "auditor_id": "AUD-01"  # Campo legacy obsoleto, faltan decision, datos_corregidos, auditor_nombre
+    }
+    response = client.post("/api/v1/auditoria/DOC-CLIN-2026-9999", json=payload_invalido)
+    assert response.status_code == 422
+

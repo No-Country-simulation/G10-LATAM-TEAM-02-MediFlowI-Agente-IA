@@ -364,7 +364,7 @@ Desarrollar el panel de auditoría clínica en la aplicación React para que un 
 - [ ] Se despliega automáticamente cuando el resultado del triaje indica `requiere_auditoria_humana = true`.
 - [ ] Permite al auditor editar campos extraídos (nombre del paciente, diagnóstico principal, código CIE-10).
 - [ ] Dispone de botones de acción: "✅ Aprobar Extracción (1-clic)" y "❌ Rechazar".
-- [ ] Consume el endpoint `POST /api/v1/auditoria/{documento_id}` con `auditor_id`, `resolucion` y `motivo`.
+- [ ] Consume el endpoint `POST /api/v1/auditoria/{documento_id}` con `decision` (aprobado/rechazado), `auditor_nombre`, `comentarios` y `datos_corregidos`.
 - [ ] Proporciona retroalimentación visual clara (toast o alerta) al completar la resolución.
 
 ---
