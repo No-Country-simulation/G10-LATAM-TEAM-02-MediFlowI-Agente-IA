@@ -1,0 +1,53 @@
+services:
+  # 1. Backend REST API (FastAPI + Agente de Triaje)
+  backend-api:
+    build:
+      context: ./backend-api
+      dockerfile: Dockerfile
+    container_name: mediflow-backend-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OCI_BUCKET_NAME=mediflow-documentos-clinicos
+      - OCI_MOCK_MODE=true
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./backend-api:/app
+      - ./data_mock_oci:/app/data_mock_oci
+
+  # 2. Interfaz de Usuario (React + Vite Dashboard)
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mediflow-ui
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_API_URL=http://backend-api:8000
+    depends_on:
+      - backend-api
+
+  # 3. Orquestador de Alertas en Tiempo Real (n8n)
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: mediflow-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Lima
+      - N8N_METRICS=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+    driver: local

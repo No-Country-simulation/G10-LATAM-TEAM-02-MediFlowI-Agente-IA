@@ -1,0 +1,12 @@
+# Configuración de Redocly CLI para MediFlow
+extends:
+  - recommended
+
+rules:
+  # Permitir endpoints públicos de triaje y healthcheck sin obligar esquema OAuth2
+  security-defined: off
+  # Permitir servidores locales (http://localhost:8000) en la especificación
+  no-server-example.com: off
+  # No requerir 4XX explícito en endpoints simples como /health
+  operation-4xx-response: off
+  info-license: off
