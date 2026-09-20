@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bs-primary: #0284c7;
+  --bs-primary-rgb: 2, 132, 199;
+  --bs-body-bg: #f8fafc;
+  --bs-body-color: #1e293b;
+  --bs-font-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+  --card-border-radius: 0.85rem;
+  --card-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+body {
+  font-family: var(--bs-font-sans-serif);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Navbar styling */
+.navbar {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.2);
+}
+
+/* Sidebar responsive rules */
+@media (min-width: 992px) {
+  .main-content-wrapper {
+    margin-left: 250px !important;
+  }
+}
+
+/* Cards UX refinement */
+.card {
+  border-radius: var(--card-border-radius) !important;
+  box-shadow: var(--card-shadow) !important;
+  border: 1px solid #e2e8f0 !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Tables UX refinement */
+.table {
+  color: #334155;
+}
+
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.725rem;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Utilities */
+.hover-bg-light:hover {
+  background-color: #f1f5f9;
+}
+
+.fs-7 {
+  font-size: 0.8rem;
+}
+
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+.translate-x-0 {
+  transform: translateX(0);
+}
+
+.-translate-x-full {
+  transform: translateX(-100%);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Responsive tables with horizontal scroll */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
