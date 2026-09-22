@@ -1,0 +1,102 @@
+documents:
+  get:
+    tags:
+      - documents
+    summary: Listar documentos procesados
+    description: Retorna la lista de documentos procesados, filtrables por estado y prioridad.
+    operationId: listarDocumentos
+    parameters:
+      - name: estado
+        in: query
+        schema:
+          type: string
+          enum: [procesado, pendiente_auditoria, error]
+        required: false
+      - name: nivel_prioridad
+        in: query
+        schema:
+          type: string
+          enum: [Urgente, Rutina, Ambiguo]
+        required: false
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 20
+          maximum: 100
+        required: false
+    responses:
+      "200":
+        description: Lista de resultados de triaje
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total:
+                  type: integer
+                items:
+                  type: array
+                  items:
+                    $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "401":
+        $ref: "../components/responses.yaml#/responses/Unauthorized"
+
+documentById:
+  get:
+    tags:
+      - documents
+    summary: Obtener documento procesado por ID
+    operationId: obtenerDocumentoPorId
+    parameters:
+      - name: documento_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: "DOC-CLIN-2026-8942"
+    responses:
+      "200":
+        description: Resultado de triaje del documento
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "404":
+        $ref: "../components/responses.yaml#/responses/NotFound"
+      "401":
+        $ref: "../components/responses.yaml#/responses/Unauthorized"
+
+  patch:
+    tags:
+      - documents
+    summary: Registrar decisión de auditoría humana (HITL)
+    description: |
+      Permite a un auditor clínico aprobar, rechazar o reclasificar
+      un documento derivado a auditoría humana.
+    operationId: registrarDecisionAuditoria
+    parameters:
+      - name: documento_id
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/schemas/DecisionAuditoria"
+    responses:
+      "200":
+        description: Decisión de auditoría registrada correctamente
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "400":
+        $ref: "../components/responses.yaml#/responses/BadRequest"
+      "404":
+        $ref: "../components/responses.yaml#/responses/NotFound"
+      "401":
+        $ref: "../components/responses.yaml#/responses/Unauthorized"

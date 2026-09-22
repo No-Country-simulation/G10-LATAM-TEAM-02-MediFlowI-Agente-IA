@@ -1,0 +1,54 @@
+version: "3.9"
+
+networks:
+  mediflow-net:
+    driver: bridge
+
+services:
+  # ── Backend: FastAPI + LangGraph ──────────────────────────────────────────
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: mediflow-backend
+    env_file:
+      - ../../backend/.env
+    ports:
+      - "8000:8000"
+    networks:
+      - mediflow-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Frontend: React + Vite (build estático servido por nginx) ─────────────
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: mediflow-frontend
+    networks:
+      - mediflow-net
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Nginx: Reverse Proxy ──────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: mediflow-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - mediflow-net
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped

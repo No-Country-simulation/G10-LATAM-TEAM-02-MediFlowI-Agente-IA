@@ -1,0 +1,74 @@
+triage:
+  post:
+    tags:
+      - triage
+    summary: Procesar y clasificar documento clínico
+    description: |
+      Endpoint principal del agente. Recibe un documento clínico en cualquier
+      formato soportado, ejecuta el grafo LangGraph de decisión y retorna el
+      resultado de triaje con clasificación, entidades extraídas y decisión
+      de enrutamiento.
+
+      ### Casos de prueba obligatorios
+      1. **Rutina**: score_confianza ≥ 0.8 + nivel no urgente → `Cola_Rutina`
+      2. **Urgente**: score_confianza ≥ 0.8 + hallazgo crítico → `Cola_Emergencia_Medica`
+      3. **Ambiguo**: score_confianza < 0.5 → `Cola_Auditoria_Humana`
+    operationId: procesarDocumentoClinico
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/schemas/DocumentoClinico"
+          examples:
+            urgente_tep:
+              summary: "Caso 2 — Urgencia TEP Agudo"
+              value:
+                documento_id: "DOC-CLIN-2026-8942"
+                tipo_archivo: "TEXTO"
+                documento_texto: "HOSPITAL SANTA LUCIA - INFORME RADIOLOGICO. Paciente: Carlos Eduardo Mendes, 52 años. Estudio: Tomografia de Torax. Hallazgos: Defecto de llenado en arteria pulmonar compatible con TEP agudo. CONCLUSION: Tromboembolismo Pulmonar Agudo. Se sugiere correlacion clinica urgente."
+                canal_origen: "Guardia_Emergencias"
+            rutina_analitica:
+              summary: "Caso 1 — Rutina (analítica normal)"
+              value:
+                documento_id: "DOC-CLIN-2026-0001"
+                tipo_archivo: "TEXTO"
+                documento_texto: "LABORATORIO CENTRAL. Paciente: Ana García, 35 años. Hemograma completo. Resultados dentro de rangos normales. Sin observaciones."
+                canal_origen: "Consulta_Externa"
+            ambiguo_ilegible:
+              summary: "Caso 3 — Ambiguo / ilegible"
+              value:
+                documento_id: "DOC-CLIN-2026-9999"
+                tipo_archivo: "TEXTO"
+                documento_texto: "... texto ilegible ... px ... 45 ... mgr ??? firma ilegible"
+                canal_origen: "Admision"
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              documento_id:
+                type: string
+              canal_origen:
+                type: string
+              archivo:
+                type: string
+                format: binary
+    responses:
+      "200":
+        description: Documento procesado correctamente
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "207":
+        description: Procesado pero derivado a auditoría humana
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "400":
+        $ref: "../components/responses.yaml#/responses/BadRequest"
+      "401":
+        $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "500":
+        $ref: "../components/responses.yaml#/responses/InternalError"

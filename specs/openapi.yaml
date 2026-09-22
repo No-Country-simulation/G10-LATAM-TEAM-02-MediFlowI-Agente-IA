@@ -1,0 +1,65 @@
+openapi: "3.1.0"
+
+info:
+  title: MediFlow — API de Triaje Clínico Autónomo
+  description: |
+    API REST del Agente Autónomo MediFlow para clasificación, extracción y
+    enrutamiento de documentos clínicos usando LLMs multimodales y LangGraph.
+
+    ## Flujo SDD
+    Este archivo es la **fuente de verdad**. Cualquier cambio de contrato
+    debe hacerse aquí primero y luego correr `make generate`.
+
+    ## Casos de uso
+    - **Triaje estándar**: documento de rutina → cola de rutina
+    - **Urgencia médica**: informe crítico → cola de emergencia + alerta
+    - **Caso ambiguo**: documento ilegible → cola de auditoría humana (HITL)
+  version: "1.0.0"
+  contact:
+    name: Grupo 10 — Hackathon ONE G10
+    url: https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Desarrollo local
+  - url: https://mediflow.oci.example.com/api/v1
+    description: Producción OCI
+
+tags:
+  - name: triage
+    description: Procesamiento y clasificación de documentos clínicos
+  - name: documents
+    description: Gestión y consulta de documentos procesados
+  - name: health
+    description: Estado del servicio
+
+paths:
+  /health:
+    $ref: "./paths/health.yaml#/health"
+
+  /triage:
+    $ref: "./paths/triage.yaml#/triage"
+
+  /documents:
+    $ref: "./paths/documents.yaml#/documents"
+
+  /documents/{documento_id}:
+    $ref: "./paths/documents.yaml#/documentById"
+
+components:
+  schemas:
+    $ref: "./components/schemas.yaml#/schemas"
+
+  responses:
+    $ref: "./components/responses.yaml#/responses"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+security:
+  - ApiKeyAuth: []

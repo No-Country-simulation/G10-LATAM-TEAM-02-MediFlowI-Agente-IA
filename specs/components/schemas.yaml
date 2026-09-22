@@ -1,0 +1,255 @@
+schemas:
+  # ──────────────────────────────────────────────
+  # INPUT
+  # ──────────────────────────────────────────────
+  DocumentoClinico:
+    type: object
+    required:
+      - documento_id
+      - tipo_archivo
+      - canal_origen
+    properties:
+      documento_id:
+        type: string
+        example: "DOC-CLIN-2026-8942"
+        description: Identificador único del documento
+      tipo_archivo:
+        type: string
+        enum: [PDF, IMAGEN, TEXTO, JSON]
+        example: "PDF"
+      documento_texto:
+        type: string
+        nullable: true
+        description: Contenido en texto plano (si ya está extraído)
+        example: "HOSPITAL SANTA LUCIA - INFORME DE ESTUDIO RADIOLOGICO..."
+      documento_base64:
+        type: string
+        nullable: true
+        description: Contenido del archivo en base64 (para PDF/imagen)
+      canal_origen:
+        type: string
+        example: "Guardia_Emergencias"
+        description: Sistema o canal que originó el documento
+      metadata:
+        type: object
+        nullable: true
+        additionalProperties: true
+        description: Metadatos adicionales del documento
+
+  # ──────────────────────────────────────────────
+  # OUTPUT — Componentes del resultado
+  # ──────────────────────────────────────────────
+  Clasificacion:
+    type: object
+    required:
+      - tipo_documento
+      - nivel_prioridad
+      - score_confianza_clasificacion
+    properties:
+      tipo_documento:
+        type: string
+        example: "Informe de Estudio por Imagenes"
+      especialidad:
+        type: string
+        nullable: true
+        example: "Radiologia / Neumonologia"
+      nivel_prioridad:
+        type: string
+        enum: [Urgente, Rutina, Ambiguo]
+        example: "Urgente"
+      score_confianza_clasificacion:
+        type: number
+        format: float
+        minimum: 0.0
+        maximum: 1.0
+        example: 0.99
+
+  Paciente:
+    type: object
+    properties:
+      nombre:
+        type: string
+        nullable: true
+        example: "Carlos Eduardo Mendes"
+      edad:
+        type: integer
+        nullable: true
+        example: 52
+      id_paciente:
+        type: string
+        nullable: true
+
+  MedicoSolicitante:
+    type: object
+    properties:
+      nombre:
+        type: string
+        nullable: true
+        example: "Dra. Renata Silveira"
+      matricula:
+        type: string
+        nullable: true
+        example: "145892"
+
+  DatosExtraidos:
+    type: object
+    properties:
+      paciente:
+        $ref: "#/schemas/Paciente"
+      medico_solicitante:
+        $ref: "#/schemas/MedicoSolicitante"
+      estudio_realizado:
+        type: string
+        nullable: true
+        example: "Tomografia de Torax con contraste"
+      diagnostico_principal:
+        type: string
+        nullable: true
+        example: "Tromboembolismo Pulmonar Agudo (TEP)"
+      cie10_sugerido:
+        type: string
+        nullable: true
+        example: "I26.9"
+      hallazgos_clave:
+        type: array
+        items:
+          type: string
+        nullable: true
+
+  Notificacion:
+    type: object
+    properties:
+      canal:
+        type: string
+        example: "Alerta_Guardia_Medica"
+      mensaje:
+        type: string
+        example: "ALERTA URGENTE: Informe crítico de TEP Agudo..."
+
+  DecisionEnrutamiento:
+    type: object
+    required:
+      - destino_principal
+      - requiere_auditoria_humana
+      - justificacion_enrutamiento
+    properties:
+      destino_principal:
+        type: string
+        enum: [Cola_Emergencia_Medica, Cola_Rutina, Cola_Auditoria_Humana]
+        example: "Cola_Emergencia_Medica"
+      requiere_auditoria_humana:
+        type: boolean
+        example: false
+      justificacion_enrutamiento:
+        type: string
+        example: "Hallazgo crítico de alta gravedad detectado."
+      notificacion_generada:
+        $ref: "#/schemas/Notificacion"
+        nullable: true
+
+  AlmacenamientoOCI:
+    type: object
+    properties:
+      bucket:
+        type: string
+        example: "mediflow-documentos-clinicos"
+      ruta_objeto:
+        type: string
+        example: "procesados/urgentes/DOC-CLIN-2026-8942.json"
+      status_backup:
+        type: string
+        enum: [exito, error, pendiente]
+        example: "exito"
+
+  ResultadoTriaje:
+    type: object
+    required:
+      - status
+      - documento_id
+      - clasificacion
+      - datos_extraidos
+      - decision_enrutamiento
+    properties:
+      status:
+        type: string
+        enum: [procesado, error, pendiente_auditoria]
+        example: "procesado"
+      documento_id:
+        type: string
+        example: "DOC-CLIN-2026-8942"
+      clasificacion:
+        $ref: "#/schemas/Clasificacion"
+      datos_extraidos:
+        $ref: "#/schemas/DatosExtraidos"
+      decision_enrutamiento:
+        $ref: "#/schemas/DecisionEnrutamiento"
+      almacenamiento_oci:
+        $ref: "#/schemas/AlmacenamientoOCI"
+        nullable: true
+      tiempo_procesamiento_ms:
+        type: integer
+        nullable: true
+        example: 1240
+
+  # ──────────────────────────────────────────────
+  # AUDIT — Human-in-the-Loop
+  # ──────────────────────────────────────────────
+  DecisionAuditoria:
+    type: object
+    required:
+      - documento_id
+      - decision
+      - auditor_id
+    properties:
+      documento_id:
+        type: string
+      decision:
+        type: string
+        enum: [aprobar, rechazar, reclasificar]
+      auditor_id:
+        type: string
+      nueva_clasificacion:
+        $ref: "#/schemas/Clasificacion"
+        nullable: true
+      comentario:
+        type: string
+        nullable: true
+
+  # ──────────────────────────────────────────────
+  # ERROR
+  # ──────────────────────────────────────────────
+  ErrorResponse:
+    type: object
+    required:
+      - error
+      - mensaje
+    properties:
+      error:
+        type: string
+        example: "DOCUMENTO_INVALIDO"
+      mensaje:
+        type: string
+        example: "El documento no pudo ser procesado."
+      detalle:
+        type: string
+        nullable: true
+
+  HealthResponse:
+    type: object
+    required:
+      - status
+      - version
+    properties:
+      status:
+        type: string
+        enum: [ok, degraded, error]
+        example: "ok"
+      version:
+        type: string
+        example: "1.0.0"
+      llm_disponible:
+        type: boolean
+        example: true
+      oci_disponible:
+        type: boolean
+        example: true
