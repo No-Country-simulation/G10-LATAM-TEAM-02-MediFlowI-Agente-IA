@@ -95,9 +95,13 @@ schemas:
     type: object
     properties:
       paciente:
-        $ref: "#/schemas/Paciente"
+        allOf:
+          - $ref: "#/schemas/Paciente"
+        nullable: true
       medico_solicitante:
-        $ref: "#/schemas/MedicoSolicitante"
+        allOf:
+          - $ref: "#/schemas/MedicoSolicitante"
+        nullable: true
       estudio_realizado:
         type: string
         nullable: true
@@ -152,9 +156,11 @@ schemas:
     properties:
       bucket:
         type: string
+        nullable: true
         example: "mediflow-documentos-clinicos"
       ruta_objeto:
         type: string
+        nullable: true
         example: "procesados/urgentes/DOC-CLIN-2026-8942.json"
       status_backup:
         type: string

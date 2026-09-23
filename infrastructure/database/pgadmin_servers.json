@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "MediFlow Dev",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "mediflow_dev",
+      "Username": "mediflow",
+      "Password": "mediflow_dev_pass",
+      "SSLMode": "prefer",
+      "SavePassword": true
+    }
+  }
+}

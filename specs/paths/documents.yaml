@@ -47,6 +47,7 @@ documentById:
     tags:
       - documents
     summary: Obtener documento procesado por ID
+    description: Retorna el resultado de triaje de un documento específico según su identificador único.
     operationId: obtenerDocumentoPorId
     parameters:
       - name: documento_id
@@ -100,3 +101,5 @@ documentById:
         $ref: "../components/responses.yaml#/responses/NotFound"
       "401":
         $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "422":
+        description: Datos de auditoría inválidos

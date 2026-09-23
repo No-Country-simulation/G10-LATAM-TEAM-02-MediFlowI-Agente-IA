@@ -25,10 +25,12 @@ class OCIStorageRepository:
     opera en modo 'local mock' que guarda en memoria.
     """
 
+    _shared_mock_store: dict[str, str] = {}
+
     def __init__(self, settings: Settings):
         self._settings = settings
         self._client = None
-        self._mock_store: dict[str, str] = {}  # fallback dev
+        self._mock_store = self._shared_mock_store  # fallback dev compartido
         self._inicializar()
 
     def _inicializar(self):

@@ -82,17 +82,11 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
 
 async def _llamar_llm(prompt: str, llm_service) -> str:
     """Llama al LLM y retorna el texto de la respuesta."""
-    if llm_service is None:
-        # Mock para tests sin credenciales
-        return json.dumps({
-            "paciente": {"nombre": "Paciente Mock", "edad": 40, "id_paciente": None},
-            "medico_solicitante": {"nombre": None, "matricula": None},
-            "estudio_realizado": None,
-            "diagnostico_principal": None,
-            "cie10_sugerido": None,
-            "hallazgos_clave": [],
-        })
-    return await llm_service.completar(prompt)
+    if llm_service is not None:
+        return await llm_service.completar(prompt)
+    from app.services.llm_service import LLMService
+    from app.core.config import get_settings
+    return LLMService(get_settings())._respuesta_mock(prompt)
 
 
 def _parsear_respuesta(raw: str) -> DatosExtraidosState:

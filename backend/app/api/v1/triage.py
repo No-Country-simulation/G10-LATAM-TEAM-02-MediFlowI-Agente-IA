@@ -6,7 +6,7 @@ el resultado del triaje autónomo.
 """
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
 from pydantic import BaseModel, Field
 from typing import Optional
 import base64
@@ -24,11 +24,11 @@ router = APIRouter(prefix="/triage", tags=["triage"])
 # ── Modelos de Request/Response (manuales, complementan _generated/) ─────────
 
 class DocumentoClinicoRequest(BaseModel):
-    documento_id: str = Field(..., example="DOC-CLIN-2026-8942")
+    documento_id: str = Field(..., examples=["DOC-CLIN-2026-8942"])
     tipo_archivo: str = Field(..., pattern="^(PDF|IMAGEN|TEXTO|JSON)$")
     documento_texto: Optional[str] = None
     documento_base64: Optional[str] = None
-    canal_origen: str = Field(default="", example="Guardia_Emergencias")
+    canal_origen: str = Field(default="", examples=["Guardia_Emergencias"])
     metadata: Optional[dict] = None
 
 
@@ -41,6 +41,7 @@ class DocumentoClinicoRequest(BaseModel):
 )
 async def procesar_documento(
     payload: DocumentoClinicoRequest,
+    response: Response,
     _auth: str = Depends(require_api_key),
     settings: Settings = Depends(get_settings),
 ):
@@ -88,11 +89,10 @@ async def procesar_documento(
         )
 
     # Código 207 si requiere auditoría humana
-    http_status = (
-        status.HTTP_207_MULTI_STATUS
-        if resultado.decision_enrutamiento.requiere_auditoria_humana
-        else status.HTTP_200_OK
-    )
+    if resultado.decision_enrutamiento.requiere_auditoria_humana:
+        response.status_code = status.HTTP_207_MULTI_STATUS
+    else:
+        response.status_code = status.HTTP_200_OK
 
     return resultado.model_dump()
 
@@ -103,6 +103,7 @@ async def procesar_documento(
     status_code=status.HTTP_200_OK,
 )
 async def procesar_documento_upload(
+    response: Response,
     documento_id: str = Form(...),
     canal_origen: str = Form(default=""),
     archivo: UploadFile = File(...),
@@ -125,4 +126,6 @@ async def procesar_documento_upload(
         documento_base64=base64_content,
         canal_origen=canal_origen,
     )
+    if resultado.decision_enrutamiento.requiere_auditoria_humana:
+        response.status_code = status.HTTP_207_MULTI_STATUS
     return resultado.model_dump()

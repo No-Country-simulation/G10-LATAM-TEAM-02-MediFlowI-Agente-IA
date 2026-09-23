@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
     # ── Routers ───────────────────────────────────────────────────────────────
     api_prefix = "/api/v1"
     app.include_router(health.router)                           # GET /health
+    app.include_router(health.router, prefix=api_prefix)        # GET /api/v1/health
     app.include_router(triage.router, prefix=api_prefix)       # POST /api/v1/triage
     app.include_router(documents.router, prefix=api_prefix)    # GET|PATCH /api/v1/documents
 

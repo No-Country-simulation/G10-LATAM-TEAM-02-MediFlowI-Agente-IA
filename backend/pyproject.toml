@@ -5,50 +5,48 @@ description = "Agente Autónomo de Triaje Clínico — MediFlow Backend"
 readme = "README.md"
 requires-python = ">=3.11"
 
-[project.dependencies]
-# Web framework
-fastapi = ">=0.115.0"
-uvicorn = { version = ">=0.30.0", extras = ["standard"] }
-
-# Agente IA
-langgraph = ">=0.2.0"
-langchain = ">=0.3.0"
-langchain-google-genai = ">=2.0.0"
-langchain-openai = ">=0.2.0"   # opcional, fallback
-
-# Validación de datos
-pydantic = ">=2.8.0"
-pydantic-settings = ">=2.4.0"
-
-# Procesamiento de documentos
-pymupdf = ">=1.24.0"           # extracción texto desde PDF
-pillow = ">=10.0.0"             # procesamiento de imágenes
-python-multipart = ">=0.0.12"  # upload de archivos
-
-# OCI Object Storage
-oci = ">=2.130.0"
-
-# HTTP client
-httpx = ">=0.27.0"
-
-# Utils
-python-dotenv = ">=1.0.0"
-structlog = ">=24.0.0"          # logging estructurado
+dependencies = [
+  # Web framework
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  # Agente IA
+  "langgraph>=0.2.0",
+  "langchain>=0.3.0",
+  "langchain-google-genai>=2.0.0",
+  "langchain-openai>=0.2.0",
+  # Validación de datos
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  # Procesamiento de documentos
+  "pymupdf>=1.24.0",
+  "pillow>=10.0.0",
+  "python-multipart>=0.0.12",
+  # OCI Object Storage
+  "oci>=2.130.0",
+  # HTTP client
+  "httpx>=0.27.0",
+  # Utils
+  "python-dotenv>=1.0.0",
+  "structlog>=24.0.0",
+]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
   "pytest-asyncio>=0.23.0",
   "pytest-cov>=5.0.0",
-  "httpx>=0.27.0",              # TestClient async
-  "schemathesis>=3.27.0",       # contract testing desde OpenAPI
-  "ruff>=0.6.0",                # linter + formatter
+  "httpx>=0.27.0",
+  "schemathesis>=3.27.0",
+  "ruff>=0.6.0",
   "mypy>=1.11.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.ruff]
 line-length = 100

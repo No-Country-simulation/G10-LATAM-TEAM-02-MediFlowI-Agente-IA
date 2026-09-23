@@ -16,6 +16,11 @@ import sys
 import shutil
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).parent.parent.parent
 SPEC_FILE = ROOT / "specs" / "openapi.yaml"
 BACKEND_GEN = ROOT / "backend" / "app" / "_generated"
@@ -95,10 +100,11 @@ def generar_frontend_typescript():
     """
     FRONTEND_GEN.mkdir(parents=True, exist_ok=True)
 
+    npx_bin = shutil.which("npx") or "npx"
     try:
         resultado = subprocess.run(
             [
-                "npx", "--yes", "@hey-api/openapi-ts",
+                npx_bin, "--yes", "@hey-api/openapi-ts",
                 "--input", str(SPEC_FILE),
                 "--output", str(FRONTEND_GEN),
                 "--client", "fetch",

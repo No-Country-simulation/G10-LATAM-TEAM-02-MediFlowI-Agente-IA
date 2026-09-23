@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # ── API Security ─────────────────────────────────────────────────────────
-    api_key: str = "mediflow-dev-secret"
+    api_key: str = "mediflow-dev-secret-key-change-in-prod"
+    database_url: str = ""
 
     # ── LLM ──────────────────────────────────────────────────────────────────
     google_api_key: str = ""

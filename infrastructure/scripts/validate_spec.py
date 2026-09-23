@@ -8,8 +8,14 @@ Uso: python infrastructure/scripts/validate_spec.py
 
 import subprocess
 import sys
+import shutil
 import json
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).parent.parent.parent
 SPEC_FILE = ROOT / "specs" / "openapi.yaml"
@@ -19,9 +25,10 @@ def validar_con_spectral():
     """Valida el spec con Spectral CLI (linter OpenAPI)."""
     print("🔍 Validando specs/openapi.yaml con Spectral...\n")
 
+    npx_bin = shutil.which("npx") or "npx"
     try:
         resultado = subprocess.run(
-            ["npx", "--yes", "@stoplight/spectral-cli", "lint", str(SPEC_FILE)],
+            [npx_bin, "--yes", "@stoplight/spectral-cli", "lint", str(SPEC_FILE)],
             capture_output=False,
             timeout=60,
         )

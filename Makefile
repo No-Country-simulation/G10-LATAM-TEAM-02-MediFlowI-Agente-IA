@@ -66,7 +66,7 @@ test-backend:
 
 test-contract:
 	@echo "🔗 Ejecutando contract tests (schemathesis)..."
-	cd backend && python -m schemathesis run ../specs/openapi.yaml --url http://localhost:8000
+	cd backend && python -m schemathesis.cli run ../specs/openapi.yaml --url http://localhost:8000/api/v1 --header "X-API-Key: mediflow-dev-secret-key-change-in-prod"
 
 # ── Producción ────────────────────────────────────────────────────────────────
 build:

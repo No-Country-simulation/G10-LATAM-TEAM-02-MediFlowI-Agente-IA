@@ -70,5 +70,7 @@ triage:
         $ref: "../components/responses.yaml#/responses/BadRequest"
       "401":
         $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "422":
+        description: Datos de solicitud incompletos o inválidos
       "500":
         $ref: "../components/responses.yaml#/responses/InternalError"

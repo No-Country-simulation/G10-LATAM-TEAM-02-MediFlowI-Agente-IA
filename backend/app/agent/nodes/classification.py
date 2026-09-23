@@ -91,14 +91,11 @@ async def node_classification(state: AgentState, llm_service=None) -> dict:
 
 
 async def _llamar_llm(prompt: str, llm_service) -> str:
-    if llm_service is None:
-        return json.dumps({
-            "tipo_documento": "Analítica de Laboratorio",
-            "especialidad": "Medicina General",
-            "nivel_prioridad": "Rutina",
-            "razon_prioridad": "Mock: clasificación de prueba",
-        })
-    return await llm_service.completar(prompt)
+    if llm_service is not None:
+        return await llm_service.completar(prompt)
+    from app.services.llm_service import LLMService
+    from app.core.config import get_settings
+    return LLMService(get_settings())._respuesta_mock(prompt)
 
 
 def _parsear_respuesta(raw: str) -> ClasificacionState:
