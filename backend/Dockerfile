@@ -11,12 +11,12 @@ RUN apt-get update && apt-get install -y \
 # Instalar pip actualizado
 RUN pip install --upgrade pip
 
-# Copiar dependencias primero (cache layer)
-COPY pyproject.toml .
-RUN pip install -e ".[dev]"
-
-# Copiar código fuente
+# Copiar definición de paquete y código fuente
+COPY pyproject.toml README.md ./
 COPY app/ ./app/
+
+# Instalar paquete en modo editable con dependencias de desarrollo
+RUN pip install -e ".[dev]"
 
 # Variables de entorno por defecto
 ENV APP_ENV=production
