@@ -43,14 +43,14 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       )}
 
       <aside
-        className={`bg-white border-end position-fixed top-0 bottom-0 start-0 shadow-sm transition-all ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } d-lg-block`}
+        className={`bg-white border-end position-fixed top-0 bottom-0 start-0 shadow-sm ${
+          isOpen ? "d-block" : "d-none d-lg-block"
+        }`}
         style={{
           width: "250px",
           paddingTop: "65px",
           zIndex: 1035,
-          transition: "transform 0.3s ease-in-out"
+          transition: "all 0.3s ease-in-out"
         }}
       >
         <div className="py-3 px-3">

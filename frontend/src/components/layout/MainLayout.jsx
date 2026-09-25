@@ -24,7 +24,6 @@ const MainLayout = () => {
         <main
           className="flex-grow-1 p-3 p-md-4 main-content-wrapper"
           style={{
-            marginLeft: "0px",
             minHeight: "calc(100vh - 120px)"
           }}
         >
