@@ -53,6 +53,8 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 
 - `AGENTS.md`: Guía y Regla de Oro para agentes IA (este archivo).
 - `Docs/BASE_DE_DATOS.md`: Documentación completa del modelo relacional, campos, ENUMs e índices.
+- `Docs/GUIA_ALEMBIC.md`: Guía de uso manual CLI y en Docker de Alembic.
+- `Docs/GUIA_EJECUCION_LOCAL_SIN_DOCKER.md`: Guía paso a paso para ejecutar el proyecto en local sin Docker.
 - `Docs/PLANTILLA_CAMBIOS.md`: Plantilla estándar genérica para historiales de cambio diarios.
 - `Docs/HISTORIAL_CAMBIOS.md`: Índice maestro de registros de cambio.
 - `Docs/historial_cambios/`: Carpeta con todos los registros individuales `HISTORIAL_CAMBIOS_AAAA-MM-DD_CAMBIO[N].md`.
