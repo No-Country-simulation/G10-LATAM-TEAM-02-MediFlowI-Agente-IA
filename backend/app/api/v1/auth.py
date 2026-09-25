@@ -14,7 +14,8 @@ from app.core.security import (
     verify_password,
     create_access_token,
     verify_access_token,
-    invalidate_access_token
+    invalidate_access_token,
+    require_current_user,
 )
 from app.repositories.user_repository import get_user_by_document, get_user_by_id
 
@@ -120,21 +121,6 @@ async def logout(authorization: Optional[str] = Header(None)):
 
 
 @router.get("/me", response_model=UserResponse, summary="Consultar usuario autenticado")
-async def get_current_user(authorization: Optional[str] = Header(None)):
+async def get_current_user(current_user: dict = Depends(require_current_user)):
     """Retorna los datos del usuario de la sesión activa."""
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token no proporcionado en la cabecera Authorization."
-        )
-    
-    token = authorization.replace("Bearer ", "").strip()
-    user_data = verify_access_token(token)
-    
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Sesión no válida o expirada. Por favor, inicie sesión nuevamente."
-        )
-        
-    return UserResponse(**user_data)
+    return UserResponse(**current_user)

@@ -90,3 +90,23 @@ async def require_api_key(
             detail="API Key inválida o no proporcionada en la cabecera X-API-Key."
         )
     return key
+
+
+async def require_current_user(
+    authorization: Optional[str] = Header(None),
+) -> dict:
+    """Retorna el usuario de una sesión Bearer activa o rechaza la solicitud."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Bearer no proporcionado en la cabecera Authorization.",
+        )
+
+    token = authorization.removeprefix("Bearer ").strip()
+    user = verify_access_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesión no válida o expirada. Por favor, inicie sesión nuevamente.",
+        )
+    return user
