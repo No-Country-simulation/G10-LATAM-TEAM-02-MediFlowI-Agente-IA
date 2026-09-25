@@ -1,6 +1,14 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FaTachometerAlt, FaFileUpload, FaClipboardCheck, FaHistory, FaUserCog, FaCog } from "react-icons/fa";
+import {
+  FaTachometerAlt,
+  FaStethoscope,
+  FaFileUpload,
+  FaUserCog,
+  FaCog,
+  FaClipboardCheck,
+  FaHistory
+} from "react-icons/fa";
 
 const Sidebar = ({ isOpen, closeSidebar }) => {
   const navItems = [
@@ -10,9 +18,19 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       icon: <FaTachometerAlt className="me-2 fs-5" />
     },
     {
+      path: "/triaje",
+      label: "Triaje Clínico",
+      icon: <FaStethoscope className="me-2 fs-5" />
+    },
+    {
       path: "/documentos/nuevo",
       label: "Subir Archivo",
       icon: <FaFileUpload className="me-2 fs-5" />
+    },
+    {
+      path: "/usuarios",
+      label: "Gestión de Usuarios",
+      icon: <FaUserCog className="me-2 fs-5" />
     },
     {
       path: "/configuracion",
@@ -28,11 +46,6 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       path: "/documentos",
       label: "Historial",
       icon: <FaHistory className="me-2 fs-5" />
-    },
-    {
-      path: "/admin-triaje",
-      label: "Consola & Usuarios",
-      icon: <FaUserCog className="me-2 fs-5" />
     }
   ];
 

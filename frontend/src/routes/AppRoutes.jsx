@@ -32,9 +32,11 @@ const AppRoutes = () => {
         <Route path="/documentos/:id" element={<DocumentDetail />} />
         <Route path="/auditoria" element={<Audit />} />
         <Route path="/auditoria/:id" element={<AuditDetail />} />
-        <Route path="/admin-triaje" element={<TriageConsoleView />} />
-        <Route path="/triaje" element={<TriageConsoleView />} />
-        <Route path="/configuracion" element={<TriageConsoleView initialTab="settings" />} />
+        <Route path="/triaje" element={<TriageConsoleView initialTab="triage" hideInnerMenu={true} />} />
+        <Route path="/usuarios" element={<TriageConsoleView initialTab="users" hideInnerMenu={true} />} />
+        <Route path="/admin-usuarios" element={<TriageConsoleView initialTab="users" hideInnerMenu={true} />} />
+        <Route path="/configuracion" element={<TriageConsoleView initialTab="settings" hideInnerMenu={true} />} />
+        <Route path="/admin-triaje" element={<TriageConsoleView initialTab="triage" hideInnerMenu={true} />} />
       </Route>
 
       {/* Catch-all fallback */}

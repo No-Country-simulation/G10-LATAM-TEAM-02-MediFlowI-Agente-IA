@@ -81,9 +81,10 @@ const QUICK_USERS = [
 
 interface TriageConsoleViewProps {
   initialTab?: 'triage' | 'users' | 'settings'
+  hideInnerMenu?: boolean
 }
 
-export default function TriageConsoleView({ initialTab = 'triage' }: TriageConsoleViewProps) {
+export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu = true }: TriageConsoleViewProps) {
   const { user: globalAuthUser } = useAuth()
 
   // ── ESTADO DE AUTENTICACIÓN (RF-01, RF-02) ─────────────────────────
@@ -450,35 +451,37 @@ export default function TriageConsoleView({ initialTab = 'triage' }: TriageConso
 
   return (
     <div className="app-container">
-      {/* ── HEADER PRINCIPAL ────────────────────────────────────────────── */}
-      <header className="app-header">
-        <div className="header-brand">
-          <h2>MediFlow</h2>
-          <span className="badge-agent">Agente Autónomo de Triaje Clínico</span>
-        </div>
+      {/* ── HEADER PRINCIPAL (Solo cuando NO se oculta el menú interno) ──── */}
+      {!hideInnerMenu && (
+        <header className="app-header">
+          <div className="header-brand">
+            <h2>MediFlow</h2>
+            <span className="badge-agent">Agente Autónomo de Triaje Clínico</span>
+          </div>
 
-        {/* CONTROLES DE SESIÓN & BADGE DE USUARIO */}
-        <div className="header-actions">
-          {currentUser ? (
-            <div className="user-profile-badge">
-              <div className="user-info">
-                <span className="user-name">{currentUser.nombres} {currentUser.apellidos}</span>
-                <span className="user-dni">DNI: <strong>{currentUser.documento_identidad}</strong></span>
+          {/* CONTROLES DE SESIÓN & BADGE DE USUARIO */}
+          <div className="header-actions">
+            {currentUser ? (
+              <div className="user-profile-badge">
+                <div className="user-info">
+                  <span className="user-name">{currentUser.nombres} {currentUser.apellidos}</span>
+                  <span className="user-dni">DNI: <strong>{currentUser.documento_identidad}</strong></span>
+                </div>
+                <span className={`role-pill role-${currentUser.rol.toLowerCase()}`}>
+                  {currentUser.rol}
+                </span>
+                <button type="button" className="btn-logout" onClick={handleLogout}>
+                  Cerrar Sesión
+                </button>
               </div>
-              <span className={`role-pill role-${currentUser.rol.toLowerCase()}`}>
-                {currentUser.rol}
-              </span>
-              <button type="button" className="btn-logout" onClick={handleLogout}>
-                Cerrar Sesión
+            ) : (
+              <button type="button" className="btn-login-trigger" onClick={() => setAuthToken(null)}>
+                Iniciar Sesión
               </button>
-            </div>
-          ) : (
-            <button type="button" className="btn-login-trigger" onClick={() => setAuthToken(null)}>
-              Iniciar Sesión
-            </button>
-          )}
-        </div>
-      </header>
+            )}
+          </div>
+        </header>
+      )}
 
       {/* ── MODAL DE AUTENTICACIÓN (RF-01) SI NO HAY SESIÓN ─────────────── */}
       {!currentUser && (
@@ -543,9 +546,9 @@ export default function TriageConsoleView({ initialTab = 'triage' }: TriageConso
         </div>
       )}
 
-      {/* ── MENÚ VERTICAL Y CONTENIDO PRINCIPAL (RF-05) ───────────────── */}
+      {/* ── CONTENIDO PRINCIPAL ───────────────── */}
       <div className="console-layout-wrapper">
-        {currentUser && (
+        {currentUser && !hideInnerMenu && (
           <aside className="vertical-console-menu">
             <div className="menu-header">
               <span className="menu-title">Menú de Consola</span>
