@@ -402,53 +402,41 @@
 }
 
 .form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
-
-@media (prefers-color-scheme: dark) {
-  .form-group label {
-    color: #94a3b8;
-  }
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  display: block !important;
+  text-align: left !important;
+  margin-bottom: 6px !important;
 }
 
 .form-group input[type='text'],
+.form-group input[type='password'],
+.form-group input[type='email'],
+.form-group input[type='number'],
+.form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  font-size: 14px;
-  font-family: inherit;
-  background: #f8fafc;
-  color: inherit;
-  transition: border-color 0.15s;
-}
-
-@media (prefers-color-scheme: dark) {
-  .form-group input[type='text'],
-  .form-group select,
-  .form-group textarea {
-    background: #0f172a;
-    border-color: #334155;
-  }
+  width: 100% !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  outline: none;
-  border-color: #0284c7;
-  background: #fff;
-}
-
-@media (prefers-color-scheme: dark) {
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus {
-    background: #0f172a;
-  }
+  outline: none !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+  background: #ffffff !important;
 }
 
 .type-toggle-group {
@@ -1071,84 +1059,215 @@
   }
 }
 
-/* ── HISTORY TABLE ─────────────────────────────────────────────────── */
+/* ── USERS VIEW & FORM ENHANCEMENTS (RF-03, RF-04) ──────────────────── */
+.users-view {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px !important;
+  text-align: left !important;
+  width: 100% !important;
+}
+
+.form-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+  text-align: left !important;
+}
+
+.form-card .card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: transparent !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0 0 16px 0 !important;
+  margin-bottom: 20px !important;
+  text-align: left !important;
+}
+
+.form-card .card-header h3 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+.form-row {
+  display: flex !important;
+  gap: 20px !important;
+  margin-bottom: 16px !important;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+}
+
+.form-group {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  text-align: left !important;
+}
+
+/* ── HISTORY & USERS TABLE ─────────────────────────────────────────── */
 .history-section {
-  text-align: left;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+  text-align: left !important;
+}
+
+.history-section .card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: transparent !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0 0 16px 0 !important;
+  margin-bottom: 20px !important;
+  text-align: left !important;
+}
+
+.history-section .card-header h3 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
 }
 
 .btn-secondary {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  padding: 6px 14px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 .table-wrapper {
-  overflow-x: auto;
+  overflow-x: auto !important;
 }
 
 .docs-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 13px !important;
+  text-align: left !important;
 }
 
 .docs-table th {
-  padding: 10px 12px;
-  border-bottom: 2px solid #e2e8f0;
-  color: #64748b;
-  font-weight: 700;
-  text-align: left;
+  padding: 12px 14px !important;
+  background: #f8fafc !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  text-align: left !important;
 }
 
 .docs-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 14px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  vertical-align: middle !important;
+  text-align: left !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  .docs-table th,
-  .docs-table td {
-    border-color: #334155;
-  }
+.btn-action-status {
+  padding: 5px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  border: 1px solid !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-deactivate {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fecaca !important;
+}
+
+.btn-deactivate:hover {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+}
+
+.btn-activate {
+  background-color: #f0fdf4 !important;
+  color: #166534 !important;
+  border-color: #bbf7d0 !important;
+}
+
+.btn-activate:hover {
+  background-color: #dcfce7 !important;
+  border-color: #86efac !important;
+}
+
+.select-role-change {
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  cursor: pointer !important;
+}
+
+.select-role-change:focus {
+  outline: none !important;
+  border-color: #0284c7 !important;
 }
 
 .btn-inspect {
-  background: #0284c7;
-  color: #fff;
-  border: none;
-  padding: 4px 10px;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
+  background: #0284c7 !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
 }
 .btn-inspect:hover {
-  background: #0369a1;
+  background: #0369a1 !important;
 }
 
 .doc-date {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-@media (prefers-color-scheme: dark) {
-  .doc-date {
-    color: #94a3b8;
-  }
+  font-size: 12px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
 }
 
 .text-green {
-  color: #10b981;
-  font-weight: 700;
+  color: #166534 !important;
+  font-weight: 700 !important;
 }
 .text-amber {
-  color: #f59e0b;
-  font-weight: 700;
+  color: #d97706 !important;
+  font-weight: 700 !important;
 }
 
 /* ── HEADER RIGHT & TABS ───────────────────────────────────────────── */

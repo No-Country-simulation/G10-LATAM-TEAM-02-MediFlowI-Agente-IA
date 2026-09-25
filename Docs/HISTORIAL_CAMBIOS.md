@@ -15,6 +15,7 @@ Este documento es el **índice maestro** de los registros de cambios del proyect
 | **25/09/2026** | `CAMBIO3` | Antigravity & Erick Pariona | Refactor de esquemas Pydantic v2 y eliminación de advertencias en Backend | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO3.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO3.md) |
 | **25/09/2026** | `CAMBIO4` | Antigravity & Erick Pariona | Acoplamiento de `mediflow-frontend` manteniendo intacta la Consola de Triaje & Usuarios | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO4.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO4.md) |
 | **25/09/2026** | `CAMBIO5` | Antigravity & Erick Pariona | Rediseño UX/UI de Configuración de Almacenamiento y Pestañas de Navegación | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO5.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO5.md) |
+| **25/09/2026** | `CAMBIO6` | Antigravity & Erick Pariona | Rediseño UX/UI del Formulario de Registro de Usuarios y Tabla RBAC | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO6.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO6.md) |
 
 ---
 
