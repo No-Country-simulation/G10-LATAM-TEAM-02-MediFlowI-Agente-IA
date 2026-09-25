@@ -19,9 +19,10 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 > - Frontend: `npm run build` (compilación limpia en 0ms con 0 errores de TypeScript).
 > - Base de Datos: Migraciones de Alembic sincronizadas (`alembic upgrade head`).
 > 
-> **4. Documentación Automática e Incremental por Fecha y Autor**:
-> - **Historial de Cambios Diarios**: Al solicitar *"Generar documentación"* o *"Registrar cambios para Autor: [Nombre]"*, el agente debe tomar **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), cargar la plantilla `Docs/PLANTILLA_CAMBIOS.md`, generar el archivo diario `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualizar el índice `Docs/HISTORIAL_CAMBIOS.md`.
-> - **Pull Requests Diarios e Incrementables**: Al solicitar *"Generar PR"* o *"Documentar Pull Request"*, el agente debe cargar la plantilla `Docs/PLANTILLA_PULL_REQUEST.md`, generar el archivo individual con la nomenclatura `Docs/PULL_REQUEST_AAAA-MM-DD_PR[N].md` (donde `PR[N]` es `PR1`, `PR2`, etc. permitiendo múltiples PRs por día) y actualizar el índice maestro `Docs/PULL_REQUEST.md`.
+> **4. Generación Automática e Incremental de Documentos `.md` por Comando**:
+> Cualquier agente de IA debe ejecutar la generación automática de archivos `.md` al recibir los siguientes comandos:
+> - **Comando `genera historial cambios para autor [Nombre]`**: Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), carga `Docs/PLANTILLA_CAMBIOS.md`, redacta el detalle profundo de cambios por capa técnica en `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualiza el índice `Docs/HISTORIAL_CAMBIOS.md`.
+> - **Comando `genera pr`** (o *"genera pr para autor [Nombre]"*): Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), detecta la secuencia de PRs del día (`PR1`, `PR2`, etc.), carga `Docs/PLANTILLA_PULL_REQUEST.md`, redacta el archivo individual `Docs/PULL_REQUEST_AAAA-MM-DD_PR[N].md` y actualiza el índice maestro `Docs/PULL_REQUEST.md`.
 
 ---
 
