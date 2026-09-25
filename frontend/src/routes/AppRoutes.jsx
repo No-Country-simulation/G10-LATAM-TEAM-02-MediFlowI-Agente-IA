@@ -10,6 +10,8 @@ import Documents from "../pages/Documents";
 import Audit from "../pages/Audit";
 import AuditDetail from "../pages/AuditDetail";
 import TriageConsoleView from "../pages/TriageConsoleView";
+import UsersManagementView from "../pages/UsersManagementView";
+import StorageSettingsView from "../pages/StorageSettingsView";
 import DocumentationView from "../pages/DocumentationView";
 
 const AppRoutes = () => {
@@ -33,11 +35,11 @@ const AppRoutes = () => {
         <Route path="/documentos/:id" element={<DocumentDetail />} />
         <Route path="/auditoria" element={<Audit />} />
         <Route path="/auditoria/:id" element={<AuditDetail />} />
-        <Route path="/triaje" element={<TriageConsoleView initialTab="triage" hideInnerMenu={true} />} />
-        <Route path="/usuarios" element={<TriageConsoleView initialTab="users" hideInnerMenu={true} />} />
-        <Route path="/admin-usuarios" element={<TriageConsoleView initialTab="users" hideInnerMenu={true} />} />
-        <Route path="/configuracion" element={<TriageConsoleView initialTab="settings" hideInnerMenu={true} />} />
-        <Route path="/admin-triaje" element={<TriageConsoleView initialTab="triage" hideInnerMenu={true} />} />
+        <Route path="/triaje" element={<TriageConsoleView />} />
+        <Route path="/admin-triaje" element={<TriageConsoleView />} />
+        <Route path="/usuarios" element={<UsersManagementView />} />
+        <Route path="/admin-usuarios" element={<UsersManagementView />} />
+        <Route path="/configuracion" element={<StorageSettingsView />} />
         <Route path="/documentacion" element={<DocumentationView />} />
       </Route>
 

@@ -4,18 +4,12 @@ import {
   subirArchivo,
   listarDocumentos,
   registrarAuditoria,
-  obtenerConfiguracion,
-  actualizarConfiguracion,
   type ResultadoTriaje,
-  type ConfiguracionSistema,
 } from '../api/triage.api'
 import {
   loginUser,
   logoutUser,
   getCurrentUser,
-  fetchUsers,
-  createNewUser,
-  updateUserDetails,
   type User,
 } from '../api/auth.api'
 import { useAuth } from '../hooks/useAuth'
@@ -29,7 +23,7 @@ const PRESET_CASES = [
     canal: 'Consulta_Externa',
     badge: 'Rutina',
     badgeColor: 'badge-rutina',
-    texto: `LABORATORIO CENTRAL — HOSPITAL CLINICO
+    texto: `LABORATORIO CENTRAL - HOSPITAL CLINICO
 Paciente: Ana García, 35 años. DNI: 41.234.567.
 Médico Solicitante: Dr. Roberto López (Mat. 98231).
 Estudio: Hemograma completo y bioquímica básica.
@@ -48,7 +42,7 @@ CONCLUSION: Analítica sin hallazgos patológicos significativos. Parámetros no
     canal: 'Guardia_Emergencias',
     badge: 'Urgencia',
     badgeColor: 'badge-urgencia',
-    texto: `HOSPITAL SANTA LUCIA — INFORME DE TOMOGRAFIA COMPUTADA
+    texto: `HOSPITAL SANTA LUCIA - INFORME DE TOMOGRAFIA COMPUTADA
 Paciente: Carlos Eduardo Mendes, 52 años.
 Médico Solicitante: Dra. Renata Silveira (Mat. 145892).
 Estudio: Angiotomografía de Tórax con contraste endovenoso.
@@ -79,48 +73,7 @@ const QUICK_USERS = [
   { label: 'Supervisor (Lectura & KPI)', dni: '44332211', pwd: 'supervisor' },
 ]
 
-const DEFAULT_USERS_LIST: User[] = [
-  {
-    id: 'usr-12345678',
-    documento_identidad: '12345678',
-    nombres: 'Carlos Eduardo',
-    apellidos: 'Mendes',
-    correo: 'admin@mediflow.com',
-    telefono: '999888777',
-    rol: 'ADMINISTRADOR',
-    estado: 'ACTIVO',
-  },
-  {
-    id: 'usr-87654321',
-    documento_identidad: '87654321',
-    nombres: 'María Fernanda',
-    apellidos: 'Gómez Torres',
-    correo: 'maria.gomez@clinica.com',
-    telefono: '988777666',
-    rol: 'OPERADOR',
-    estado: 'ACTIVO',
-  },
-  {
-    id: 'usr-11223344',
-    documento_identidad: '11223344',
-    nombres: 'Roberto',
-    apellidos: 'López',
-    correo: 'roberto.lopez@clinica.com',
-    telefono: '977666555',
-    rol: 'AUDITOR',
-    estado: 'ACTIVO',
-  },
-  {
-    id: 'usr-44332211',
-    documento_identidad: '44332211',
-    nombres: 'Renata',
-    apellidos: 'Silveira',
-    correo: 'renata.silveira@clinica.com',
-    telefono: '966555444',
-    rol: 'SUPERVISOR',
-    estado: 'ACTIVO',
-  },
-]
+
 
 interface TriageConsoleViewProps {
   initialTab?: 'triage' | 'users' | 'settings'
@@ -188,28 +141,7 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
   const [auditSuccess, setAuditSuccess] = useState<string | null>(null)
   const [documentosRecientes, setDocumentosRecientes] = useState<ResultadoTriaje[]>([])
 
-  // ── ESTADO DE CONFIGURACIÓN ────────────────────────────────────────
-  const [configSys, setConfigSys] = useState<ConfiguracionSistema | null>(null)
-  const [selectedStorageMode, setSelectedStorageMode] = useState<'LOCAL' | 'OCI'>('LOCAL')
-  const [savingSettings, setSavingSettings] = useState(false)
-  const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null)
-  const [settingsError, setSettingsError] = useState<string | null>(null)
 
-  // ── ESTADO DE GESTIÓN DE USUARIOS (RF-03, RF-04) ────────────────────
-  const [usersList, setUsersList] = useState<User[]>(DEFAULT_USERS_LIST)
-  const [loadingUsers, setLoadingUsers] = useState(false)
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [newDni, setNewDni] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newNombres, setNewNombres] = useState('')
-  const [newApellidos, setNewApellidos] = useState('')
-  const [newCorreo, setNewCorreo] = useState('')
-  const [newTelefono, setNewTelefono] = useState('')
-  const [newRol, setNewRol] = useState<'ADMINISTRADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'>('OPERADOR')
-  const [userFormError, setUserFormError] = useState<string | null>(null)
-  const [userFormSuccess, setUserFormSuccess] = useState<string | null>(null)
-  const [savingUser, setSavingUser] = useState(false)
 
   // Cargar sesión persistente
   useEffect(() => {
@@ -228,15 +160,7 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
   useEffect(() => {
     handleSelectPreset('CASO-1-RUTINA')
     loadRecentDocs()
-    loadSettings()
   }, [])
-
-  // Cargar usuarios cuando se abre la pestaña
-  useEffect(() => {
-    if (activeTab === 'users' && authToken && currentUser?.rol === 'ADMINISTRADOR') {
-      loadUsers()
-    }
-  }, [activeTab, authToken, currentUser])
 
   const generateNewId = () => {
     const randomNum = Math.floor(100000 + Math.random() * 900000)
@@ -266,163 +190,7 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
     }
   }
 
-  const loadSettings = async () => {
-    try {
-      const cfg = await obtenerConfiguracion()
-      setConfigSys(cfg)
-      setSelectedStorageMode(cfg.storage_mode)
-    } catch (e) {
-      console.error('Error cargando configuraciones del sistema:', e)
-      setConfigSys({
-        storage_mode: 'LOCAL',
-        oci_configured: false,
-        llm_provider: 'gemini',
-        llm_configured: true,
-        database_url_configured: true,
-      })
-      setSelectedStorageMode('LOCAL')
-    }
-  }
 
-  const loadUsers = async () => {
-    setLoadingUsers(true)
-    try {
-      if (authToken) {
-        const list = await fetchUsers(authToken)
-        if (list && list.length > 0) {
-          setUsersList(list)
-          return
-        }
-      }
-    } catch (e: any) {
-      console.error('API no disponible o error al obtener usuarios:', e)
-    } finally {
-      setLoadingUsers(false)
-    }
-  }
-
-  // Abrir modal para crear usuario
-  const handleOpenCreateModal = () => {
-    setEditingUser(null)
-    setNewDni('')
-    setNewPassword('')
-    setNewNombres('')
-    setNewApellidos('')
-    setNewCorreo('')
-    setNewTelefono('')
-    setNewRol('OPERADOR')
-    setUserFormError(null)
-    setIsUserModalOpen(true)
-  }
-
-  // Abrir modal para editar usuario
-  const handleOpenEditModal = (userToEdit: User) => {
-    setEditingUser(userToEdit)
-    setNewDni(userToEdit.documento_identidad)
-    setNewPassword('')
-    setNewNombres(userToEdit.nombres)
-    setNewApellidos(userToEdit.apellidos)
-    setNewCorreo(userToEdit.correo || '')
-    setNewTelefono(userToEdit.telefono || '')
-    setNewRol(userToEdit.rol)
-    setUserFormError(null)
-    setIsUserModalOpen(true)
-  }
-
-  const handleCloseUserModal = () => {
-    setIsUserModalOpen(false)
-    setEditingUser(null)
-    setUserFormError(null)
-  }
-
-  // Guardar usuario (Crear o Editar)
-  const handleCreateOrUpdateUserSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setUserFormError(null)
-    setUserFormSuccess(null)
-
-    if (!editingUser && !/^\d{8}$/.test(newDni.trim())) {
-      setUserFormError('El documento de identidad debe contener exactamente 8 cifras numéricas.')
-      return
-    }
-
-    setSavingUser(true)
-    try {
-      if (editingUser) {
-        // Editar usuario
-        if (authToken) {
-          await updateUserDetails(authToken, editingUser.id, {
-            nombres: newNombres,
-            apellidos: newApellidos,
-            correo: newCorreo || undefined,
-            telefono: newTelefono || undefined,
-            rol: newRol,
-            password: newPassword || undefined,
-          }).catch(() => {})
-        }
-
-        setUsersList((prev) =>
-          prev.map((u) =>
-            u.id === editingUser.id
-              ? {
-                  ...u,
-                  nombres: newNombres,
-                  apellidos: newApellidos,
-                  correo: newCorreo || undefined,
-                  telefono: newTelefono || undefined,
-                  rol: newRol,
-                }
-              : u
-          )
-        )
-        setUserFormSuccess(`Usuario ${newNombres} ${newApellidos} actualizado exitosamente.`)
-      } else {
-        // Crear usuario
-        if (authToken) {
-          await createNewUser(authToken, {
-            documento_identidad: newDni.trim(),
-            password: newPassword || '12345678',
-            nombres: newNombres,
-            apellidos: newApellidos,
-            correo: newCorreo || undefined,
-            telefono: newTelefono || undefined,
-            rol: newRol,
-            estado: 'ACTIVO',
-          }).catch(() => {})
-        }
-
-        const newUserObj: User = {
-          id: `usr-${Date.now()}`,
-          documento_identidad: newDni.trim(),
-          nombres: newNombres.trim(),
-          apellidos: newApellidos.trim(),
-          correo: newCorreo.trim() || undefined,
-          telefono: newTelefono.trim() || undefined,
-          rol: newRol,
-          estado: 'ACTIVO',
-        }
-        setUsersList((prev) => [newUserObj, ...prev])
-        setUserFormSuccess(`Usuario ${newNombres} ${newApellidos} (DNI ${newDni}) registrado exitosamente.`)
-      }
-
-      handleCloseUserModal()
-    } catch (err: any) {
-      setUserFormError(err.message || 'Error al guardar usuario')
-    } finally {
-      setSavingUser(false)
-    }
-  }
-
-  // Cambiar rol o estado de usuario
-  const handleToggleUserStatus = async (user: User) => {
-    const nextStatus = user.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'
-    if (authToken) {
-      await updateUserDetails(authToken, user.id, { estado: nextStatus }).catch(() => {})
-    }
-    setUsersList((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, estado: nextStatus } : u))
-    )
-  }
 
   // Login handler
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -535,31 +303,9 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
     }
   }
 
-  // Guardar configuración de almacenamiento
-  const handleSaveSettings = async () => {
-    setSavingSettings(true)
-    setSettingsSuccess(null)
-    setSettingsError(null)
 
-    try {
-      const updated = await actualizarConfiguracion(selectedStorageMode)
-      setConfigSys(updated)
-      setSettingsSuccess(`Modo de almacenamiento actualizado a "${selectedStorageMode}" en la base de datos PostgreSQL.`)
-    } catch (err: any) {
-      setSettingsError(err.message || 'Error al guardar la preferencia de almacenamiento.')
-    } finally {
-      setSavingSettings(false)
-    }
-  }
 
-  const handleChangeUserRole = async (user: User, nextRol: any) => {
-    if (authToken) {
-      await updateUserDetails(authToken, user.id, { rol: nextRol }).catch(() => {})
-    }
-    setUsersList((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, rol: nextRol } : u))
-    )
-  }
+
 
   // ── RENDERING RESTRICCIONES POR ROL (RF-05) ──────────────────────────
   const canUploadDocs = !currentUser || currentUser.rol === 'ADMINISTRADOR' || currentUser.rol === 'OPERADOR'
@@ -1104,374 +850,6 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
               </section>
             )}
           </>
-        )}
-
-        {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* VISTA 2: GESTIÓN DE USUARIOS Y ROLES (RF-03, RF-04)                 */}
-        {/* ─────────────────────────────────────────────────────────────────── */}
-        {activeTab === 'users' && canManageUsers && (
-          <div className="users-view">
-            {userFormSuccess && <div className="alert-success mb-3">{userFormSuccess}</div>}
-
-            {/* TABLA DE USUARIOS REGISTRADOS */}
-            <section className="card history-section">
-              <div className="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div>
-                  <h3 className="mb-0 fw-bold">Usuarios Registrados en la Clínica</h3>
-                  <span className="section-hint">Gestión de cuentas de trabajadores y control de acceso RBAC (RF-04)</span>
-                </div>
-                <div className="d-flex gap-2">
-                  <button type="button" className="btn btn-primary fw-bold rounded-pill shadow-sm" onClick={handleOpenCreateModal}>
-                    + Registrar Nuevo Usuario
-                  </button>
-                  <button type="button" className="btn-secondary" onClick={loadUsers}>
-                    Refrescar Lista
-                  </button>
-                </div>
-              </div>
-
-              {loadingUsers ? (
-                <div className="loading-state"><span className="spinner"></span> Cargando usuarios...</div>
-              ) : (
-                <div className="table-wrapper">
-                  <table className="docs-table">
-                    <thead>
-                      <tr>
-                        <th>DNI (8 cifras)</th>
-                        <th>Nombres y Apellidos</th>
-                        <th>Contacto</th>
-                        <th>Rol Asignado</th>
-                        <th>Estado</th>
-                        <th>Acción Estado</th>
-                        <th>Editar / Cambiar Rol</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usersList.map((u) => (
-                        <tr key={u.id}>
-                          <td><code>{u.documento_identidad}</code></td>
-                          <td><strong>{u.nombres} {u.apellidos}</strong></td>
-                          <td>
-                            <div className="small text-secondary">{u.correo || 'Sin correo'}</div>
-                            {u.telefono && <div className="small text-muted">Tel: {u.telefono}</div>}
-                          </td>
-                          <td>
-                            <span className={`role-pill role-${u.rol.toLowerCase()}`}>
-                              {u.rol}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`status-indicator ${u.estado === 'ACTIVO' ? 'text-green' : 'text-amber'}`}>
-                              {u.estado}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className={`btn-action-status ${u.estado === 'ACTIVO' ? 'btn-deactivate' : 'btn-activate'}`}
-                              onClick={() => handleToggleUserStatus(u)}
-                            >
-                              {u.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'}
-                            </button>
-                          </td>
-                          <td>
-                            <div className="d-flex align-items-center gap-2">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary rounded-pill fw-semibold"
-                                onClick={() => handleOpenEditModal(u)}
-                              >
-                                Editar
-                              </button>
-                              <select
-                                value={u.rol}
-                                className="form-select form-select-sm shadow-sm border-secondary-subtle"
-                                style={{ width: '135px', fontSize: '0.8rem', fontWeight: 600 }}
-                                onChange={(e) => handleChangeUserRole(u, e.target.value)}
-                              >
-                                <option value="OPERADOR">OPERADOR</option>
-                                <option value="AUDITOR">AUDITOR</option>
-                                <option value="SUPERVISOR">SUPERVISOR</option>
-                                <option value="ADMINISTRADOR">ADMINISTRADOR</option>
-                              </select>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-
-            {/* MODAL DE REGISTRAR / EDITAR USUARIO */}
-            {isUserModalOpen && (
-              <div
-                className="modal-overlay"
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(15, 23, 42, 0.65)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1050,
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                <div
-                  className="card shadow-lg border-0 rounded-4 p-4"
-                  style={{ maxWidth: '620px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}
-                >
-                  <div className="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
-                    <h4 className="fw-bold text-dark mb-0">
-                      {editingUser ? 'Editar Trabajador del Sistema' : 'RF-03 — Registrar Nuevo Usuario'}
-                    </h4>
-                    <button type="button" className="btn-close" onClick={handleCloseUserModal}></button>
-                  </div>
-
-                  {userFormError && <div className="alert-error mb-3">{userFormError}</div>}
-
-                  <form onSubmit={handleCreateOrUpdateUserSubmit}>
-                    <div className="row g-3 text-start">
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-dni" className="form-label fw-bold text-dark small mb-1">
-                          Documento de Identidad (8 cifras DNI)
-                        </label>
-                        <input
-                          id="u-dni"
-                          type="text"
-                          maxLength={8}
-                          className="form-control"
-                          placeholder="Ej. 77665544"
-                          value={newDni}
-                          onChange={(e) => setNewDni(e.target.value.replace(/\D/g, ''))}
-                          disabled={!!editingUser}
-                          required
-                        />
-                      </div>
-
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-pwd" className="form-label fw-bold text-dark small mb-1">
-                          {editingUser ? 'Nueva Contraseña (Opcional)' : 'Contraseña Inicial'}
-                        </label>
-                        <input
-                          id="u-pwd"
-                          type="password"
-                          className="form-control"
-                          placeholder="••••••••"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          required={!editingUser}
-                        />
-                      </div>
-
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-nom" className="form-label fw-bold text-dark small mb-1">
-                          Nombres
-                        </label>
-                        <input
-                          id="u-nom"
-                          type="text"
-                          className="form-control"
-                          placeholder="Ej. María Fernanda"
-                          value={newNombres}
-                          onChange={(e) => setNewNombres(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-ape" className="form-label fw-bold text-dark small mb-1">
-                          Apellidos
-                        </label>
-                        <input
-                          id="u-ape"
-                          type="text"
-                          className="form-control"
-                          placeholder="Ej. Gómez Torres"
-                          value={newApellidos}
-                          onChange={(e) => setNewApellidos(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-cor" className="form-label fw-bold text-dark small mb-1">
-                          Correo Electrónico (Opcional)
-                        </label>
-                        <input
-                          id="u-cor"
-                          type="email"
-                          className="form-control"
-                          placeholder="maria.gomez@clinica.com"
-                          value={newCorreo}
-                          onChange={(e) => setNewCorreo(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-tel" className="form-label fw-bold text-dark small mb-1">
-                          Teléfono / Celular (Opcional)
-                        </label>
-                        <input
-                          id="u-tel"
-                          type="text"
-                          className="form-control"
-                          placeholder="Ej. 987654321"
-                          value={newTelefono}
-                          onChange={(e) => setNewTelefono(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="col-12">
-                        <label htmlFor="u-rol" className="form-label fw-bold text-dark small mb-1">
-                          Rol Asignado en el Sistema (RF-04)
-                        </label>
-                        <select
-                          id="u-rol"
-                          className="form-select form-select-lg fs-6"
-                          value={newRol}
-                          onChange={(e) => setNewRol(e.target.value as any)}
-                        >
-                          <option value="OPERADOR">OPERADOR (Registra / Carga Documentos)</option>
-                          <option value="AUDITOR">AUDITOR (Revisa Casos HITL / Ambiguos)</option>
-                          <option value="SUPERVISOR">SUPERVISOR (Consulta Dashboard & KPI)</option>
-                          <option value="ADMINISTRADOR">ADMINISTRADOR (Gestión Completa)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
-                      <button type="button" className="btn btn-light border px-4 rounded-pill" onClick={handleCloseUserModal}>
-                        Cancelar
-                      </button>
-                      <button type="submit" className="btn btn-primary px-4 fw-bold rounded-pill shadow-sm" disabled={savingUser}>
-                        {savingUser ? <><span className="spinner"></span> Guardando...</> : editingUser ? 'Actualizar Usuario' : 'Registrar Trabajador'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* VISTA 3: CONFIGURACIÓN DE ALMACENAMIENTO DE DOCUMENTOS             */}
-        {/* ─────────────────────────────────────────────────────────────────── */}
-        {activeTab === 'settings' && canManageSettings && (
-          <div className="settings-view">
-            <section className="card settings-card">
-              <div className="card-header">
-                <h3>Configuración de Almacenamiento de Documentos</h3>
-                <span className="section-hint">Preferencia guardada en BD PostgreSQL (<code>configuracion_sistema</code>)</span>
-              </div>
-
-              <p className="settings-intro">
-                Seleccione dónde se almacenarán físicamente los archivos PDF e imágenes clínicas. Los metadatos, resultados de triaje, estados y registros de auditoría continuarán almacenándose siempre en la base de datos PostgreSQL (`mediflow_dev`).
-              </p>
-
-              {settingsSuccess && <div className="alert-success">{settingsSuccess}</div>}
-              {settingsError && <div className="alert-error">{settingsError}</div>}
-
-              <div className="storage-options-grid">
-                {/* OPCCIÓN LOCAL */}
-                <div
-                  className={`storage-card ${selectedStorageMode === 'LOCAL' ? 'selected' : ''}`}
-                  onClick={() => {
-                    setSelectedStorageMode('LOCAL')
-                    setSettingsError(null)
-                  }}
-                >
-                  <div className="storage-card-header">
-                    <input
-                      type="radio"
-                      id="mode-local"
-                      name="storageMode"
-                      value="LOCAL"
-                      checked={selectedStorageMode === 'LOCAL'}
-                      onChange={() => {
-                        setSelectedStorageMode('LOCAL')
-                        setSettingsError(null)
-                      }}
-                    />
-                    <label htmlFor="mode-local">Almacenamiento Local (Disco del Servidor)</label>
-                  </div>
-                  <p className="storage-desc">
-                    Los documentos PDF e imágenes se almacenarán físicamente en el disco local del servidor backend.
-                  </p>
-                  <div className="storage-path-info">
-                    Ruta: <code>backend/storage/documentos/</code>
-                  </div>
-                  <div className="storage-status-badge badge-rutina" style={{ marginTop: '10px' }}>
-                    Disponible por defecto
-                  </div>
-                </div>
-
-                {/* OPCCIÓN OCI */}
-                <div
-                  className={`storage-card ${selectedStorageMode === 'OCI' ? 'selected' : ''} ${
-                    configSys && !configSys.oci_configured ? 'card-warning-border' : ''
-                  }`}
-                  onClick={() => {
-                    setSelectedStorageMode('OCI')
-                    setSettingsError(null)
-                  }}
-                >
-                  <div className="storage-card-header">
-                    <input
-                      type="radio"
-                      id="mode-oci"
-                      name="storageMode"
-                      value="OCI"
-                      checked={selectedStorageMode === 'OCI'}
-                      onChange={() => {
-                        setSelectedStorageMode('OCI')
-                        setSettingsError(null)
-                      }}
-                    />
-                    <label htmlFor="mode-oci">OCI Object Storage (Oracle Cloud)</label>
-                  </div>
-                  <p className="storage-desc">
-                    Los documentos PDF e imágenes se almacenarán físicamente en el servicio de almacenamiento de objetos de Oracle Cloud.
-                  </p>
-                  <div className="storage-path-info">
-                    Bucket: <code>mediflow-documentos-clinicos</code>
-                  </div>
-                  {configSys?.oci_configured ? (
-                    <div className="storage-status-badge badge-rutina" style={{ marginTop: '10px' }}>
-                      Credenciales OCI Configuradas
-                    </div>
-                  ) : (
-                    <div className="storage-status-badge badge-ambiguo" style={{ marginTop: '10px' }}>
-                      Credenciales OCI No Configuradas (.env)
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {selectedStorageMode === 'OCI' && configSys && !configSys.oci_configured && (
-                <div className="alert-warning">
-                  <strong>Advertencia OCI:</strong> Las variables de entorno de Oracle Cloud no están configuradas en el archivo <code>.env</code>.
-                </div>
-              )}
-
-              <div className="settings-actions">
-                <button
-                  type="button"
-                  className="btn-submit-triage"
-                  disabled={savingSettings}
-                  onClick={handleSaveSettings}
-                >
-                  {savingSettings ? <><span className="spinner"></span> Guardando en Base de Datos...</> : <>Guardar Preferencia en Base de Datos</>}
-                </button>
-              </div>
-            </section>
-          </div>
         )}
       </main>
       </div>

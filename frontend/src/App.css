@@ -10,6 +10,10 @@
   box-sizing: border-box;
 }
 
+.icon-spin {
+  animation: spin 0.8s linear infinite;
+}
+
 @media (prefers-color-scheme: dark) {
   .mediflow-app {
     color: #f1f5f9;

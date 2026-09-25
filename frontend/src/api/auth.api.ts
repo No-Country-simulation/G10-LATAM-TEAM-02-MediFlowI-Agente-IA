@@ -1,5 +1,5 @@
 /**
- * MediFlow — API Client para Autenticación y Gestión de Usuarios (RF-01 al RF-05)
+ * MediFlow - API Client para Autenticación y Gestión de Usuarios (RF-01 al RF-05)
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'

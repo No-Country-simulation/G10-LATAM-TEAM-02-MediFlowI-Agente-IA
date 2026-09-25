@@ -8,7 +8,8 @@ import {
   FaCog,
   FaClipboardCheck,
   FaHistory,
-  FaBook
+  FaBook,
+  FaChevronLeft
 } from "react-icons/fa";
 
 const Sidebar = ({ isOpen, closeSidebar }) => {
@@ -60,25 +61,34 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 bg-dark opacity-50 d-lg-none"
-          style={{ zIndex: 1030 }}
+          className="position-fixed start-0 w-100 bg-dark opacity-50 d-lg-none"
+          style={{ top: "60px", bottom: 0, zIndex: 1035 }}
           onClick={closeSidebar}
         ></div>
       )}
 
       <aside
-        className={`bg-white border-end position-fixed top-0 bottom-0 start-0 shadow-sm ${
-          isOpen ? "d-block" : "d-none d-lg-block"
-        }`}
+        className="bg-white border-end position-fixed start-0 bottom-0 shadow-sm"
         style={{
           width: "250px",
-          paddingTop: "65px",
-          zIndex: 1035,
-          transition: "all 0.3s ease-in-out"
+          top: "60px",
+          zIndex: 1040,
+          transition: "transform 0.3s ease-in-out",
+          transform: isOpen ? "translateX(0)" : "translateX(-100%)"
         }}
       >
         <div className="py-3 px-3">
-          <div className="text-uppercase text-muted fw-bold small mb-2 px-3">Menú Principal</div>
+          <div className="d-flex align-items-center justify-content-between text-uppercase text-muted fw-bold small mb-2 px-3">
+            <span>Menú Principal</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-light text-muted p-1 border-0 rounded-circle"
+              onClick={closeSidebar}
+              title="Ocultar Menú"
+            >
+              <FaChevronLeft size={14} />
+            </button>
+          </div>
           <ul className="nav nav-pills flex-column mb-auto">
             {navItems.map((item) => (
               <li className="nav-item mb-1" key={item.path}>
@@ -90,7 +100,9 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
                       isActive ? "active bg-primary text-white" : "text-dark hover-bg-light"
                     }`
                   }
-                  onClick={closeSidebar}
+                  onClick={() => {
+                    if (window.innerWidth < 992) closeSidebar();
+                  }}
                 >
                   {item.icon}
                   <span>{item.label}</span>

@@ -13,13 +13,14 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top" style={{ zIndex: 1050 }}>
       <div className="container-fluid px-3">
         <button
-          className="btn btn-link text-white me-2 d-lg-none p-0 border-0"
+          className="btn btn-link text-white me-3 p-1 border-0 d-flex align-items-center rounded"
           type="button"
           onClick={toggleSidebar}
           aria-label="Toggle navigation"
+          title="Mostrar / Ocultar Menú"
         >
           <FaBars size={22} />
         </button>

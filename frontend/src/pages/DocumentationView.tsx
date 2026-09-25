@@ -18,7 +18,7 @@ export default function DocumentationView() {
           </p>
         </div>
         <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold fs-7">
-          Versión 2.0 — MediFlow Docs
+          Versión 2.0: MediFlow Docs
         </span>
       </div>
 
@@ -56,7 +56,7 @@ export default function DocumentationView() {
           <div className="col-12">
             <div className="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
               <h4 className="fw-bold text-dark mb-3 d-flex align-items-center">
-                <FaUserShield className="text-primary me-2" /> Control de Acceso Basado en Roles (RBAC — RF-04 & RF-05)
+                <FaUserShield className="text-primary me-2" /> Control de Acceso Basado en Roles (RBAC: RF-04 & RF-05)
               </h4>
               <p className="text-muted leading-relaxed">
                 El sistema MediFlow implementa una política estricta de seguridad y control de acceso por roles. Cada trabajador de la clínica accede únicamente a los módulos pertinentes a su responsabilidad médica u operativa.

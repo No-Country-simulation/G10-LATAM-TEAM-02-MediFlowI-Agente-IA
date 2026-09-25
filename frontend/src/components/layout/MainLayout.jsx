@@ -4,10 +4,10 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
 const MainLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 992);
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    setSidebarOpen((prev) => !prev);
   };
 
   const closeSidebar = () => {
@@ -22,7 +22,9 @@ const MainLayout = () => {
         <Sidebar isOpen={sidebarOpen} closeSidebar={closeSidebar} />
 
         <main
-          className="flex-grow-1 p-3 p-md-4 main-content-wrapper"
+          className={`flex-grow-1 p-3 p-md-4 main-content-wrapper ${
+            sidebarOpen ? "with-sidebar" : "no-sidebar"
+          }`}
           style={{
             minHeight: "calc(100vh - 120px)"
           }}

@@ -11,7 +11,11 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem("mediflow_auth_user");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        if (parsed && (parsed.username === "admin" || parsed.rol === "AUDITOR_LEAD")) {
+          parsed.rol = "ADMINISTRADOR";
+        }
+        setUser(parsed);
       } catch (e) {
         localStorage.removeItem("mediflow_auth_user");
       }
@@ -29,7 +33,7 @@ export const AuthProvider = ({ children }) => {
         username: "admin",
         nombre: "Administrador Clínico",
         email: "admin@mediflow.com",
-        rol: "AUDITOR_LEAD",
+        rol: "ADMINISTRADOR",
         token: "mock-jwt-token-mediflow-admin-2026"
       };
       setUser(userData);

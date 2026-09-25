@@ -1,5 +1,5 @@
 /**
- * MediFlow — API client wrapper sobre el cliente generado.
+ * MediFlow - API client wrapper sobre el cliente generado.
  * Este archivo es MANUAL. Wrappea _generated/api/ para agregar
  * lógica de negocio (headers, error handling, etc.)
  */

@@ -24,9 +24,17 @@ body {
 }
 
 /* Sidebar responsive rules */
+.main-content-wrapper {
+  transition: margin-left 0.3s ease-in-out;
+  margin-left: 0;
+}
+
 @media (min-width: 992px) {
-  .main-content-wrapper {
+  .main-content-wrapper.with-sidebar {
     margin-left: 250px !important;
+  }
+  .main-content-wrapper.no-sidebar {
+    margin-left: 0 !important;
   }
 }
 
