@@ -121,6 +121,10 @@ class PostgresStorageRepository:
             self._mock_history.extend([
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "DOCUMENTO_RECIBIDO"},
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_INICIADO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "OCR_COMPLETADO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "EXTRACCION_IA_COMPLETADA"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "CLASIFICACION_COMPLETADA"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "ENRUTAMIENTO_COMPLETADO"},
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_FINALIZADO"},
             ])
             logger.info("postgres.mock.guardado", documento_id=resultado.documento_id)
@@ -236,6 +240,10 @@ class PostgresStorageRepository:
                 eventos = [
                     ("DOCUMENTO_RECIBIDO", None, "recibido"),
                     ("PROCESAMIENTO_INICIADO", "recibido", "procesando"),
+                    ("OCR_COMPLETADO", "procesando", "procesando"),
+                    ("EXTRACCION_IA_COMPLETADA", "procesando", "procesando"),
+                    ("CLASIFICACION_COMPLETADA", "procesando", "procesando"),
+                    ("ENRUTAMIENTO_COMPLETADO", "procesando", "procesando"),
                     ("PROCESAMIENTO_FINALIZADO", "procesando", resultado.status),
                 ]
                 if resultado.status == "pendiente_auditoria":

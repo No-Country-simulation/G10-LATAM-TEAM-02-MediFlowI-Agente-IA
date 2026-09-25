@@ -38,6 +38,10 @@ async def test_guardar_resultado_records_uploader_and_processing_history():
     assert [event["evento"] for event in history] == [
         "DOCUMENTO_RECIBIDO",
         "PROCESAMIENTO_INICIADO",
+        "OCR_COMPLETADO",
+        "EXTRACCION_IA_COMPLETADA",
+        "CLASIFICACION_COMPLETADA",
+        "ENRUTAMIENTO_COMPLETADO",
         "PROCESAMIENTO_FINALIZADO",
     ]
 
