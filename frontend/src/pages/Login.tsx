@@ -4,6 +4,11 @@ import { useAuth } from "../hooks/useAuth";
 import { FaStethoscope, FaUser, FaLock, FaSignInAlt } from "react-icons/fa";
 import type { FormEvent } from 'react'
 
+const DEVELOPMENT_ADMIN_CREDENTIALS = {
+  documentoIdentidad: '12345678',
+  password: 'MediFlow#Admin2026',
+} as const
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,6 +118,33 @@ const Login = () => {
               )}
             </button>
           </form>
+
+          {import.meta.env.DEV && (
+            <aside className="alert alert-info border-0 rounded-3 mt-4 mb-0" role="note">
+              <p className="fw-semibold mb-2">Acceso inicial de desarrollo</p>
+              <dl className="row small mb-3">
+                <dt className="col-4">DNI</dt>
+                <dd className="col-8 mb-1">
+                  <code>{DEVELOPMENT_ADMIN_CREDENTIALS.documentoIdentidad}</code>
+                </dd>
+                <dt className="col-4">Contraseña</dt>
+                <dd className="col-8 mb-0">
+                  <code>{DEVELOPMENT_ADMIN_CREDENTIALS.password}</code>
+                </dd>
+              </dl>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary w-100"
+                onClick={() => {
+                  setUsername(DEVELOPMENT_ADMIN_CREDENTIALS.documentoIdentidad)
+                  setPassword(DEVELOPMENT_ADMIN_CREDENTIALS.password)
+                  setError('')
+                }}
+              >
+                Completar credenciales
+              </button>
+            </aside>
+          )}
         </div>
 
         {/* Footer */}
