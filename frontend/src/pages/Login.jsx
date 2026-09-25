@@ -8,7 +8,7 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
 
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("12345678");
   const [password, setPassword] = useState("admin");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,13 +60,13 @@ const Login = () => {
             <FaInfoCircle className="me-2 flex-shrink-0 fs-5" />
             <div>
               <strong>Credenciales de acceso:</strong>
-              <div className="font-monospace">Usuario: <strong>admin</strong> | Clave: <strong>admin</strong></div>
+              <div className="font-monospace">DNI: <strong>12345678</strong> | Clave: <strong>admin</strong></div>
             </div>
           </div>
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label className="form-label fw-semibold text-muted small">Usuario</label>
+              <label className="form-label fw-semibold text-muted small">DNI</label>
               <div className="input-group">
                 <span className="input-group-text bg-light border-end-0 text-muted">
                   <FaUser />
@@ -74,7 +74,7 @@ const Login = () => {
                 <input
                   type="text"
                   className="form-control border-start-0 ps-0"
-                  placeholder="Ingrese su usuario"
+                  placeholder="Ingrese su DNI"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required

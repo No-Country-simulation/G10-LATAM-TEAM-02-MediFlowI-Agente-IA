@@ -293,7 +293,6 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
       await registrarAuditoria(
         resultado.documento_id,
         decision,
-        currentUser ? currentUser.documento_identidad : 'AUDITOR-HUMANO-01',
         `Decisión de auditoría ejecutada por ${currentUser ? currentUser.nombres : 'Auditor Médica'} (${currentUser ? currentUser.rol : 'AUDITOR'}).`
       )
       setAuditSuccess(`Auditoría registrada: Decisión "${decision.toUpperCase()}" enviada.`)

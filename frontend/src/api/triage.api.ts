@@ -5,11 +5,14 @@
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
-const API_KEY = import.meta.env.VITE_API_KEY || 'mediflow-dev-secret-key-change-in-prod'
 
-const headers = {
-  'Content-Type': 'application/json',
-  'X-API-Key': API_KEY,
+function getHeaders(includeJsonContentType = true): HeadersInit {
+  const session = localStorage.getItem('mediflow_auth_session')
+  const token = session ? JSON.parse(session).access_token : undefined
+  return {
+    ...(includeJsonContentType ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
 }
 
 export interface DocumentoClinicoPayload {
@@ -38,7 +41,7 @@ export interface ResultadoTriaje {
     hallazgos_clave?: string[]
   }
   decision_enrutamiento: {
-    destino_principal: 'Cola_Emergencia_Medica' | 'Cola_Rutina' | 'Cola_Auditoria_Humana'
+    destino_principal: 'Cola_Emergencia_Medica' | 'Cola_Rutina' | 'Cola_Auditoria_Humana' | 'Cola_Revision_Ambigua'
     requiere_auditoria_humana: boolean
     justificacion_enrutamiento: string
     notificacion_generada?: { canal: string; mensaje: string }
@@ -58,7 +61,7 @@ export async function procesarDocumento(
 ): Promise<ResultadoTriaje> {
   const res = await fetch(`${API_BASE}/triage`, {
     method: 'POST',
-    headers,
+    headers: getHeaders(),
     body: JSON.stringify(payload),
   })
 
@@ -83,7 +86,7 @@ export async function subirArchivo(
 
   const res = await fetch(`${API_BASE}/triage/upload`, {
     method: 'POST',
-    headers: { 'X-API-Key': API_KEY },
+    headers: getHeaders(false),
     body: form,
   })
 
@@ -106,7 +109,7 @@ export async function listarDocumentos(params?: {
   if (params?.nivel_prioridad) qs.set('nivel_prioridad', params.nivel_prioridad)
   if (params?.limit) qs.set('limit', String(params.limit))
 
-  const res = await fetch(`${API_BASE}/documents?${qs}`, { headers })
+  const res = await fetch(`${API_BASE}/documents?${qs}`, { headers: getHeaders() })
   if (!res.ok) throw new Error('Error al listar documentos')
   return res.json()
 }
@@ -115,13 +118,12 @@ export async function listarDocumentos(params?: {
 export async function registrarAuditoria(
   documentoId: string,
   decision: 'aprobar' | 'rechazar' | 'reclasificar',
-  auditorId: string,
   comentario?: string,
 ): Promise<ResultadoTriaje> {
   const res = await fetch(`${API_BASE}/documents/${documentoId}`, {
     method: 'PATCH',
-    headers,
-    body: JSON.stringify({ decision, auditor_id: auditorId, comentario }),
+    headers: getHeaders(),
+    body: JSON.stringify({ decision, comentario }),
   })
   if (!res.ok) throw new Error('Error al registrar decisión de auditoría')
   return res.json()
@@ -137,7 +139,7 @@ export interface ConfiguracionSistema {
 
 /** Obtiene la configuración actual del sistema */
 export async function obtenerConfiguracion(): Promise<ConfiguracionSistema> {
-  const res = await fetch(`${API_BASE}/settings`, { headers })
+  const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() })
   if (!res.ok) throw new Error('Error al obtener la configuración del sistema')
   return res.json()
 }
@@ -148,7 +150,7 @@ export async function actualizarConfiguracion(
 ): Promise<ConfiguracionSistema> {
   const res = await fetch(`${API_BASE}/settings`, {
     method: 'POST',
-    headers,
+    headers: getHeaders(),
     body: JSON.stringify({ storage_mode: storageMode }),
   })
 

@@ -42,7 +42,7 @@ const DEFAULT_PATIENTS_LIST: Paciente[] = [
     apellidos: 'Pérez Ramos',
     nombre_completo: 'Juan Carlos Pérez Ramos',
     fecha_nacimiento: '1985-06-15',
-    sexo: 'M',
+    sexo: null,
     telefono: '987654321',
     correo: 'juan.perez@email.com',
     created_at: '2026-09-20T10:00:00Z',
@@ -70,7 +70,7 @@ const DEFAULT_PATIENTS_LIST: Paciente[] = [
     apellidos: 'García Castro',
     nombre_completo: 'Luis Alberto García Castro',
     fecha_nacimiento: '1978-03-04',
-    sexo: 'M',
+    sexo: null,
     telefono: '955443322',
     correo: 'luis.garcia@email.com',
     created_at: '2026-09-24T09:15:00Z',
@@ -256,7 +256,7 @@ export default function PatientsManagementView() {
       nombres: '',
       apellidos: '',
       fecha_nacimiento: '',
-      sexo: 'M',
+      sexo: null,
       telefono: '',
       correo: '',
     })
@@ -272,7 +272,7 @@ export default function PatientsManagementView() {
       nombres: patient.nombres,
       apellidos: patient.apellidos,
       fecha_nacimiento: patient.fecha_nacimiento || '',
-      sexo: patient.sexo || 'M',
+      sexo: patient.sexo ?? null,
       telefono: patient.telefono || '',
       correo: patient.correo || '',
     })
@@ -601,7 +601,7 @@ export default function PatientsManagementView() {
                     </td>
                     <td>
                       <div className="small text-muted">
-                        {p.fecha_nacimiento || 'N/A'} • <span className="fw-semibold text-dark">{p.sexo || 'M'}</span>
+                        {p.fecha_nacimiento || 'N/A'} • <span className="fw-semibold text-dark">{p.sexo || 'No especificado'}</span>
                       </div>
                     </td>
                     <td>
@@ -752,9 +752,15 @@ export default function PatientsManagementView() {
                       <label className="form-label fw-medium">Sexo</label>
                       <select
                         className="form-select"
-                        value={formData.sexo}
-                        onChange={(e) => setFormData({ ...formData, sexo: e.target.value as any })}
+                        value={formData.sexo ?? ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          sexo: e.target.value
+                            ? e.target.value as 'M' | 'F' | 'OTRO'
+                            : null,
+                        })}
                       >
+                        <option value="">No especificado</option>
                         <option value="M">Masculino (M)</option>
                         <option value="F">Femenino (F)</option>
                         <option value="OTRO">Otro</option>
@@ -894,9 +900,15 @@ export default function PatientsManagementView() {
                       <label className="form-label fw-medium">Sexo</label>
                       <select
                         className="form-select"
-                        value={formData.sexo}
-                        onChange={(e) => setFormData({ ...formData, sexo: e.target.value as any })}
+                        value={formData.sexo ?? ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          sexo: e.target.value
+                            ? e.target.value as 'M' | 'F' | 'OTRO'
+                            : null,
+                        })}
                       >
+                        <option value="">No especificado</option>
                         <option value="M">Masculino (M)</option>
                         <option value="F">Femenino (F)</option>
                         <option value="OTRO">Otro</option>
@@ -974,7 +986,7 @@ export default function PatientsManagementView() {
                           <strong>Historia Clínica:</strong> {selectedPatient.historia_clinica || 'Sin asignar'}
                         </span>
                         <span>
-                          <strong>Sexo / Nac.:</strong> {selectedPatient.sexo || 'M'} ({selectedPatient.fecha_nacimiento || 'N/A'})
+                          <strong>Sexo / Nac.:</strong> {selectedPatient.sexo || 'No especificado'} ({selectedPatient.fecha_nacimiento || 'N/A'})
                         </span>
                       </div>
                     </div>

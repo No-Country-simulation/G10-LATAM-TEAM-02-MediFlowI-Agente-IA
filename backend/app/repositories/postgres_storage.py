@@ -20,6 +20,20 @@ logger = structlog.get_logger(__name__)
 _GLOBAL_DB_POOL = None
 
 
+def estado_final_auditoria(decision: str) -> str:
+    """Devuelve el estado terminal correcto para una decisión HITL."""
+    return "rechazado" if decision == "rechazar" else "procesado"
+
+
+def evento_auditoria(decision: str) -> str:
+    """Identifica el evento funcional que corresponde a una decisión HITL."""
+    return {
+        "aprobar": "AUDITORIA_APROBADA",
+        "reclasificar": "AUDITORIA_RECLASIFICADA",
+        "rechazar": "AUDITORIA_RECHAZADA",
+    }[decision]
+
+
 async def get_db_pool():
     """Obtiene o inicializa el pool global de conexiones asyncpg."""
     global _GLOBAL_DB_POOL
@@ -54,6 +68,7 @@ class PostgresStorageRepository:
         self._settings = settings
         self._pool = None
         self._mock_store: dict[str, dict] = {}
+        self._mock_history: list[dict] = []
         self._initialized = False
 
     async def inicializar(self):
@@ -81,7 +96,11 @@ class PostgresStorageRepository:
             logger.error("postgres.conexion.error", error=str(exc))
             self._initialized = True
 
-    async def guardar_resultado(self, resultado: AgentState) -> bool:
+    async def guardar_resultado(
+        self,
+        resultado: AgentState,
+        usuario_registro_id: Optional[str] = None,
+    ) -> bool:
         """
         Guarda el resultado completo de triaje en PostgreSQL.
 
@@ -98,6 +117,26 @@ class PostgresStorageRepository:
         if self._pool is None:
             # Mock en memoria
             self._mock_store[resultado.documento_id] = datos
+            self._mock_store[resultado.documento_id]["usuario_registro_id"] = usuario_registro_id
+            self._mock_store[resultado.documento_id]["paciente_id"] = resultado.metadata.get("paciente_id")
+            self._mock_history.extend([
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "DOCUMENTO_RECIBIDO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_INICIADO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "OCR_COMPLETADO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "EXTRACCION_IA_COMPLETADA"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "CLASIFICACION_COMPLETADA"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "ENRUTAMIENTO_COMPLETADO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_FINALIZADO"},
+            ])
+            if resultado.metadata.get("asociacion_paciente"):
+                self._mock_history.append({
+                    "documento_id": resultado.documento_id,
+                    "usuario_id": usuario_registro_id,
+                    "evento": {
+                        "asociado": "PACIENTE_ASOCIADO",
+                        "conflicto": "CONFLICTO_PACIENTE",
+                    }.get(resultado.metadata["asociacion_paciente"], "PACIENTE_SIN_COINCIDENCIA"),
+                })
             logger.info("postgres.mock.guardado", documento_id=resultado.documento_id)
             return True
 
@@ -177,6 +216,21 @@ class PostgresStorageRepository:
                     resultado.almacenamiento_oci.nombre_original,
                 )
 
+                if usuario_registro_id:
+                    await conn.execute(
+                        """UPDATE documentos_triaje
+                           SET usuario_registro_id = COALESCE(usuario_registro_id, $1)
+                           WHERE documento_id = $2""",
+                        usuario_registro_id,
+                        resultado.documento_id,
+                    )
+
+                if resultado.metadata.get("paciente_id"):
+                    await conn.execute(
+                        "UPDATE documentos_triaje SET paciente_id = $1::uuid WHERE documento_id = $2",
+                        resultado.metadata["paciente_id"], resultado.documento_id,
+                    )
+
                 # También registrar en cola_procesamiento para gestión operativa
                 await conn.execute("""
                     INSERT INTO cola_procesamiento (
@@ -194,6 +248,33 @@ class PostgresStorageRepository:
                     resultado.clasificacion.score_confianza_clasificacion,
                     resultado.status,
                 )
+
+                documento = await conn.fetchrow(
+                    "SELECT id FROM documentos_triaje WHERE documento_id = $1",
+                    resultado.documento_id,
+                )
+                eventos = [
+                    ("DOCUMENTO_RECIBIDO", None, "recibido"),
+                    ("PROCESAMIENTO_INICIADO", "recibido", "procesando"),
+                    ("OCR_COMPLETADO", "procesando", "procesando"),
+                    ("EXTRACCION_IA_COMPLETADA", "procesando", "procesando"),
+                    ("CLASIFICACION_COMPLETADA", "procesando", "procesando"),
+                    ("ENRUTAMIENTO_COMPLETADO", "procesando", "procesando"),
+                    ("PROCESAMIENTO_FINALIZADO", "procesando", resultado.status),
+                ]
+                if resultado.status == "pendiente_auditoria":
+                    eventos.append(("PENDIENTE_AUDITORIA", "procesando", "pendiente_auditoria"))
+                if resultado.metadata.get("asociacion_paciente") == "asociado":
+                    eventos.append(("PACIENTE_ASOCIADO", None, None))
+                elif resultado.metadata.get("asociacion_paciente") == "conflicto":
+                    eventos.append(("CONFLICTO_PACIENTE", None, None))
+                for evento, estado_anterior, estado_nuevo in eventos:
+                    await conn.execute("""
+                        INSERT INTO historial_documento (
+                            documento_triaje_id, usuario_id, evento,
+                            estado_anterior, estado_nuevo
+                        ) VALUES ($1, $2, $3, $4, $5)
+                    """, documento["id"], usuario_registro_id, evento, estado_anterior, estado_nuevo)
 
             logger.info("postgres.guardado", documento_id=resultado.documento_id)
             return True
@@ -218,6 +299,24 @@ class PostgresStorageRepository:
         except Exception as exc:
             logger.error("postgres.obtener.error", documento_id=documento_id, error=str(exc))
             return None
+
+    async def listar_historial(self, documento_id: str) -> list[dict]:
+        """Lista la trazabilidad funcional del documento en orden cronológico."""
+        await self.inicializar()
+
+        if self._pool is None:
+            return [event for event in self._mock_history if event["documento_id"] == documento_id]
+
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT hd.evento, hd.estado_anterior, hd.estado_nuevo,
+                       hd.descripcion, hd.metadata, hd.created_at, hd.usuario_id
+                FROM historial_documento hd
+                JOIN documentos_triaje dt ON dt.id = hd.documento_triaje_id
+                WHERE dt.documento_id = $1
+                ORDER BY hd.created_at ASC
+            """, documento_id)
+            return [dict(row) for row in rows]
 
     async def listar(
         self,
@@ -273,6 +372,13 @@ class PostgresStorageRepository:
                     "decision": decision,
                     "auditor_id": auditor_id,
                 }
+                self._mock_store[documento_id]["status"] = estado_final_auditoria(decision)
+            self._mock_history.append({
+                "documento_id": documento_id,
+                "usuario_id": auditor_id,
+                "evento": evento_auditoria(decision),
+                "estado_nuevo": estado_final_auditoria(decision),
+            })
             return True
 
         try:
@@ -301,10 +407,19 @@ class PostgresStorageRepository:
                     )
 
                     # Actualizar status del documento
-                    nuevo_status = "procesado" if decision in ("aprobar", "reclasificar") else "error"
+                    nuevo_status = estado_final_auditoria(decision)
                     await conn.execute(
                         "UPDATE documentos_triaje SET status = $1, updated_at = NOW() WHERE documento_id = $2",
                         nuevo_status, documento_id,
+                    )
+                    await conn.execute("""
+                        INSERT INTO historial_documento (
+                            documento_triaje_id, usuario_id, evento,
+                            estado_anterior, estado_nuevo, descripcion
+                        ) VALUES ($1, $2, $3, 'pendiente_auditoria', $4, $5)
+                    """,
+                        doc["id"], auditor_id, evento_auditoria(decision),
+                        nuevo_status, comentario,
                     )
 
             logger.info("postgres.auditoria.registrada", documento_id=documento_id, decision=decision)

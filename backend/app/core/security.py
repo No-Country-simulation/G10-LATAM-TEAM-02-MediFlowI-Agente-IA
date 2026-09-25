@@ -8,9 +8,9 @@ generación y validación de tokens de sesión y contraseñas.
 import hashlib
 import os
 import secrets
-from typing import Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 from datetime import datetime, timezone, timedelta
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 
 # Tokens simples en memoria para sesiones activas (o JWT fallback)
 _ACTIVE_SESSIONS: Dict[str, dict] = {}
@@ -90,3 +90,36 @@ async def require_api_key(
             detail="API Key inválida o no proporcionada en la cabecera X-API-Key."
         )
     return key
+
+
+async def require_current_user(
+    authorization: Optional[str] = Header(None),
+) -> dict:
+    """Retorna el usuario de una sesión Bearer activa o rechaza la solicitud."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Bearer no proporcionado en la cabecera Authorization.",
+        )
+
+    token = authorization.removeprefix("Bearer ").strip()
+    user = verify_access_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesión no válida o expirada. Por favor, inicie sesión nuevamente.",
+        )
+    return user
+
+
+def require_roles(*allowed_roles: str) -> Callable:
+    """Crea una dependencia que exige uno de los roles indicados."""
+    async def role_dependency(current_user: dict = Depends(require_current_user)) -> dict:
+        if current_user.get("rol") not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No cuenta con permisos para realizar esta acción.",
+            )
+        return current_user
+
+    return role_dependency

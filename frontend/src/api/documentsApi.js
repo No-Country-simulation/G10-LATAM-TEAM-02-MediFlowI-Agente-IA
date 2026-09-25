@@ -1,5 +1,11 @@
 import api from "./axios";
 
+const getBearerHeaders = () => {
+  const rawSession = localStorage.getItem("mediflow_auth_session");
+  const token = rawSession ? JSON.parse(rawSession).access_token : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 // Initial mock database stored in localStorage for offline/development testing
 const INITIAL_DOCUMENTS = [
   {
@@ -279,12 +285,10 @@ export const documentsApi = {
   obtenerDocumentos: async (filtros = {}) => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-      const API_KEY = import.meta.env.VITE_API_KEY || 'mediflow-dev-secret-key-change-in-prod';
-      
       const res = await fetch(`${API_BASE}/documents`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': API_KEY,
+          ...getBearerHeaders(),
         },
       });
 
@@ -335,12 +339,10 @@ export const documentsApi = {
   obtenerDocumentoPorId: async (id) => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-      const API_KEY = import.meta.env.VITE_API_KEY || 'mediflow-dev-secret-key-change-in-prod';
-
       const res = await fetch(`${API_BASE}/documents/${id}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': API_KEY,
+          ...getBearerHeaders(),
         },
       });
 

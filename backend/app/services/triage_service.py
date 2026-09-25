@@ -15,6 +15,21 @@ from app.repositories.postgres_storage import PostgresStorageRepository
 logger = structlog.get_logger(__name__)
 
 
+def aplicar_asociacion_paciente(resultado: AgentState, resolucion: dict) -> None:
+    """Aplica una resolución exacta o deriva conflictos a revisión clínica."""
+    estado = resolucion["estado"]
+    resultado.metadata["asociacion_paciente"] = estado
+    if estado == "asociado":
+        resultado.metadata["paciente_id"] = str(resolucion["paciente"]["id"])
+    elif estado == "conflicto":
+        resultado.decision_enrutamiento.destino_principal = "Cola_Revision_Ambigua"
+        resultado.decision_enrutamiento.requiere_auditoria_humana = True
+        resultado.decision_enrutamiento.justificacion_enrutamiento = (
+            "DNI e historia clínica identifican pacientes distintos."
+        )
+        resultado.status = "pendiente_auditoria"
+
+
 class TriageService:
     """
     Servicio principal de triaje clínico.
@@ -37,6 +52,7 @@ class TriageService:
         canal_origen: str = "",
         metadata: dict | None = None,
         nombre_original: str | None = None,
+        usuario_registro_id: str | None = None,
     ) -> AgentState:
         """
         Procesa un documento clínico completo:
@@ -58,6 +74,16 @@ class TriageService:
             metadata=metadata,
             llm_service=self._llm_service,
         )
+
+        paciente = resultado.datos_extraidos.paciente
+        if paciente and (paciente.documento_identidad or paciente.historia_clinica):
+            from app.repositories.patient_repository import resolver_paciente_por_identificadores
+
+            resolucion = await resolver_paciente_por_identificadores(
+                paciente.documento_identidad,
+                paciente.historia_clinica,
+            )
+            aplicar_asociacion_paciente(resultado, resolucion)
 
         ext = "pdf" if tipo_archivo == "PDF" else ("png" if tipo_archivo == "IMAGEN" else "txt")
         nombre_orig = nombre_original or f"ingesta_{documento_id}.{ext}"
@@ -105,7 +131,7 @@ class TriageService:
         # 3. Persistir en la base de datos PostgreSQL (documentos_triaje)
         if self._postgres_storage:
             try:
-                await self._postgres_storage.guardar_resultado(resultado)
+                await self._postgres_storage.guardar_resultado(resultado, usuario_registro_id)
                 logger.info("triage_service.postgres.guardado", documento_id=documento_id)
             except Exception as exc:
                 logger.error("triage_service.postgres.error", documento_id=documento_id, error=str(exc))
@@ -126,6 +152,7 @@ class TriageService:
             "Cola_Emergencia_Medica": f"urgentes/{doc_id}/resultado.json",
             "Cola_Rutina": f"procesados/{doc_id}/resultado.json",
             "Cola_Auditoria_Humana": f"auditoria_humana/{doc_id}/resultado.json",
+            "Cola_Revision_Ambigua": f"revision_ambigua/{doc_id}/resultado.json",
         }
         return rutas.get(destino, f"procesados/{doc_id}/resultado.json")
 

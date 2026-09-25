@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
+import { getCurrentUser, loginUser, logoutUser } from "../api/auth.api";
 
 export const AuthContext = createContext();
 
@@ -7,49 +8,41 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user session exists in localStorage
-    const storedUser = localStorage.getItem("mediflow_auth_user");
-    if (storedUser) {
+    const storedSession = localStorage.getItem("mediflow_auth_session");
+    if (storedSession) {
       try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && (parsed.username === "admin" || parsed.rol === "AUDITOR_LEAD")) {
-          parsed.rol = "ADMINISTRADOR";
-        }
-        setUser(parsed);
+        const session = JSON.parse(storedSession);
+        getCurrentUser(session.access_token)
+          .then((currentUser) => setUser({ ...currentUser, token: session.access_token }))
+          .catch(() => localStorage.removeItem("mediflow_auth_session"))
+          .finally(() => setLoading(false));
+        return;
       } catch (e) {
-        localStorage.removeItem("mediflow_auth_user");
+        localStorage.removeItem("mediflow_auth_session");
       }
     }
     setLoading(false);
   }, []);
 
-  const login = async (username, password) => {
-    // Demo credential validation: username === 'admin' and password === 'admin'
-    const trimmedUser = (username || "").trim();
-    const trimmedPass = (password || "").trim();
-
-    if (trimmedUser === "admin" && trimmedPass === "admin") {
-      const userData = {
-        username: "admin",
-        nombre: "Administrador Clínico",
-        email: "admin@mediflow.com",
-        rol: "ADMINISTRADOR",
-        token: "mock-jwt-token-mediflow-admin-2026"
-      };
+  const login = async (documentoIdentidad, password) => {
+    try {
+      const session = await loginUser(documentoIdentidad, password);
+      const userData = { ...session.user, token: session.access_token };
       setUser(userData);
-      localStorage.setItem("mediflow_auth_user", JSON.stringify(userData));
+      localStorage.setItem(
+        "mediflow_auth_session",
+        JSON.stringify({ access_token: session.access_token }),
+      );
       return { success: true, user: userData };
-    } else {
-      return {
-        success: false,
-        message: "Credenciales inválidas. Usuario o contraseña incorrectos."
-      };
+    } catch (error) {
+      return { success: false, message: error.message };
     }
   };
 
   const logout = () => {
+    if (user?.token) logoutUser(user.token);
     setUser(null);
-    localStorage.removeItem("mediflow_auth_user");
+    localStorage.removeItem("mediflow_auth_session");
   };
 
   return (

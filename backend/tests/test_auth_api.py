@@ -5,7 +5,10 @@ Pruebas unitarias para la API de Autenticación y Usuarios (RF-01 al RF-05).
 import pytest
 from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from app.main import app
+from app.core.security import create_access_token
+from app.api.v1.users import UserCreateRequest, UserUpdateRequest
 
 client = TestClient(app)
 
@@ -21,6 +24,22 @@ MOCK_ADMIN_USER = {
     "rol": "ADMINISTRADOR",
     "estado": "ACTIVO"
 }
+
+
+def test_user_password_policy_applies_to_create_and_update():
+    payload = {
+        "documento_identidad": "88776655",
+        "nombres": "María",
+        "apellidos": "Gómez",
+    }
+
+    with pytest.raises(ValidationError):
+        UserCreateRequest(**payload, password="clave123")
+    with pytest.raises(ValidationError):
+        UserUpdateRequest(password="clave123")
+
+    assert UserCreateRequest(**payload, password="ClaveSegura#2026").password
+    assert UserUpdateRequest(password="ClaveSegura#2026").password
 
 
 @pytest.mark.asyncio
@@ -73,3 +92,14 @@ async def test_logout():
     )
     assert response.status_code == 200
     assert "cierre de sesión" in response.json()["mensaje"].lower()
+
+
+@pytest.mark.asyncio
+async def test_require_current_user_returns_the_bearer_session_user():
+    """La dependencia compartida debe resolver al usuario de una sesión Bearer válida."""
+    from app.core.security import require_current_user
+
+    expected_user = {"id": "user-123", "rol": "OPERADOR"}
+    token = create_access_token(expected_user)
+
+    assert await require_current_user(f"Bearer {token}") == expected_user

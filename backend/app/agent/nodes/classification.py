@@ -7,6 +7,7 @@ Output: ClasificacionState con tipo_documento, especialidad, nivel_prioridad.
 import json
 import structlog
 from app.agent.state import AgentState, ClasificacionState
+from app.agent.nodes.extraction import dividir_texto_en_bloques
 
 logger = structlog.get_logger(__name__)
 
@@ -38,6 +39,25 @@ Datos ya extraídos:
 """
 
 
+def consolidar_clasificaciones(bloques: list[ClasificacionState]) -> ClasificacionState:
+    """Da prioridad clínica a urgencias y deriva inconsistencias a Ambiguo."""
+    if not bloques:
+        return ClasificacionState(tipo_documento="Desconocido", nivel_prioridad="Ambiguo")
+
+    urgentes = [bloque for bloque in bloques if bloque.nivel_prioridad == "Urgente"]
+    if urgentes:
+        return urgentes[0]
+
+    prioridades = {bloque.nivel_prioridad for bloque in bloques}
+    if "Ambiguo" in prioridades or len(prioridades) > 1:
+        return next(
+            (bloque for bloque in bloques if bloque.nivel_prioridad == "Ambiguo"),
+            ClasificacionState(tipo_documento="Desconocido", nivel_prioridad="Ambiguo"),
+        )
+
+    return bloques[0]
+
+
 async def node_classification(state: AgentState, llm_service=None) -> dict:
     """Clasifica el documento y determina nivel de prioridad."""
     logger.info("nodo.classification.inicio", documento_id=state.documento_id)
@@ -58,13 +78,15 @@ async def node_classification(state: AgentState, llm_service=None) -> dict:
         }
 
     try:
-        prompt = _CLASSIFICATION_PROMPT.format(
-            texto=texto[:3000],
-            diagnostico=diagnostico,
-            hallazgos=hallazgos,
-        )
-        respuesta_raw = await _llamar_llm(prompt, llm_service)
-        clasificacion = _parsear_respuesta(respuesta_raw)
+        clasificaciones = []
+        for bloque in dividir_texto_en_bloques(texto):
+            prompt = _CLASSIFICATION_PROMPT.format(
+                texto=bloque,
+                diagnostico=diagnostico,
+                hallazgos=hallazgos,
+            )
+            clasificaciones.append(_parsear_respuesta(await _llamar_llm(prompt, llm_service)))
+        clasificacion = consolidar_clasificaciones(clasificaciones)
 
         logger.info(
             "nodo.classification.completado",

@@ -13,6 +13,8 @@ class PacienteState(BaseModel):
     nombre: Optional[str] = None
     edad: Optional[int] = None
     id_paciente: Optional[str] = None
+    documento_identidad: Optional[str] = None
+    historia_clinica: Optional[str] = None
 
 
 class MedicoSolicitanteState(BaseModel):
@@ -41,6 +43,7 @@ class DecisionEnrutamientoState(BaseModel):
         "Cola_Emergencia_Medica",
         "Cola_Rutina",
         "Cola_Auditoria_Humana",
+        "Cola_Revision_Ambigua",
     ]] = None
     requiere_auditoria_humana: bool = False
     justificacion_enrutamiento: Optional[str] = None
@@ -90,7 +93,15 @@ class AgentState(BaseModel):
     )
 
     # ── Control de flujo ─────────────────────────────────────────────────────
-    status: Literal["procesado", "error", "pendiente_auditoria"] = "pendiente_auditoria"
+    status: Literal[
+        "recibido",
+        "procesando",
+        "procesado",
+        "pendiente_auditoria",
+        "rechazado",
+        "no_soportado",
+        "error",
+    ] = "recibido"
     error_mensaje: Optional[str] = None
     tiempo_procesamiento_ms: Optional[int] = None
 

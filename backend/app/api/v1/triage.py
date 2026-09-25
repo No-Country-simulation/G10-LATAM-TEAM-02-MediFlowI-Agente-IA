@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import base64
 
-from app.core.security import require_api_key
+from app.core.security import require_current_user
 from app.core.config import get_settings, Settings
 from app.services.triage_service import TriageService
 from app.services.llm_service import LLMService
@@ -42,7 +42,7 @@ class DocumentoClinicoRequest(BaseModel):
 async def procesar_documento(
     payload: DocumentoClinicoRequest,
     response: Response,
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_current_user),
     settings: Settings = Depends(get_settings),
 ):
     """
@@ -76,6 +76,7 @@ async def procesar_documento(
             documento_base64=payload.documento_base64,
             canal_origen=payload.canal_origen,
             metadata=payload.metadata,
+            usuario_registro_id=_current_user["id"],
         )
     except Exception as exc:
         logger.error("api.triage.error", documento_id=payload.documento_id, error=str(exc))
@@ -107,7 +108,7 @@ async def procesar_documento_upload(
     documento_id: str = Form(...),
     canal_origen: str = Form(default=""),
     archivo: UploadFile = File(...),
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_current_user),
     settings: Settings = Depends(get_settings),
 ):
     """Variante del endpoint /triage que acepta upload de archivos binarios (PDF, imagen)."""
@@ -126,6 +127,7 @@ async def procesar_documento_upload(
         documento_base64=base64_content,
         canal_origen=canal_origen,
         nombre_original=archivo.filename,
+        usuario_registro_id=_current_user["id"],
     )
     if resultado.decision_enrutamiento.requiere_auditoria_humana:
         response.status_code = status.HTTP_207_MULTI_STATUS

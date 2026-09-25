@@ -150,6 +150,24 @@ async def get_patient_by_hc(historia_clinica: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+async def resolver_paciente_por_identificadores(
+    dni: str | None,
+    historia_clinica: str | None,
+) -> dict[str, Any]:
+    """Resuelve identidad sólo por DNI/HC y nunca infiere por el nombre."""
+    paciente_dni = await get_patient_by_doc(dni) if dni else None
+    paciente_hc = await get_patient_by_hc(historia_clinica) if historia_clinica else None
+
+    if paciente_dni and paciente_hc and paciente_dni["id"] != paciente_hc["id"]:
+        return {"estado": "conflicto", "paciente": None}
+
+    paciente = paciente_dni or paciente_hc
+    return {
+        "estado": "asociado" if paciente else "sin_coincidencia",
+        "paciente": paciente,
+    }
+
+
 async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     RF-06 — Registro de paciente.
@@ -169,7 +187,7 @@ async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "nombres": data["nombres"].strip(),
             "apellidos": data["apellidos"].strip(),
             "fecha_nacimiento": data.get("fecha_nacimiento"),
-            "sexo": data.get("sexo", "M"),
+            "sexo": data.get("sexo"),
             "telefono": data.get("telefono"),
             "correo": data.get("correo"),
             "created_at": now_dt,
@@ -195,7 +213,7 @@ async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 data["nombres"].strip(),
                 data["apellidos"].strip(),
                 data.get("fecha_nacimiento"),
-                data.get("sexo", "M"),
+                data.get("sexo"),
                 data.get("telefono"),
                 data.get("correo")
             )
@@ -211,7 +229,7 @@ async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "nombres": data["nombres"].strip(),
             "apellidos": data["apellidos"].strip(),
             "fecha_nacimiento": data.get("fecha_nacimiento"),
-            "sexo": data.get("sexo", "M"),
+            "sexo": data.get("sexo"),
             "telefono": data.get("telefono"),
             "correo": data.get("correo"),
             "created_at": now_dt,
