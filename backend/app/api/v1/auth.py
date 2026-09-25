@@ -25,9 +25,9 @@ class LoginRequest(BaseModel):
     documento_identidad: str = Field(
         ...,
         description="Número de documento de identidad de 8 cifras (DNI)",
-        example="12345678"
+        json_schema_extra={"example": "12345678"}
     )
-    password: str = Field(..., description="Contraseña del usuario", example="admin")
+    password: str = Field(..., description="Contraseña del usuario", json_schema_extra={"example": "admin"})
 
     @field_validator("documento_identidad")
     @classmethod

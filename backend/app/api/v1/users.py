@@ -31,15 +31,15 @@ VALID_ESTADOS = {"ACTIVO", "INACTIVO"}
 
 class UserCreateRequest(BaseModel):
     documento_identidad: str = Field(
-        ..., description="Número de documento de identidad de 8 cifras", example="88776655"
+        ..., description="Número de documento de identidad de 8 cifras", json_schema_extra={"example": "88776655"}
     )
-    password: str = Field(..., min_length=4, description="Contraseña inicial", example="clave123")
-    nombres: str = Field(..., example="María")
-    apellidos: str = Field(..., example="Gómez")
-    correo: Optional[str] = Field(None, example="maria.gomez@clinica.com")
-    telefono: Optional[str] = Field(None, example="987654321")
-    rol: str = Field("OPERADOR", example="OPERADOR")
-    estado: str = Field("ACTIVO", example="ACTIVO")
+    password: str = Field(..., min_length=4, description="Contraseña inicial", json_schema_extra={"example": "clave123"})
+    nombres: str = Field(..., json_schema_extra={"example": "María"})
+    apellidos: str = Field(..., json_schema_extra={"example": "Gómez"})
+    correo: Optional[str] = Field(None, json_schema_extra={"example": "maria.gomez@clinica.com"})
+    telefono: Optional[str] = Field(None, json_schema_extra={"example": "987654321"})
+    rol: str = Field("OPERADOR", json_schema_extra={"example": "OPERADOR"})
+    estado: str = Field("ACTIVO", json_schema_extra={"example": "ACTIVO"})
 
     @field_validator("documento_identidad")
     @classmethod

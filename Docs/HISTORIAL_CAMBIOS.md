@@ -12,6 +12,7 @@ Este documento es el **índice maestro** de los registros de cambios del proyect
 | **24/09/2026** | `CAMBIO1` | Erick Pariona | Sprint 2 — Control Manual Almacenamiento, Comentarios BD, Aislar Pruebas & UX Polish | [HISTORIAL_CAMBIOS_2026-09-24_CAMBIO1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-24_CAMBIO1.md) |
 | **25/09/2026** | `CAMBIO1` | Erick Pariona | Reorganización de Docs en subcarpetas e independización de historiales incrementales | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO1.md) |
 | **25/09/2026** | `CAMBIO2` | Erick Pariona | Módulo 1 — Autenticación (DNI 8 cifras), Usuarios & Control de Acceso RBAC (RF-01 a RF-05) | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO2.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO2.md) |
+| **25/09/2026** | `CAMBIO3` | Antigravity & Erick Pariona | Refactor de esquemas Pydantic v2 y eliminación de advertencias en Backend | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO3.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO3.md) |
 
 ---
 
