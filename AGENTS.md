@@ -22,7 +22,7 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 > **4. Generación Automática e Incremental de Documentos `.md` por Comando**:
 > Cualquier agente de IA debe ejecutar la generación automática de archivos `.md` al recibir los siguientes comandos:
 > - **Comando `genera historial cambios para autor [Nombre]`**: Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), carga `Docs/PLANTILLA_CAMBIOS.md`, redacta el detalle profundo de cambios por capa técnica en `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualiza el índice `Docs/HISTORIAL_CAMBIOS.md`.
-> - **Comando `genera pr`** (o *"genera pr para autor [Nombre]"*): Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), detecta la secuencia de PRs del día (`PR1`, `PR2`, etc.), carga `Docs/PLANTILLA_PULL_REQUEST.md`, redacta el archivo individual `Docs/PULL_REQUEST_AAAA-MM-DD_PR[N].md` y actualiza el índice maestro `Docs/PULL_REQUEST.md`.
+> - **Comando `genera pr`** (o *"genera pr para autor [Nombre]"*): Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), detecta la secuencia de PRs del día (`PR1`, `PR2`, etc.), carga `Docs/PLANTILLA_PULL_REQUEST.md`, redacta el archivo individual `Docs/PULL_REQUEST_AAAA-MM-DD_PR[N].md`, **lo vincula explícitamente con `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md`** y actualiza el índice maestro `Docs/PULL_REQUEST.md`.
 
 ---
 

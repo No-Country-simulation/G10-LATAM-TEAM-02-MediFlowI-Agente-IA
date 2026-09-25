@@ -13,6 +13,7 @@ Este documento registra los Pull Requests generados el día **24/09/2026** para 
 - **Rama de Origen**: `dev-erick-pariona`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal
+- **Historial de Cambios Asociado**: [`Docs/HISTORIAL_CAMBIOS_2026-09-24.md`](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/HISTORIAL_CAMBIOS_2026-09-24.md)
 
 ---
 

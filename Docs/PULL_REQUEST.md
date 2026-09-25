@@ -6,10 +6,10 @@ Este directorio contiene los registros de Pull Requests del proyecto **MediFlow 
 
 ## 📅 Registros de Pull Requests por Fecha e Identificador
 
-| Fecha | Identificador | Autor | Título del PR | Enlace al Documento de PR |
-| :--- | :--- | :--- | :--- | :--- |
-| **14/09/2026** | `PR1` | Todos | PR #1 — Setup Inicial de Arquitectura, LangGraph Agent & API | [PULL_REQUEST_2026-09-14_PR1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/PULL_REQUEST_2026-09-14_PR1.md) |
-| **24/09/2026** | `PR1` | Erick Pariona | PR #1 — Control Manual Almacenamiento, Comentarios BD, Aislar Pruebas & UX Polish | [PULL_REQUEST_2026-09-24_PR1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/PULL_REQUEST_2026-09-24_PR1.md) |
+| Fecha | Identificador | Autor | Título del PR | Enlace al Documento de PR | Historial de Cambios Asociado |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **14/09/2026** | `PR1` | Todos | PR #1 — Setup Inicial de Arquitectura, LangGraph Agent & API | [PULL_REQUEST_2026-09-14_PR1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/PULL_REQUEST_2026-09-14_PR1.md) | [HISTORIAL_CAMBIOS_2026-09-14.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/HISTORIAL_CAMBIOS_2026-09-14.md) |
+| **24/09/2026** | `PR1` | Erick Pariona | PR #1 — Control Manual Almacenamiento, Comentarios BD, Aislar Pruebas & UX Polish | [PULL_REQUEST_2026-09-24_PR1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/PULL_REQUEST_2026-09-24_PR1.md) | [HISTORIAL_CAMBIOS_2026-09-24.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/HISTORIAL_CAMBIOS_2026-09-24.md) |
 
 ---
 
