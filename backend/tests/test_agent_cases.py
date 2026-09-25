@@ -7,6 +7,7 @@ from app.agent.nodes import ingestion
 from app.agent.nodes.routing import _calcular_destino
 from app.agent.state import ClasificacionState
 from app.agent.nodes.classification import consolidar_clasificaciones
+from app.agent.nodes.extraction import _parsear_respuesta
 
 
 def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
@@ -44,6 +45,15 @@ def test_consolidar_clasificaciones_prioriza_urgente_en_bloque_final():
 
     assert clasificacion.nivel_prioridad == "Urgente"
     assert clasificacion.tipo_documento == "Informe de Estudio por Imagenes"
+
+
+def test_extraccion_conserva_dni_e_historia_clinica():
+    datos = _parsear_respuesta(
+        '{"paciente": {"nombre": "Ana", "documento_identidad": "12345678", "historia_clinica": "HC-01"}}'
+    )
+
+    assert datos.paciente.documento_identidad == "12345678"
+    assert datos.paciente.historia_clinica == "HC-01"
 
 
 @pytest.mark.asyncio

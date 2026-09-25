@@ -17,10 +17,12 @@ Si un campo no está en el texto, devuelve null para ese campo.
 
 Devuelve SOLO un JSON válido con esta estructura (sin texto adicional):
 {{
-  "paciente": {{
+    "paciente": {{
     "nombre": null,
     "edad": null,
-    "id_paciente": null
+    "id_paciente": null,
+    "documento_identidad": null,
+    "historia_clinica": null
   }},
   "medico_solicitante": {{
     "nombre": null,

@@ -13,6 +13,8 @@ class PacienteState(BaseModel):
     nombre: Optional[str] = None
     edad: Optional[int] = None
     id_paciente: Optional[str] = None
+    documento_identidad: Optional[str] = None
+    historia_clinica: Optional[str] = None
 
 
 class MedicoSolicitanteState(BaseModel):
