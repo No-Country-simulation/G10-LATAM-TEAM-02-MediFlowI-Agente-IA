@@ -5,6 +5,8 @@ from app.core.config import get_settings
 from app.agent.nodes.extraction import dividir_texto_en_bloques
 from app.agent.nodes import ingestion
 from app.agent.nodes.routing import _calcular_destino
+from app.agent.state import ClasificacionState
+from app.agent.nodes.classification import consolidar_clasificaciones
 
 
 def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
@@ -32,6 +34,16 @@ def test_prioridad_ambigua_usa_cola_operativa_dedicada():
 
     assert destino == "Cola_Revision_Ambigua"
     assert requiere_auditoria is True
+
+
+def test_consolidar_clasificaciones_prioriza_urgente_en_bloque_final():
+    clasificacion = consolidar_clasificaciones([
+        ClasificacionState(tipo_documento="Evolución Clínica", nivel_prioridad="Rutina", score_confianza_clasificacion=0.8),
+        ClasificacionState(tipo_documento="Informe de Estudio por Imagenes", nivel_prioridad="Urgente", score_confianza_clasificacion=0.85),
+    ])
+
+    assert clasificacion.nivel_prioridad == "Urgente"
+    assert clasificacion.tipo_documento == "Informe de Estudio por Imagenes"
 
 
 @pytest.mark.asyncio
