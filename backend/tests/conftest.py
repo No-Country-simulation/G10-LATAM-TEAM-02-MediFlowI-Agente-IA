@@ -13,8 +13,14 @@ def settings():
 
 
 @pytest.fixture(autouse=True)
-def mock_postgres_for_tests():
+def mock_postgres_for_tests(request):
     """Evita que los tests automatizados de pytest inserten filas o alteren la BD de desarrollo."""
+    if request.node.get_closest_marker("repository_mock"):
+        # Esta prueba usa explícitamente un repositorio sin DATABASE_URL: conserva
+        # el modo en memoria para verificar la trazabilidad sin tocar mediflow_dev.
+        yield None
+        return
+
     with patch("app.repositories.postgres_storage.PostgresStorageRepository.guardar_resultado") as mock_save, \
          patch("app.api.v1.settings._guardar_modo_almacenamiento_db") as mock_save_settings:
         mock_save.return_value = True

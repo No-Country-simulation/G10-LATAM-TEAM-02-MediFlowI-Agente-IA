@@ -63,6 +63,9 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+  "repository_mock: ejercita el repositorio en memoria sin interceptar la persistencia",
+]
 
 [tool.mypy]
 python_version = "3.11"

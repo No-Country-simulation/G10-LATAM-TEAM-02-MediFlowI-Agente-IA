@@ -96,7 +96,11 @@ class PostgresStorageRepository:
             logger.error("postgres.conexion.error", error=str(exc))
             self._initialized = True
 
-    async def guardar_resultado(self, resultado: AgentState) -> bool:
+    async def guardar_resultado(
+        self,
+        resultado: AgentState,
+        usuario_registro_id: Optional[str] = None,
+    ) -> bool:
         """
         Guarda el resultado completo de triaje en PostgreSQL.
 
@@ -113,6 +117,12 @@ class PostgresStorageRepository:
         if self._pool is None:
             # Mock en memoria
             self._mock_store[resultado.documento_id] = datos
+            self._mock_store[resultado.documento_id]["usuario_registro_id"] = usuario_registro_id
+            self._mock_history.extend([
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "DOCUMENTO_RECIBIDO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_INICIADO"},
+                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_FINALIZADO"},
+            ])
             logger.info("postgres.mock.guardado", documento_id=resultado.documento_id)
             return True
 
@@ -192,6 +202,15 @@ class PostgresStorageRepository:
                     resultado.almacenamiento_oci.nombre_original,
                 )
 
+                if usuario_registro_id:
+                    await conn.execute(
+                        """UPDATE documentos_triaje
+                           SET usuario_registro_id = COALESCE(usuario_registro_id, $1)
+                           WHERE documento_id = $2""",
+                        usuario_registro_id,
+                        resultado.documento_id,
+                    )
+
                 # También registrar en cola_procesamiento para gestión operativa
                 await conn.execute("""
                     INSERT INTO cola_procesamiento (
@@ -209,6 +228,25 @@ class PostgresStorageRepository:
                     resultado.clasificacion.score_confianza_clasificacion,
                     resultado.status,
                 )
+
+                documento = await conn.fetchrow(
+                    "SELECT id FROM documentos_triaje WHERE documento_id = $1",
+                    resultado.documento_id,
+                )
+                eventos = [
+                    ("DOCUMENTO_RECIBIDO", None, "recibido"),
+                    ("PROCESAMIENTO_INICIADO", "recibido", "procesando"),
+                    ("PROCESAMIENTO_FINALIZADO", "procesando", resultado.status),
+                ]
+                if resultado.status == "pendiente_auditoria":
+                    eventos.append(("PENDIENTE_AUDITORIA", "procesando", "pendiente_auditoria"))
+                for evento, estado_anterior, estado_nuevo in eventos:
+                    await conn.execute("""
+                        INSERT INTO historial_documento (
+                            documento_triaje_id, usuario_id, evento,
+                            estado_anterior, estado_nuevo
+                        ) VALUES ($1, $2, $3, $4, $5)
+                    """, documento["id"], usuario_registro_id, evento, estado_anterior, estado_nuevo)
 
             logger.info("postgres.guardado", documento_id=resultado.documento_id)
             return True
@@ -233,6 +271,24 @@ class PostgresStorageRepository:
         except Exception as exc:
             logger.error("postgres.obtener.error", documento_id=documento_id, error=str(exc))
             return None
+
+    async def listar_historial(self, documento_id: str) -> list[dict]:
+        """Lista la trazabilidad funcional del documento en orden cronológico."""
+        await self.inicializar()
+
+        if self._pool is None:
+            return [event for event in self._mock_history if event["documento_id"] == documento_id]
+
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT hd.evento, hd.estado_anterior, hd.estado_nuevo,
+                       hd.descripcion, hd.metadata, hd.created_at, hd.usuario_id
+                FROM historial_documento hd
+                JOIN documentos_triaje dt ON dt.id = hd.documento_triaje_id
+                WHERE dt.documento_id = $1
+                ORDER BY hd.created_at ASC
+            """, documento_id)
+            return [dict(row) for row in rows]
 
     async def listar(
         self,

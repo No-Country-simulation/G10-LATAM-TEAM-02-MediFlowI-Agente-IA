@@ -99,6 +99,20 @@ async def listar_documentos(
     return {"total": len(documentos), "items": documentos}
 
 
+@router.get("/{documento_id}/historial", summary="Consultar trazabilidad funcional del documento")
+async def obtener_historial_documento(
+    documento_id: str,
+    _current_user: dict = Depends(require_current_user),
+    settings: Settings = Depends(get_settings),
+):
+    """Retorna los eventos de recepción, procesamiento y auditoría del documento."""
+    from app.repositories.postgres_storage import PostgresStorageRepository
+
+    pg = PostgresStorageRepository(settings=settings)
+    eventos = await pg.listar_historial(documento_id)
+    return {"documento_id": documento_id, "items": eventos}
+
+
 @router.get("/{documento_id}", summary="Obtener documento por ID")
 async def obtener_documento(
     documento_id: str,

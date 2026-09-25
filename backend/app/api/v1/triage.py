@@ -76,6 +76,7 @@ async def procesar_documento(
             documento_base64=payload.documento_base64,
             canal_origen=payload.canal_origen,
             metadata=payload.metadata,
+            usuario_registro_id=_current_user["id"],
         )
     except Exception as exc:
         logger.error("api.triage.error", documento_id=payload.documento_id, error=str(exc))
@@ -126,6 +127,7 @@ async def procesar_documento_upload(
         documento_base64=base64_content,
         canal_origen=canal_origen,
         nombre_original=archivo.filename,
+        usuario_registro_id=_current_user["id"],
     )
     if resultado.decision_enrutamiento.requiere_auditoria_humana:
         response.status_code = status.HTTP_207_MULTI_STATUS

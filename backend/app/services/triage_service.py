@@ -37,6 +37,7 @@ class TriageService:
         canal_origen: str = "",
         metadata: dict | None = None,
         nombre_original: str | None = None,
+        usuario_registro_id: str | None = None,
     ) -> AgentState:
         """
         Procesa un documento clínico completo:
@@ -105,7 +106,7 @@ class TriageService:
         # 3. Persistir en la base de datos PostgreSQL (documentos_triaje)
         if self._postgres_storage:
             try:
-                await self._postgres_storage.guardar_resultado(resultado)
+                await self._postgres_storage.guardar_resultado(resultado, usuario_registro_id)
                 logger.info("triage_service.postgres.guardado", documento_id=documento_id)
             except Exception as exc:
                 logger.error("triage_service.postgres.error", documento_id=documento_id, error=str(exc))

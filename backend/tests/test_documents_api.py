@@ -1,4 +1,9 @@
+import pytest
 from fastapi import status
+
+from app.agent.state import AgentState
+from app.core.config import get_settings
+from app.repositories.postgres_storage import PostgresStorageRepository
 
 
 def test_rechazar_documento_maps_to_rechazado_status():
@@ -13,6 +18,28 @@ def test_rechazar_documento_creates_rejection_history_event():
     from app.repositories.postgres_storage import evento_auditoria
 
     assert evento_auditoria("rechazar") == "AUDITORIA_RECHAZADA"
+
+
+@pytest.mark.repository_mock
+@pytest.mark.asyncio
+async def test_guardar_resultado_records_uploader_and_processing_history():
+    """Guardar un triaje registra actor y secuencia funcional en PostgreSQL/mock."""
+    repository = PostgresStorageRepository(get_settings().model_copy(update={"database_url": ""}))
+    result = AgentState(documento_id="DOC-HISTORY-1", tipo_archivo="TEXTO", status="procesado")
+
+    await repository.guardar_resultado(
+        result,
+        usuario_registro_id="11111111-2222-3333-4444-555555555555",
+    )
+
+    saved = await repository.obtener_por_id("DOC-HISTORY-1")
+    history = await repository.listar_historial("DOC-HISTORY-1")
+    assert saved["usuario_registro_id"] == "11111111-2222-3333-4444-555555555555"
+    assert [event["evento"] for event in history] == [
+        "DOCUMENTO_RECIBIDO",
+        "PROCESAMIENTO_INICIADO",
+        "PROCESAMIENTO_FINALIZADO",
+    ]
 
 
 def test_listar_documentos_auth_required(client):
@@ -35,6 +62,17 @@ def test_listar_documentos_accepts_authenticated_bearer_user(client, bearer_head
     """La consola clínica consulta documentos mediante su sesión Bearer."""
     response = client.get("/api/v1/documents", headers=bearer_headers)
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_historial_documento_requires_authentication(client):
+    response = client.get("/api/v1/documents/DOC-HISTORY-1/historial")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_historial_documento_is_available_to_authenticated_user(client, bearer_headers):
+    response = client.get("/api/v1/documents/DOC-HISTORY-1/historial", headers=bearer_headers)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"documento_id": "DOC-HISTORY-1", "items": []}
 
 
 def test_auditoria_uses_authenticated_auditor_not_request_body(client, auditor_bearer_headers):
