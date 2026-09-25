@@ -9,6 +9,15 @@ import {
   type ResultadoTriaje,
   type ConfiguracionSistema,
 } from './api/triage.api'
+import {
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+  fetchUsers,
+  createNewUser,
+  updateUserDetails,
+  type User,
+} from './api/auth.api'
 import './App.css'
 
 const PRESET_CASES = [
@@ -55,141 +64,235 @@ NOTIFICACION: Requiere correlación clínica inmediata y atención urgente en Gu
     canal: 'Admision',
     badge: 'Auditoría HITL',
     badgeColor: 'badge-ambiguo',
-    texto: `... [MANCHA DE HUMEDAD EN TEXTO] ...
-Px: ......... 45a ...
-R??: analitica parcial ... hb ??.? ...
-Firma medica ilegible ... sello no visible ...
-Observaciones: ... mgr ??? ... repetir muestra ...`,
+    texto: `DOCUMENTO CLINICO INCOMPLETO
+Paciente: Marcos V.
+Estudio: Evaluación preliminar.
+Notas: Manuscrito borroso. Se identifican valores fuera de rango no especificados. Requiere auditoría humana para determinar nivel de urgencia o reclasificar especialidad.`,
   },
 ]
 
-interface HealthStatus {
-  status: string
-  version: string
-  llm_disponible: boolean
-  oci_disponible: boolean
-}
+const QUICK_USERS = [
+  { label: 'Administrador (Full Access)', dni: '12345678', pwd: 'admin' },
+  { label: 'Operador (Carga & Triaje)', dni: '87654321', pwd: 'operador' },
+  { label: 'Auditor (Revisión HITL)', dni: '11223344', pwd: 'auditor' },
+  { label: 'Supervisor (Lectura & KPI)', dni: '44332211', pwd: 'supervisor' },
+]
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'triage' | 'settings'>('triage')
+  // ── ESTADO DE AUTENTICACIÓN (RF-01, RF-02) ─────────────────────────
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('mf_token'))
+  const [loginDni, setLoginDni] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const [loggingIn, setLoggingIn] = useState(false)
 
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(PRESET_CASES[1].id)
+  // ── NAVEGACIÓN Y VISTAS ────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<'triage' | 'users' | 'settings'>('triage')
 
-  // Estado del triaje
-  const [health, setHealth] = useState<HealthStatus | null>(null)
-  const [documentoId, setDocumentoId] = useState(`DOC-${Date.now().toString().slice(-6)}`)
-  const [tipoArchivo, setTipoArchivo] = useState<'TEXTO' | 'PDF' | 'IMAGEN'>('TEXTO')
-  const [canalOrigen, setCanalOrigen] = useState('Guardia_Emergencias')
-  const [documentoTexto, setDocumentoTexto] = useState(PRESET_CASES[1].texto)
-  const [archivo, setArchivo] = useState<File | null>(null)
+  // ── ESTADO DE TRIAJE ───────────────────────────────────────────────
+  const [activePreset, setActivePreset] = useState<string>('CASO-1-RUTINA')
+  const [docId, setDocId] = useState('')
+  const [canalOrigen, setCanalOrigen] = useState('Consulta_Externa')
+  const [tipoEntrada, setTipoEntrada] = useState<'texto' | 'archivo'>('texto')
+  const [textoClinico, setTextoClinico] = useState('')
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
-  const [resultado, setResultado] = useState<ResultadoTriaje | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [documentosRecientes, setDocumentosRecientes] = useState<ResultadoTriaje[]>([])
+  const [resultado, setResultado] = useState<ResultadoTriaje | null>(null)
   const [auditSuccess, setAuditSuccess] = useState<string | null>(null)
+  const [documentosRecientes, setDocumentosRecientes] = useState<ResultadoTriaje[]>([])
 
-  // Estado de configuración
+  // ── ESTADO DE CONFIGURACIÓN ────────────────────────────────────────
   const [configSys, setConfigSys] = useState<ConfiguracionSistema | null>(null)
   const [selectedStorageMode, setSelectedStorageMode] = useState<'LOCAL' | 'OCI'>('LOCAL')
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
 
-  // Cargar estado inicial
+  // ── ESTADO DE GESTIÓN DE USUARIOS (RF-03, RF-04) ────────────────────
+  const [usersList, setUsersList] = useState<User[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [newDni, setNewDni] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newNombres, setNewNombres] = useState('')
+  const [newApellidos, setNewApellidos] = useState('')
+  const [newCorreo, setNewCorreo] = useState('')
+  const [newTelefono, setNewTelefono] = useState('')
+  const [newRol, setNewRol] = useState<'ADMINISTRADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'>('OPERADOR')
+  const [userFormError, setUserFormError] = useState<string | null>(null)
+  const [userFormSuccess, setUserFormSuccess] = useState<string | null>(null)
+  const [savingUser, setSavingUser] = useState(false)
+
+  // Cargar sesión persistente
   useEffect(() => {
-    checkHealth()
+    if (authToken) {
+      getCurrentUser(authToken)
+        .then((user) => setCurrentUser(user))
+        .catch(() => {
+          localStorage.removeItem('mf_token')
+          setAuthToken(null)
+          setCurrentUser(null)
+        })
+    }
+  }, [authToken])
+
+  // Cargar caso preset por defecto
+  useEffect(() => {
+    handleSelectPreset('CASO-1-RUTINA')
     loadRecentDocs()
     loadSettings()
   }, [])
 
-  async function checkHealth() {
-    try {
-      const res = await fetch('/api/v1/health')
-      if (res.ok) {
-        const data = await res.json()
-        setHealth(data)
-      }
-    } catch {
-      setHealth(null)
+  // Cargar usuarios cuando se abre la pestaña
+  useEffect(() => {
+    if (activeTab === 'users' && authToken && currentUser?.rol === 'ADMINISTRADOR') {
+      loadUsers()
+    }
+  }, [activeTab, authToken, currentUser])
+
+  const generateNewId = () => {
+    const randomNum = Math.floor(100000 + Math.random() * 900000)
+    setDocId(`DOC-${randomNum}`)
+  }
+
+  const handleSelectPreset = (presetId: string) => {
+    const p = PRESET_CASES.find((c) => c.id === presetId)
+    if (p) {
+      setActivePreset(presetId)
+      setCanalOrigen(p.canal)
+      setTextoClinico(p.texto)
+      setTipoEntrada('texto')
+      setResultado(null)
+      setError(null)
+      setAuditSuccess(null)
+      generateNewId()
     }
   }
 
-  async function loadRecentDocs() {
+  const loadRecentDocs = async () => {
     try {
-      const data = await listarDocumentos({ limit: 10 })
-      if (data?.items) {
-        setDocumentosRecientes(data.items)
-      }
-    } catch {
-      // Silencioso
+      const res = await listarDocumentos({ limit: 10 })
+      setDocumentosRecientes(res.items || [])
+    } catch (e) {
+      console.error('Error cargando historial de documentos:', e)
     }
   }
 
-  async function loadSettings() {
+  const loadSettings = async () => {
     try {
-      const sys = await obtenerConfiguracion()
-      setConfigSys(sys)
-      setSelectedStorageMode(sys.storage_mode as 'LOCAL' | 'OCI')
-    } catch {
-      // Silencioso
+      const cfg = await obtenerConfiguracion()
+      setConfigSys(cfg)
+      setSelectedStorageMode(cfg.storage_mode)
+    } catch (e) {
+      console.error('Error cargando configuraciones del sistema:', e)
     }
   }
 
-  function handleSelectPreset(preset: (typeof PRESET_CASES)[0]) {
-    setSelectedPresetId(preset.id)
-    setDocumentoId(`DOC-${Date.now().toString().slice(-6)}`)
-    setCanalOrigen(preset.canal)
-    setTipoArchivo('TEXTO')
-    setDocumentoTexto(preset.texto)
-    setArchivo(null)
-    setError(null)
+  const loadUsers = async () => {
+    if (!authToken) return
+    setLoadingUsers(true)
+    try {
+      const list = await fetchUsers(authToken)
+      setUsersList(list)
+    } catch (e: any) {
+      console.error(e)
+    } finally {
+      setLoadingUsers(false)
+    }
   }
 
-  async function handleEjecutarTriage(e?: React.FormEvent) {
-    if (e) e.preventDefault()
+  // Login handler
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginError(null)
+
+    if (!/^\d{8}$/.test(loginDni.trim())) {
+      setLoginError('El documento de identidad debe tener exactamente 8 cifras numéricas.')
+      return
+    }
+
+    setLoggingIn(true)
+    try {
+      const res = await loginUser(loginDni.trim(), loginPassword)
+      localStorage.setItem('mf_token', res.access_token)
+      setAuthToken(res.access_token)
+      setCurrentUser(res.user)
+      setLoginDni('')
+      setLoginPassword('')
+    } catch (err: any) {
+      setLoginError(err.message || 'Error al iniciar sesión')
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
+  // Logout handler
+  const handleLogout = async () => {
+    if (authToken) {
+      await logoutUser(authToken)
+    }
+    localStorage.removeItem('mf_token')
+    setAuthToken(null)
+    setCurrentUser(null)
+    setActiveTab('triage')
+  }
+
+  // Quick preset login
+  const handleQuickLogin = (dni: string, pwd: string) => {
+    setLoginDni(dni)
+    setLoginPassword(pwd)
+    setLoginError(null)
+  }
+
+  // Procesar Triaje
+  const handleSubmitTriage = async (e: React.FormEvent) => {
+    e.preventDefault()
     setLoading(true)
     setError(null)
+    setResultado(null)
     setAuditSuccess(null)
 
     try {
       let res: ResultadoTriaje
-      if (tipoArchivo === 'TEXTO' || !archivo) {
-        res = await procesarDocumento({
-          documento_id: documentoId,
-          tipo_archivo: 'TEXTO',
-          documento_texto: documentoTexto,
-          canal_origen: canalOrigen,
-        })
+      if (tipoEntrada === 'archivo' && fileToUpload) {
+        res = await subirArchivo(docId, canalOrigen, fileToUpload)
       } else {
-        res = await subirArchivo(documentoId, canalOrigen, archivo)
+        res = await procesarDocumento({
+          documento_id: docId,
+          canal_origen: canalOrigen,
+          tipo_archivo: 'TEXTO',
+          documento_texto: textoClinico,
+        })
       }
       setResultado(res)
       loadRecentDocs()
     } catch (err: any) {
-      setError(err?.message || 'Error al ejecutar el triaje.')
+      setError(err.message || 'Ocurrió un error inesperado al clasificar el documento.')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleAuditoria(decision: 'aprobar' | 'rechazar' | 'reclasificar') {
+  // HITL Auditoría
+  const handleAuditoria = async (decision: 'aprobar' | 'reclasificar' | 'rechazar') => {
     if (!resultado) return
     try {
-      const updated = await registrarAuditoria(
+      await registrarAuditoria(
         resultado.documento_id,
         decision,
-        'Auditor-Médico-DrPerez',
-        `Decisión manual aplicada: ${decision}`,
+        currentUser ? currentUser.documento_identidad : 'AUDITOR-HUMANO-01',
+        `Decisión de auditoría ejecutada por ${currentUser ? currentUser.nombres : 'Auditor Médica'} (${currentUser ? currentUser.rol : 'AUDITOR'}).`
       )
-      setResultado(updated)
-      setAuditSuccess(`Decisión de auditoría "${decision.toUpperCase()}" registrada correctamente.`)
+      setAuditSuccess(`Auditoría registrada: Decisión "${decision.toUpperCase()}" enviada.`)
       loadRecentDocs()
     } catch (err: any) {
-      setError(err?.message || 'Error al guardar la auditoría.')
+      setError('Error al registrar auditoría: ' + err.message)
     }
   }
 
-  async function handleSaveSettings() {
+  // Guardar configuración de almacenamiento
+  const handleSaveSettings = async () => {
     setSavingSettings(true)
     setSettingsSuccess(null)
     setSettingsError(null)
@@ -197,305 +300,408 @@ export default function App() {
     try {
       const updated = await actualizarConfiguracion(selectedStorageMode)
       setConfigSys(updated)
-      setSettingsSuccess(
-        `¡Configuración guardada exitosamente! El almacenamiento físico de documentos ahora es: ${updated.storage_mode}.`,
-      )
+      setSettingsSuccess(`Modo de almacenamiento actualizado a "${selectedStorageMode}" en la base de datos PostgreSQL.`)
     } catch (err: any) {
-      setSettingsError(err?.message || 'Error al actualizar la configuración.')
+      setSettingsError(err.message || 'Error al guardar la preferencia de almacenamiento.')
     } finally {
       setSavingSettings(false)
     }
   }
 
+  // Registrar nuevo usuario (RF-03)
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!authToken) return
+    setUserFormError(null)
+    setUserFormSuccess(null)
+
+    if (!/^\d{8}$/.test(newDni.trim())) {
+      setUserFormError('El documento de identidad debe contener exactamente 8 cifras.')
+      return
+    }
+
+    setSavingUser(true)
+    try {
+      await createNewUser(authToken, {
+        documento_identidad: newDni.trim(),
+        password: newPassword,
+        nombres: newNombres,
+        apellidos: newApellidos,
+        correo: newCorreo || undefined,
+        telefono: newTelefono || undefined,
+        rol: newRol,
+        estado: 'ACTIVO',
+      })
+      setUserFormSuccess(`Usuario ${newNombres} ${newApellidos} (DNI ${newDni}) registrado exitosamente con rol ${newRol}.`)
+      setNewDni('')
+      setNewPassword('')
+      setNewNombres('')
+      setNewApellidos('')
+      setNewCorreo('')
+      setNewTelefono('')
+      loadUsers()
+    } catch (err: any) {
+      setUserFormError(err.message || 'Error al registrar usuario')
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
+  // Cambiar rol o estado de usuario
+  const handleToggleUserStatus = async (user: User) => {
+    if (!authToken) return
+    const nextStatus = user.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'
+    try {
+      await updateUserDetails(authToken, user.id, { estado: nextStatus })
+      loadUsers()
+    } catch (e: any) {
+      alert('Error cambiando estado: ' + e.message)
+    }
+  }
+
+  const handleChangeUserRole = async (user: User, nextRol: any) => {
+    if (!authToken) return
+    try {
+      await updateUserDetails(authToken, user.id, { rol: nextRol })
+      loadUsers()
+    } catch (e: any) {
+      alert('Error cambiando rol: ' + e.message)
+    }
+  }
+
+  // ── RENDERING RESTRICCIONES POR ROL (RF-05) ──────────────────────────
+  const canUploadDocs = !currentUser || currentUser.rol === 'ADMINISTRADOR' || currentUser.rol === 'OPERADOR'
+  const canAuditHITL = !currentUser || currentUser.rol === 'ADMINISTRADOR' || currentUser.rol === 'AUDITOR' || currentUser.rol === 'SUPERVISOR'
+  const isSupervisorReadOnly = currentUser?.rol === 'SUPERVISOR'
+  const canManageUsers = currentUser?.rol === 'ADMINISTRADOR'
+  const canManageSettings = currentUser?.rol === 'ADMINISTRADOR'
+
   return (
-    <div className="mediflow-app">
-      {/* ── HEADER & NAVIGATION ────────────────────────────────────────────── */}
-      <header className="mediflow-header">
-        <div className="brand-group">
-          <div>
-            <div className="brand-title">
-              MediFlow <span className="brand-badge">Agente IA</span>
-            </div>
-            <div className="brand-subtitle">
-              Agente Autónomo de Triaje Clínico Multimodal · LangGraph + Google Gemini
-            </div>
-          </div>
+    <div className="app-container">
+      {/* ── HEADER PRINCIPAL ────────────────────────────────────────────── */}
+      <header className="app-header">
+        <div className="header-brand">
+          <h2>MediFlow</h2>
+          <span className="badge-agent">Agente Autónomo de Triaje Clínico</span>
         </div>
 
-        <div className="header-right-group">
-          {/* NAV TABS */}
-          <nav className="nav-tabs">
-            <button
-              type="button"
-              className={`nav-tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
-              onClick={() => setActiveTab('triage')}
-            >
-              Triaje Clínico
-            </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('settings')
-                loadSettings()
-              }}
-            >
-              Configuración
-            </button>
-          </nav>
-
-          <div className="header-status">
-            {health ? (
-              <div className="status-pill status-online">
-                <span className="dot dot-green"></span>
-                <span>Backend v{health.version} Activo</span>
+        {/* CONTROLES DE SESIÓN & BADGE DE USUARIO */}
+        <div className="header-actions">
+          {currentUser ? (
+            <div className="user-profile-badge">
+              <div className="user-info">
+                <span className="user-name">{currentUser.nombres} {currentUser.apellidos}</span>
+                <span className="user-dni">DNI: <strong>{currentUser.documento_identidad}</strong></span>
               </div>
-            ) : (
-              <div className="status-pill status-offline">
-                <span className="dot dot-red"></span>
-                <span>Backend Desconectado</span>
-              </div>
-            )}
-            <a
-              href="http://localhost:8000/docs"
-              target="_blank"
-              rel="noreferrer"
-              className="btn-api-docs"
-            >
-              Swagger UI
-            </a>
-          </div>
+              <span className={`role-pill role-${currentUser.rol.toLowerCase()}`}>
+                {currentUser.rol}
+              </span>
+              <button type="button" className="btn-logout" onClick={handleLogout}>
+                Cerrar Sesión
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn-login-trigger" onClick={() => setAuthToken(null)}>
+              Iniciar Sesión
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="mediflow-main">
+      {/* ── MODAL DE AUTENTICACIÓN (RF-01) SI NO HAY SESIÓN ─────────────── */}
+      {!currentUser && (
+        <div className="login-overlay">
+          <div className="login-card">
+            <div className="login-header">
+              <h3>Iniciar Sesión en MediFlow</h3>
+              <p>Ingrese su número de documento de identidad de 8 cifras y contraseña para acceder al sistema.</p>
+            </div>
+
+            {loginError && <div className="alert-error">{loginError}</div>}
+
+            <form onSubmit={handleLoginSubmit} className="login-form">
+              <div className="form-group">
+                <label htmlFor="login-dni">Documento de Identidad (DNI 8 cifras):</label>
+                <input
+                  id="login-dni"
+                  type="text"
+                  maxLength={8}
+                  placeholder="Ej. 12345678"
+                  value={loginDni}
+                  onChange={(e) => setLoginDni(e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="login-pwd">Contraseña:</label>
+                <input
+                  id="login-pwd"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="btn-submit-triage" disabled={loggingIn}>
+                {loggingIn ? <><span className="spinner"></span> Validando Credenciales...</> : 'Iniciar Sesión'}
+              </button>
+            </form>
+
+            {/* PRESETS DE ACCESO RÁPIDO PARA DEMO Y PRUEBAS */}
+            <div className="quick-login-section">
+              <h4>Accesos Rápidos de Prueba por Rol:</h4>
+              <div className="quick-users-grid">
+                {QUICK_USERS.map((u, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="btn-quick-user"
+                    onClick={() => handleQuickLogin(u.dni, u.pwd)}
+                  >
+                    <strong>{u.label}</strong>
+                    <span>DNI: {u.dni} | Pass: {u.pwd}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── NAVEGACIÓN NAV TABS RESTRINGIDAS POR ROL (RF-05) ───────────────── */}
+      {currentUser && (
+        <nav className="nav-tabs">
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
+            onClick={() => setActiveTab('triage')}
+          >
+            Triaje Clínico
+          </button>
+
+          {canManageUsers && (
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              Gestión de Usuarios
+            </button>
+          )}
+
+          {canManageSettings && (
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Configuración
+            </button>
+          )}
+        </nav>
+      )}
+
+      {/* ── CONTENIDO PRINCIPAL DE LA APLICACIÓN ─────────────────────────── */}
+      <main className="main-content">
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* VISTA 1: TRIAJE CLÍNICO                                            */}
+        {/* VISTA 1: TRIAJE CLÍNICO (CARGA & EVALUACIÓN MULTIMODAL)              */}
         {/* ─────────────────────────────────────────────────────────────────── */}
         {activeTab === 'triage' && (
           <>
-            {/* ── PRESETS CASOS DE PRUEBA HACKATHON ─────────────────────────── */}
-            <section className="presets-section">
-              <div className="section-title-row">
-                <h3>Plantillas de Casos de Prueba</h3>
-                <span className="section-hint">Haz clic en un caso para cargar su texto en el editor sin procesarlo aún</span>
-              </div>
-
-              <div className="presets-grid">
-                {PRESET_CASES.map((preset) => {
-                  const isSelected = selectedPresetId === preset.id
-                  return (
+            {/* PLANTILLAS DE PRUEBA */}
+            {canUploadDocs && (
+              <section className="card presets-card">
+                <div className="card-header">
+                  <h3>Plantillas de Casos de Prueba</h3>
+                  <span className="section-hint">Haz clic en un caso para cargar su texto en el editor</span>
+                </div>
+                <div className="presets-grid">
+                  {PRESET_CASES.map((preset) => (
                     <div
                       key={preset.id}
-                      className={`preset-card ${isSelected ? 'active-preset' : ''}`}
-                      onClick={() => handleSelectPreset(preset)}
+                      className={`preset-item ${activePreset === preset.id ? 'active-preset' : ''}`}
+                      onClick={() => handleSelectPreset(preset.id)}
                     >
-                      <div className="preset-top">
+                      <div className="preset-item-header">
                         <span className={`badge ${preset.badgeColor}`}>{preset.badge}</span>
-                        <span className="preset-canal">{preset.canal}</span>
+                        <span className="preset-channel">{preset.canal}</span>
                       </div>
-                      <h4 className="preset-title">{preset.titulo}</h4>
-                      <p className="preset-desc">{preset.subtitulo}</p>
-                      <div className="preset-bottom">
+                      <h4>{preset.titulo}</h4>
+                      <p className="preset-sub">{preset.subtitulo}</p>
+                      <div className="preset-btn-wrapper">
                         <button
                           type="button"
-                          className={`btn-use-preset ${isSelected ? 'active-btn' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleSelectPreset(preset)
-                          }}
+                          className={`btn-preset-action ${activePreset === preset.id ? 'active-btn' : ''}`}
                         >
-                          {isSelected ? 'Cargado en Formulario' : 'Cargar Caso'}
+                          {activePreset === preset.id ? 'Cargado en Formulario' : 'Cargar Caso'}
                         </button>
-                        {isSelected && <span className="active-pill">Activo</span>}
+                        {activePreset === preset.id && <span className="active-pill">Activo</span>}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            </section>
-
-            {/* ── WORKSPACE: FORMULARIO + RESULTADOS ─────────────────────────── */}
-            <div className="workspace-grid">
-              {/* COLUMNA IZQUIERDA: INGESTA */}
-              <section className="card workspace-form-card">
-                <div className="card-header">
-                  <h3>Ingesta de Documento Clínico</h3>
-                  <button
-                    type="button"
-                    className="btn-refresh-id"
-                    onClick={() => setDocumentoId(`DOC-${Date.now().toString().slice(-6)}`)}
-                    title="Generar nuevo ID de documento"
-                  >
-                    Nuevo ID
-                  </button>
+                  ))}
                 </div>
-
-                <form onSubmit={handleEjecutarTriage} className="triage-form">
-                  <div className="form-row">
-                    <div className="form-group flex-1">
-                      <label htmlFor="doc-id">ID Documento</label>
-                      <input
-                        id="doc-id"
-                        type="text"
-                        value={documentoId}
-                        onChange={(e) => setDocumentoId(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group flex-1">
-                      <label htmlFor="canal-origen">Canal de Origen</label>
-                      <select
-                        id="canal-origen"
-                        value={canalOrigen}
-                        onChange={(e) => setCanalOrigen(e.target.value)}
-                      >
-                        <option value="Guardia_Emergencias">Guardia_Emergencias</option>
-                        <option value="Consulta_Externa">Consulta_Externa</option>
-                        <option value="Admision">Admision</option>
-                        <option value="Cuidados_Intensivos">Cuidados_Intensivos</option>
-                        <option value="Laboratorio_Central">Laboratorio_Central</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Tipo de Entrada</label>
-                    <div className="type-toggle-group">
-                      <button
-                        type="button"
-                        className={`toggle-btn ${tipoArchivo === 'TEXTO' ? 'active' : ''}`}
-                        onClick={() => setTipoArchivo('TEXTO')}
-                      >
-                        Texto Clínico
-                      </button>
-                      <button
-                        type="button"
-                        className={`toggle-btn ${tipoArchivo !== 'TEXTO' ? 'active' : ''}`}
-                        onClick={() => setTipoArchivo('PDF')}
-                      >
-                        Archivo PDF / Imagen
-                      </button>
-                    </div>
-                  </div>
-
-                  {tipoArchivo === 'TEXTO' ? (
-                    <div className="form-group">
-                      <label htmlFor="doc-text">Contenido del Documento Clínico</label>
-                      <textarea
-                        id="doc-text"
-                        rows={8}
-                        value={documentoTexto}
-                        onChange={(e) => setDocumentoTexto(e.target.value)}
-                        placeholder="Pega aquí el informe médico, análisis de laboratorio o nota clínica..."
-                        required
-                      />
-                    </div>
-                  ) : (
-                    <div className="form-group">
-                      <label htmlFor="file-input">Seleccionar Archivo (PDF o Imagen)</label>
-                      <input
-                        id="file-input"
-                        type="file"
-                        accept=".pdf,image/png,image/jpeg,image/webp"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setArchivo(e.target.files[0])
-                          }
-                        }}
-                      />
-                      {archivo && (
-                        <div className="file-info-box">
-                          {archivo.name} ({(archivo.size / 1024).toFixed(1)} KB)
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {error && <div className="alert-error">{error}</div>}
-
-                  <button
-                    type="submit"
-                    className="btn-submit-triage"
-                    disabled={loading || (tipoArchivo === 'TEXTO' && !documentoTexto.trim())}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner"></span>
-                        Analizando con LangGraph & Gemini...
-                      </>
-                    ) : (
-                      <>Procesar y Clasificar Documento</>
-                    )}
-                  </button>
-                </form>
               </section>
+            )}
 
-              {/* COLUMNA DERECHA: RESULTADOS DEL TRIAJE */}
-              <section className="card workspace-result-card">
+            {/* PANEL DE FORMULARIO E INGESTA */}
+            <div className="workspace-grid">
+              {canUploadDocs ? (
+                <section className="card form-card">
+                  <div className="card-header">
+                    <h3>Ingesta de Documento Clínico</h3>
+                    <button type="button" className="btn-secondary" onClick={generateNewId}>
+                      Nuevo ID
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSubmitTriage}>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="doc-id">ID Documento</label>
+                        <input
+                          id="doc-id"
+                          type="text"
+                          value={docId}
+                          onChange={(e) => setDocId(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="canal-origen">Canal de Origen</label>
+                        <select
+                          id="canal-origen"
+                          value={canalOrigen}
+                          onChange={(e) => setCanalOrigen(e.target.value)}
+                        >
+                          <option value="Guardia_Emergencias">Guardia_Emergencias</option>
+                          <option value="Consulta_Externa">Consulta_Externa</option>
+                          <option value="Admision">Admision</option>
+                          <option value="Laboratorio">Laboratorio</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Tipo de Entrada</label>
+                      <div className="toggle-group">
+                        <button
+                          type="button"
+                          className={`toggle-btn ${tipoEntrada === 'texto' ? 'selected' : ''}`}
+                          onClick={() => setTipoEntrada('texto')}
+                        >
+                          Texto Clínico
+                        </button>
+                        <button
+                          type="button"
+                          className={`toggle-btn ${tipoEntrada === 'archivo' ? 'selected' : ''}`}
+                          onClick={() => setTipoEntrada('archivo')}
+                        >
+                          Archivo PDF / Imagen
+                        </button>
+                      </div>
+                    </div>
+
+                    {tipoEntrada === 'texto' ? (
+                      <div className="form-group">
+                        <label htmlFor="contenido-texto">Contenido del Documento Clínico</label>
+                        <textarea
+                          id="contenido-texto"
+                          rows={10}
+                          value={textoClinico}
+                          onChange={(e) => setTextoClinico(e.target.value)}
+                          placeholder="Ingrese o pegue el informe médico, análisis de laboratorio o nota de evolución..."
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <div className="form-group">
+                        <label htmlFor="archivo-input">Seleccionar Archivo (PDF, PNG, JPG)</label>
+                        <input
+                          id="archivo-input"
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}
+                          required
+                        />
+                        {fileToUpload && (
+                          <div className="file-info">
+                            Archivo seleccionado: <strong>{fileToUpload.name}</strong> (
+                            {(fileToUpload.size / 1024).toFixed(1)} KB)
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {error && <div className="alert-error">{error}</div>}
+
+                    <button type="submit" className="btn-submit-triage" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <span className="spinner"></span> Analizando con LangGraph & Gemini...
+                        </>
+                      ) : (
+                        <>Procesar y Clasificar Documento</>
+                      )}
+                    </button>
+                  </form>
+                </section>
+              ) : (
+                <section className="card form-card">
+                  <div className="card-header">
+                    <h3>Acceso en Modo Consulta</h3>
+                  </div>
+                  <p>Su rol actual (<strong>{currentUser?.rol}</strong>) le permite visualizar diagnósticos e historiales pero no cargar nuevos documentos.</p>
+                </section>
+              )}
+
+              {/* PANEL DE RESULTADOS DE DIAGNÓSTICO Y ACCIÓN HITL */}
+              <section className="card result-card">
                 <div className="card-header">
                   <h3>Decisión y Diagnóstico del Agente</h3>
                   {resultado && (
-                    <span className="time-badge">
-                      {resultado.tiempo_procesamiento_ms || 35} ms
-                    </span>
+                    <span className="result-time">{resultado.tiempo_procesamiento_ms} ms</span>
                   )}
                 </div>
 
                 {!resultado && !loading && (
-                  <div className="empty-results-state">
-                    <h4>Ningún documento analizado aún</h4>
-                    <p>
-                      Selecciona uno de los <strong>Casos de Prueba Hackathon</strong> arriba o escribe
-                      un texto clínico para que el agente LangGraph realice la extracción, clasificación
-                      y enrutamiento autónomo.
-                    </p>
+                  <div className="empty-state">
+                    <p>Complete el formulario y presione "Procesar y Clasificar Documento" para visualizar el diagnóstico autónomo.</p>
                   </div>
                 )}
 
                 {loading && (
-                  <div className="processing-state">
-                    <div className="big-spinner"></div>
-                    <h4>Agente MediFlow Procesando</h4>
-                    <div className="steps-flow">
-                      <div className="flow-node active">1. Ingestión</div>
-                      <div className="flow-arrow">→</div>
-                      <div className="flow-node active">2. Extracción</div>
-                      <div className="flow-arrow">→</div>
-                      <div className="flow-node active">3. Clasificación</div>
-                      <div className="flow-arrow">→</div>
-                      <div className="flow-node active">4. Confianza</div>
-                      <div className="flow-arrow">→</div>
-                      <div className="flow-node active">5. Enrutamiento</div>
-                    </div>
+                  <div className="loading-state">
+                    <div className="spinner-large"></div>
+                    <p>Ejecutando nodos de LangGraph: Ingesta ➔ Extracción ➔ Clasificación ➔ Evaluación ➔ Enrutamiento...</p>
                   </div>
                 )}
 
-                {resultado && !loading && (
-                  <div className="results-content">
-                    {/* BANNER DE DECISIÓN DE ENRUTAMIENTO */}
+                {resultado && (
+                  <div className="result-body">
+                    {/* ENCABEZADO DE ENRUTAMIENTO */}
                     <div
-                      className={`routing-banner ${
-                        resultado.decision_enrutamiento.destino_principal === 'Cola_Emergencia_Medica'
+                      className={`decision-banner ${
+                        resultado.clasificacion.nivel_prioridad === 'Urgente'
                           ? 'banner-urgente'
-                          : resultado.decision_enrutamiento.destino_principal === 'Cola_Rutina'
+                          : resultado.clasificacion.nivel_prioridad === 'Rutina'
                             ? 'banner-rutina'
                             : 'banner-ambiguo'
                       }`}
                     >
                       <div className="banner-top">
-                        <span className="destination-badge">
-                          {resultado.decision_enrutamiento.destino_principal ===
-                            'Cola_Emergencia_Medica' && 'COLA DE EMERGENCIA MÉDICA'}
-                          {resultado.decision_enrutamiento.destino_principal === 'Cola_Rutina' &&
-                            'COLA DE RUTINA'}
-                          {resultado.decision_enrutamiento.destino_principal ===
-                            'Cola_Auditoria_Humana' && 'COLA DE AUDITORÍA HUMANA (HITL)'}
+                        <span className="destination-title">
+                          {resultado.decision_enrutamiento.destino_principal.replace(/_/g, ' ').toUpperCase()}
                         </span>
-                        <span className="score-badge">
+                        <span className="confidence-score">
                           Score Confianza:{' '}
-                          {(resultado.clasificacion.score_confianza_clasificacion * 100).toFixed(0)}%
+                          {(
+                            resultado.clasificacion.score_confianza_clasificacion * 100
+                          ).toFixed(0)}
+                          %
                         </span>
                       </div>
 
@@ -503,43 +709,43 @@ export default function App() {
                         <strong>Motivo:</strong>{' '}
                         {resultado.decision_enrutamiento.justificacion_enrutamiento}
                       </p>
-
-                      {resultado.decision_enrutamiento.notificacion_generada && (
-                        <div className="notification-box">
-                          <strong>{resultado.decision_enrutamiento.notificacion_generada.canal}:</strong>{' '}
-                          {resultado.decision_enrutamiento.notificacion_generada.mensaje}
-                        </div>
-                      )}
                     </div>
 
-                    {/* HITL AUDITORÍA HUMANA SI APLICA */}
-                    {resultado.decision_enrutamiento.requiere_auditoria_humana && (
+                    {/* HITL AUDITORÍA HUMANA SI APLICA (RF-05) */}
+                    {resultado.decision_enrutamiento.requiere_auditoria_humana && canAuditHITL && (
                       <div className="hitl-action-box">
                         <h4>Intervención Requerida (Human-in-the-Loop)</h4>
                         <p>El score de confianza o ambigüedad requiere confirmación médica:</p>
-                        <div className="hitl-btn-group">
-                          <button
-                            type="button"
-                            className="btn-hitl btn-hitl-aprobar"
-                            onClick={() => handleAuditoria('aprobar')}
-                          >
-                            Aprobar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-hitl btn-hitl-reclasificar"
-                            onClick={() => handleAuditoria('reclasificar')}
-                          >
-                            Reclasificar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-hitl btn-hitl-rechazar"
-                            onClick={() => handleAuditoria('rechazar')}
-                          >
-                            Rechazar
-                          </button>
-                        </div>
+
+                        {!isSupervisorReadOnly ? (
+                          <div className="hitl-btn-group">
+                            <button
+                              type="button"
+                              className="btn-hitl btn-hitl-aprobar"
+                              onClick={() => handleAuditoria('aprobar')}
+                            >
+                              Aprobar
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-hitl btn-hitl-reclasificar"
+                              onClick={() => handleAuditoria('reclasificar')}
+                            >
+                              Reclasificar
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-hitl btn-hitl-rechazar"
+                              onClick={() => handleAuditoria('rechazar')}
+                            >
+                              Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="read-only-hint">
+                            (Rol SUPERVISOR: Solo consulta de decisiones de auditoría)
+                          </div>
+                        )}
                         {auditSuccess && <div className="audit-success-msg">{auditSuccess}</div>}
                       </div>
                     )}
@@ -598,29 +804,6 @@ export default function App() {
                           </ul>
                         </div>
                       )}
-
-                    {/* DETALLES DE ALMACENAMIENTO & TRAZABILIDAD */}
-                    <div className="trace-footer">
-                      <div className="trace-item">
-                        <span>Almacenamiento Físico:</span>
-                        <code>
-                          {resultado.almacenamiento_oci?.ruta_objeto ||
-                            `backend/storage/documentos/${resultado.documento_id}.json`}
-                        </code>
-                      </div>
-                      <div className="trace-item">
-                        <span>Trazabilidad LangGraph:</span>
-                        <span className="nodes-pills">
-                          {['ingestion', 'extraction', 'classification', 'confidence', 'routing'].map(
-                            (nodo) => (
-                              <span key={nodo} className="node-pill">
-                                {nodo}
-                              </span>
-                            ),
-                          )}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 )}
               </section>
@@ -713,9 +896,181 @@ export default function App() {
         )}
 
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* VISTA 2: CONFIGURACIÓN DE ALMACENAMIENTO DE DOCUMENTOS             */}
+        {/* VISTA 2: GESTIÓN DE USUARIOS Y ROLES (RF-03, RF-04)                 */}
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {activeTab === 'settings' && (
+        {activeTab === 'users' && canManageUsers && (
+          <div className="users-view">
+            <section className="card form-card">
+              <div className="card-header">
+                <h3>RF-03 — Registrar Nuevo Usuario del Sistema</h3>
+              </div>
+
+              {userFormSuccess && <div className="alert-success">{userFormSuccess}</div>}
+              {userFormError && <div className="alert-error">{userFormError}</div>}
+
+              <form onSubmit={handleCreateUserSubmit}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="u-dni">Documento de Identidad (8 cifras DNI)</label>
+                    <input
+                      id="u-dni"
+                      type="text"
+                      maxLength={8}
+                      placeholder="Ej. 77665544"
+                      value={newDni}
+                      onChange={(e) => setNewDni(e.target.value.replace(/\D/g, ''))}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="u-pwd">Contraseña Inicial</label>
+                    <input
+                      id="u-pwd"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="u-nom">Nombres</label>
+                    <input
+                      id="u-nom"
+                      type="text"
+                      placeholder="Ej. María Fernanda"
+                      value={newNombres}
+                      onChange={(e) => setNewNombres(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="u-ape">Apellidos</label>
+                    <input
+                      id="u-ape"
+                      type="text"
+                      placeholder="Ej. Gómez Torres"
+                      value={newApellidos}
+                      onChange={(e) => setNewApellidos(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="u-cor">Correo Electrónico (Opcional)</label>
+                    <input
+                      id="u-cor"
+                      type="email"
+                      placeholder="maria.gomez@clinica.com"
+                      value={newCorreo}
+                      onChange={(e) => setNewCorreo(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="u-rol">Rol del Sistema (RF-04)</label>
+                    <select
+                      id="u-rol"
+                      value={newRol}
+                      onChange={(e) => setNewRol(e.target.value as any)}
+                    >
+                      <option value="OPERADOR">OPERADOR (Registra/Carga Documentos)</option>
+                      <option value="AUDITOR">AUDITOR (Revisa Casos HITL / Ambiguos)</option>
+                      <option value="SUPERVISOR">SUPERVISOR (Consulta Dashboard & KPI)</option>
+                      <option value="ADMINISTRADOR">ADMINISTRADOR (Gestión Completa)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-submit-triage" disabled={savingUser}>
+                  {savingUser ? <><span className="spinner"></span> Guardando Usuario...</> : 'Registrar Trabajador'}
+                </button>
+              </form>
+            </section>
+
+            {/* TABLA DE USUARIOS REGISTRADOS */}
+            <section className="card history-section">
+              <div className="card-header">
+                <h3>Usuarios Registrados en la Clínica</h3>
+                <button type="button" className="btn-secondary" onClick={loadUsers}>
+                  Refrescar Lista
+                </button>
+              </div>
+
+              {loadingUsers ? (
+                <div className="loading-state"><span className="spinner"></span> Cargando usuarios...</div>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="docs-table">
+                    <thead>
+                      <tr>
+                        <th>DNI (8 cifras)</th>
+                        <th>Nombres y Apellidos</th>
+                        <th>Correo</th>
+                        <th>Rol Asignado</th>
+                        <th>Estado</th>
+                        <th>Acción Estado</th>
+                        <th>Cambiar Rol</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersList.map((u) => (
+                        <tr key={u.id}>
+                          <td><code>{u.documento_identidad}</code></td>
+                          <td><strong>{u.nombres} {u.apellidos}</strong></td>
+                          <td>{u.correo || 'N/D'}</td>
+                          <td>
+                            <span className={`role-pill role-${u.rol.toLowerCase()}`}>
+                              {u.rol}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-indicator ${u.estado === 'ACTIVO' ? 'text-green' : 'text-amber'}`}>
+                              {u.estado}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={`btn-action-status ${u.estado === 'ACTIVO' ? 'btn-deactivate' : 'btn-activate'}`}
+                              onClick={() => handleToggleUserStatus(u)}
+                            >
+                              {u.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'}
+                            </button>
+                          </td>
+                          <td>
+                            <select
+                              value={u.rol}
+                              className="select-role-change"
+                              onChange={(e) => handleChangeUserRole(u, e.target.value)}
+                            >
+                              <option value="OPERADOR">OPERADOR</option>
+                              <option value="AUDITOR">AUDITOR</option>
+                              <option value="SUPERVISOR">SUPERVISOR</option>
+                              <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* ─────────────────────────────────────────────────────────────────── */}
+        {/* VISTA 3: CONFIGURACIÓN DE ALMACENAMIENTO DE DOCUMENTOS             */}
+        {/* ─────────────────────────────────────────────────────────────────── */}
+        {activeTab === 'settings' && canManageSettings && (
           <div className="settings-view">
             <section className="card settings-card">
               <div className="card-header">
@@ -806,10 +1161,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Advertencia si selecciona OCI sin credenciales */}
               {selectedStorageMode === 'OCI' && configSys && !configSys.oci_configured && (
                 <div className="alert-warning">
-                  <strong>Advertencia OCI:</strong> Las variables de entorno de Oracle Cloud (<code>OCI_USER_OCID</code>, <code>OCI_TENANCY_OCID</code>, <code>OCI_NAMESPACE</code>) no están configuradas en el archivo <code>.env</code>. Si intentas guardar, el backend bloqueará la solicitud.
+                  <strong>Advertencia OCI:</strong> Las variables de entorno de Oracle Cloud no están configuradas en el archivo <code>.env</code>.
                 </div>
               )}
 
@@ -820,56 +1174,8 @@ export default function App() {
                   disabled={savingSettings}
                   onClick={handleSaveSettings}
                 >
-                  {savingSettings ? (
-                    <>
-                      <span className="spinner"></span> Guardando en Base de Datos...
-                    </>
-                  ) : (
-                    <>Guardar Preferencia en Base de Datos</>
-                  )}
+                  {savingSettings ? <><span className="spinner"></span> Guardando en Base de Datos...</> : <>Guardar Preferencia en Base de Datos</>}
                 </button>
-              </div>
-            </section>
-
-            {/* PANEL DE ESTADO ARQUITECTÓNICO DEL SISTEMA */}
-            <section className="card system-info-card">
-              <div className="card-header">
-                <h3>Estado Arquitectónico de Servicios e Integraciones</h3>
-              </div>
-              <div className="system-info-grid">
-                <div className="info-item">
-                  <span className="info-label">Base de Datos Principal:</span>
-                  <span className="info-value text-green">
-                    {configSys?.database_url_configured ? 'PostgreSQL (mediflow_dev) Siempre Activa' : 'No configurada'}
-                  </span>
-                  <span className="info-sub">Guarda metadatos, triajes, auditorías HITL y configuraciones</span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">Almacenamiento Físico de Archivos:</span>
-                  <span className="info-value badge-highlight">
-                    {configSys?.storage_mode === 'OCI' ? 'OCI Object Storage' : 'Disco Local (Server)'}
-                  </span>
-                  <span className="info-sub">
-                    {configSys?.storage_mode === 'OCI' ? 'Bucket: mediflow-documentos-clinicos' : 'Ruta: backend/storage/documentos/'}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">Proveedor LLM Activo:</span>
-                  <span className="info-value">
-                    {configSys?.llm_provider || 'Google Gemini'} ({configSys?.llm_configured ? 'Configurado' : 'Modo Simulación / Mock'})
-                  </span>
-                  <span className="info-sub">Orquestación con LangGraph & Gemini 1.5 Flash</span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">Estado Credenciales OCI:</span>
-                  <span className="info-value">
-                    {configSys?.oci_configured ? 'Habilitadas & Listas' : 'No configuradas en .env'}
-                  </span>
-                  <span className="info-sub">Autenticación por API Key Pem & OCIDs</span>
-                </div>
               </div>
             </section>
           </div>

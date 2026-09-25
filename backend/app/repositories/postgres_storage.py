@@ -17,6 +17,30 @@ from app.core.config import Settings
 
 logger = structlog.get_logger(__name__)
 
+_GLOBAL_DB_POOL = None
+
+
+async def get_db_pool():
+    """Obtiene o inicializa el pool global de conexiones asyncpg."""
+    global _GLOBAL_DB_POOL
+    if _GLOBAL_DB_POOL is not None:
+        return _GLOBAL_DB_POOL
+    
+    from app.core.config import get_settings
+    settings = get_settings()
+    db_url = getattr(settings, "database_url", None)
+    if not db_url:
+        return None
+        
+    try:
+        import asyncpg
+        url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+        _GLOBAL_DB_POOL = await asyncpg.create_pool(url, min_size=1, max_size=10)
+        return _GLOBAL_DB_POOL
+    except Exception as exc:
+        logger.error("postgres.pool.error", error=str(exc))
+        return None
+
 
 class PostgresStorageRepository:
     """

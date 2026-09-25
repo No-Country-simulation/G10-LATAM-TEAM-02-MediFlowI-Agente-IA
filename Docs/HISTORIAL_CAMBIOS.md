@@ -9,8 +9,9 @@ Este documento es el **índice maestro** de los registros de cambios del proyect
 | Fecha | Identificador | Autor | Título del Registro | Enlace al Documento |
 | :--- | :--- | :--- | :--- | :--- |
 | **14/09/2026** | `CAMBIO1` | Todos | Sprint 1 — Arquitectura Base & Setup Inicial | [HISTORIAL_CAMBIOS_2026-09-14_CAMBIO1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-14_CAMBIO1.md) |
-| **24/09/2026** | `CAMBIO1` | Erick Pariona | Sprint 2 — Control Manual Almacenamiento, Comentarios BD, Aislar Pruebas & UX Polish | [HISTORIAL_CAMBIOS_2026-09-24_CAMBIO1.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-24_CAMBIO1.md) |
-| **25/09/2026** | `CAMBIO1` | Erick Pariona | Sprint 2 — Setup Entorno Local, Dependencias AsyncIO & Frontend Setup | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO1.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO1.md) |
+| **24/09/2026** | `CAMBIO1` | Erick Pariona | Sprint 2 — Control Manual Almacenamiento, Comentarios BD, Aislar Pruebas & UX Polish | [HISTORIAL_CAMBIOS_2026-09-24_CAMBIO1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-24_CAMBIO1.md) |
+| **25/09/2026** | `CAMBIO1` | Erick Pariona | Reorganización de Docs en subcarpetas e independización de historiales incrementales | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO1.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO1.md) |
+| **25/09/2026** | `CAMBIO2` | Erick Pariona | Módulo 1 — Autenticación (DNI 8 cifras), Usuarios & Control de Acceso RBAC (RF-01 a RF-05) | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO2.md](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO2.md) |
 
 ---
 
