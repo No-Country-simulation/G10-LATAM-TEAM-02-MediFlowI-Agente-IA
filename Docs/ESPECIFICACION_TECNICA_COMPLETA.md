@@ -606,35 +606,35 @@ a3eb75cf454e (initial_schema)           -- Tablas base + ENUMs + Triggers + Vist
 
 | Metodo | Ruta | Auth | Descripcion | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/patients` | Bearer/API-Key | RF-07: Buscar pacientes | Query: `search` | `{total, items}` |
-| `GET` | `/api/v1/patients/unlinked-documents` | Bearer/API-Key | Documentos sin paciente | - | `{total, items}` |
-| `POST` | `/api/v1/patients` | Bearer/API-Key | RF-06: Registrar paciente | `PatientCreateRequest` | `{message, paciente}` (201) |
-| `GET` | `/api/v1/patients/{id}` | Bearer/API-Key | Detalle de paciente | - | `Paciente` |
-| `PUT` | `/api/v1/patients/{id}` | Bearer/API-Key | Actualizar paciente | `PatientUpdateRequest` | `{message, paciente}` |
-| `GET` | `/api/v1/patients/{id}/documents` | Bearer/API-Key | RF-08/09: Expediente documental | - | `HistorialDocumentos` |
-| `POST` | `/api/v1/patients/{id}/documents/{doc_id}/associate` | Bearer/API-Key | RF-08: Vincular documento | - | `{message}` |
+| `GET` | `/api/v1/patients` | Bearer Token | RF-07: Buscar pacientes | Query: `search` | `{total, items}` |
+| `GET` | `/api/v1/patients/unlinked-documents` | Bearer Token | Documentos sin paciente | - | `{total, items}` |
+| `POST` | `/api/v1/patients` | Bearer Token | RF-06: Registrar paciente | `PatientCreateRequest` | `{message, paciente}` (201) |
+| `GET` | `/api/v1/patients/{id}` | Bearer Token | Detalle de paciente | - | `Paciente` |
+| `PUT` | `/api/v1/patients/{id}` | Bearer Token | Actualizar paciente | `PatientUpdateRequest` | `{message, paciente}` |
+| `GET` | `/api/v1/patients/{id}/documents` | Bearer Token | RF-08/09: Expediente documental | - | `HistorialDocumentos` |
+| `POST` | `/api/v1/patients/{id}/documents/{doc_id}/associate` | Bearer Token | RF-08: Vincular documento | - | `{message}` |
 
 ### 8.4 Triaje y Agente IA (`/api/v1/triage`)
 
 | Metodo | Ruta | Auth | Descripcion | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/triage` | API-Key | RF-11: Procesar documento (JSON) | `DocumentoClinicoRequest` | `AgentState` (200/207) |
-| `POST` | `/api/v1/triage/upload` | API-Key | RF-10: Procesar archivo (multipart) | FormData: `documento_id`, `canal_origen`, `archivo` | `AgentState` (200/207) |
+| `POST` | `/api/v1/triage` | Bearer Token | RF-11: Procesar documento (JSON) | `DocumentoClinicoRequest` | `AgentState` (200/207) |
+| `POST` | `/api/v1/triage/upload` | Bearer Token | RF-10: Procesar archivo (multipart) | FormData: `documento_id`, `canal_origen`, `archivo` | `AgentState` (200/207) |
 
 ### 8.5 Documentos y Auditoria (`/api/v1/documents`)
 
 | Metodo | Ruta | Auth | Descripcion | Query Params | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/documents` | API-Key | Listar documentos procesados | `estado`, `nivel_prioridad`, `limit` | `{total, items}` |
-| `GET` | `/api/v1/documents/{doc_id}` | API-Key | Obtener documento por ID | - | `dict` |
-| `PATCH` | `/api/v1/documents/{doc_id}` | API-Key | RF-14: Registrar decision HITL | `DecisionAuditoriaRequest` | `dict` |
+| `GET` | `/api/v1/documents` | Bearer Token | Listar documentos procesados | `estado`, `nivel_prioridad`, `limit` | `{total, items}` |
+| `GET` | `/api/v1/documents/{doc_id}` | Bearer Token | Obtener documento por ID | - | `dict` |
+| `PATCH` | `/api/v1/documents/{doc_id}` | Bearer Token (AUDITOR/ADMINISTRADOR) | RF-14: Registrar decision HITL | `DecisionAuditoriaRequest` | `dict` |
 
 ### 8.6 Configuracion del Sistema (`/api/v1/settings`)
 
 | Metodo | Ruta | Auth | Descripcion | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/settings` | API-Key | Obtener configuracion actual | - | `ConfigResponse` |
-| `POST` | `/api/v1/settings` | API-Key | RF-15: Actualizar modo almacenamiento | `ConfigRequest` | `ConfigResponse` |
+| `GET` | `/api/v1/settings` | Bearer Token (ADMINISTRADOR) | Obtener configuracion actual | - | `ConfigResponse` |
+| `POST` | `/api/v1/settings` | Bearer Token (ADMINISTRADOR) | RF-15: Actualizar modo almacenamiento | `ConfigRequest` | `ConfigResponse` |
 
 ### 8.7 Health Check (`/health`)
 
@@ -735,7 +735,6 @@ class DocumentoClinicoRequest(BaseModel):
 
 class DecisionAuditoriaRequest(BaseModel):
     decision: Literal["aprobar", "rechazar", "reclasificar"]
-    auditor_id: str
     nueva_clasificacion: Optional[dict] = None
     comentario: Optional[str] = None
 ```

@@ -15,6 +15,7 @@ erDiagram
     documentos_triaje {
         uuid id PK
         string documento_id UK
+        uuid usuario_registro_id FK
         enum tipo_archivo
         string canal_origen
         enum status
@@ -56,7 +57,7 @@ erDiagram
         uuid documento_triaje_id FK
         string documento_id
         enum decision
-        string auditor_id
+        uuid auditor_id FK
         text comentario
         enum nueva_nivel_prioridad
         enum nuevo_destino
@@ -90,9 +91,21 @@ erDiagram
         enum nivel_prioridad
         float score_confianza
         enum status
-        string asignado_a
+        uuid asignado_a_usuario_id FK
         timestamptz asignado_at
         timestamptz resuelto_at
+        timestamptz created_at
+    }
+
+    historial_documento {
+        uuid id PK
+        uuid documento_triaje_id FK
+        uuid usuario_id FK
+        string evento
+        string estado_anterior
+        string estado_nuevo
+        text descripcion
+        jsonb metadata
         timestamptz created_at
     }
 ```
@@ -110,7 +123,8 @@ Almacena la extracción estructurada del LLM (Gemini / LangGraph), nivel de prio
 | `documento_id` | `VARCHAR(255)` | `UNIQUE`, `NOT NULL` | ID de negocio del documento (`DOC-XXXXXX`). |
 | `tipo_archivo` | `tipo_archivo_enum` | `NOT NULL` | Formato (`PDF`, `IMAGEN`, `TEXTO`, `JSON`). |
 | `canal_origen` | `VARCHAR(255)` | `NOT NULL DEFAULT ''` | Canal emisor (ej: `Guardia_Emergencias`). |
-| `status` | `status_documento_enum` | `DEFAULT 'pendiente_auditoria'` | Estado del triaje (`procesado`, `error`, `pendiente_auditoria`). |
+| `status` | `status_documento_enum` | `DEFAULT 'recibido'` | Estado del triaje (`recibido`, `procesando`, `procesado`, `pendiente_auditoria`, `rechazado`, `no_soportado`, `error`). |
+| `usuario_registro_id` | `UUID` | `FK -> usuarios(id)` | Usuario autenticado que cargó o registró el documento. |
 | `texto_extraido` | `TEXT` | NULL | Contenido de texto extraído por PyMuPDF/OCR. |
 | `tipo_documento` | `VARCHAR(255)` | NULL | Clasificación del informe (ej: *Angio-TAC*, *Analítica*). |
 | `especialidad` | `VARCHAR(255)` | NULL | Especialidad médica vinculada. |
@@ -154,7 +168,7 @@ Registra las decisiones tomadas por auditores clínicos (Human-in-the-Loop).
 | `documento_triaje_id` | `UUID` | `FK -> documentos_triaje(id) ON DELETE CASCADE` | FK al documento de triaje. |
 | `documento_id` | `VARCHAR(255)` | `NOT NULL` | ID de negocio del documento. |
 | `decision` | `decision_auditoria_enum` | `NOT NULL` | Accion (`aprobar`, `rechazar`, `reclasificar`). |
-| `auditor_id` | `VARCHAR(255)` | `NOT NULL` | ID/Usuario del médico auditor. |
+| `auditor_id` | `UUID` | `NOT NULL`, `FK -> usuarios(id)` | Usuario autenticado que tomó la decisión HITL. |
 | `comentario` | `TEXT` | NULL | Observaciones del auditor. |
 | `nueva_nivel_prioridad` | `nivel_prioridad_enum` | NULL | Nueva prioridad si fue reclasificado. |
 | `nuevo_destino` | `destino_enum` | NULL | Nuevo destino asignado. |
@@ -202,8 +216,8 @@ Control y gestión de la cola de trabajo clínica por destino.
 | `destino` | `destino_enum` | `NOT NULL` | Cola asignada. |
 | `nivel_prioridad` | `nivel_prioridad_enum` | NULL | Nivel de prioridad. |
 | `score_confianza` | `FLOAT` | NULL | Score de confianza. |
-| `status` | `status_documento_enum` | `DEFAULT 'pendiente_auditoria'` | Estado en la cola. |
-| `asignado_a` | `VARCHAR(255)` | NULL | Usuario/Médico asignado. |
+| `status` | `status_documento_enum` | `DEFAULT 'recibido'` | Estado en la cola. |
+| `asignado_a_usuario_id` | `UUID` | `FK -> usuarios(id)` | Usuario/Médico asignado. |
 | `asignado_at` | `TIMESTAMPTZ` | NULL | Fecha de asignación. |
 | `resuelto_at` | `TIMESTAMPTZ` | NULL | Fecha de resolución. |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()` | Fecha de ingreso a la cola. |
