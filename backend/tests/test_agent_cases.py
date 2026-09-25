@@ -3,6 +3,7 @@ from app.agent.graph import ejecutar_triage
 from app.services.llm_service import LLMService
 from app.core.config import get_settings
 from app.agent.nodes.extraction import dividir_texto_en_bloques
+from app.agent.nodes import ingestion
 
 
 def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
@@ -11,6 +12,13 @@ def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
     bloques = dividir_texto_en_bloques(texto, max_chars=4_000)
 
     assert bloques == ["a" * 4_000, "HALLAZGO_FINAL_CRITICO"]
+
+
+def test_pdf_sin_capa_texto_usa_fallback_ocr(monkeypatch):
+    monkeypatch.setattr(ingestion, "_extraer_texto_pdf_pymupdf", lambda _: "")
+    monkeypatch.setattr(ingestion, "_extraer_texto_pdf_ocr", lambda _: "texto OCR")
+
+    assert ingestion._extraer_texto_pdf("cGRm") == "texto OCR"
 
 
 @pytest.mark.asyncio

@@ -19,6 +19,7 @@ dependencies = [
   "pydantic-settings>=2.4.0",
   # Procesamiento de documentos
   "pymupdf>=1.24.0",
+  "pytesseract>=0.3.10",
   "pillow>=10.0.0",
   "python-multipart>=0.0.12",
   # OCI Object Storage
