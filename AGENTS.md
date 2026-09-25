@@ -21,8 +21,8 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 > 
 > **4. Generación Automática e Incremental de Documentos `.md` por Comando**:
 > Cualquier agente de IA debe ejecutar la generación automática de archivos `.md` al recibir los siguientes comandos:
-> - **Comando `genera historial cambios para autor [Nombre]`**: Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), carga `Docs/PLANTILLA_CAMBIOS.md`, redacta el detalle profundo de cambios por capa técnica en `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualiza el índice `Docs/HISTORIAL_CAMBIOS.md`.
-> - **Comando `genera pr`** (o *"genera pr para autor [Nombre]"*): Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), detecta la secuencia de PRs del día (`PR1`, `PR2`, etc.), carga `Docs/PLANTILLA_PULL_REQUEST.md`, redacta el archivo individual `Docs/PULL_REQUEST_AAAA-MM-DD_PR[N].md`, **lo vincula explícitamente con `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md`** y actualiza el índice maestro `Docs/PULL_REQUEST.md`.
+> - **Comando `genera historial cambios para autor [Nombre]`**: Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), detecta la secuencia de cambios del día (`CAMBIO1`, `CAMBIO2`, etc.), carga `Docs/PLANTILLA_CAMBIOS.md`, redacta el detalle profundo de cambios por capa técnica en `Docs/historial_cambios/HISTORIAL_CAMBIOS_AAAA-MM-DD_CAMBIO[N].md` y actualiza el índice `Docs/HISTORIAL_CAMBIOS.md`.
+> - **Comando `genera pr`** (o *"genera pr para autor [Nombre]"*): Toma **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), detecta la secuencia de PRs del día (`PR1`, `PR2`, etc.), carga `Docs/PLANTILLA_PULL_REQUEST.md`, redacta el archivo individual `Docs/pull_requests/PULL_REQUEST_AAAA-MM-DD_PR[N].md`, **lo vincula explícitamente con `Docs/historial_cambios/HISTORIAL_CAMBIOS_AAAA-MM-DD_CAMBIO[N].md`** y actualiza el índice maestro `Docs/PULL_REQUEST.md`.
 
 ---
 
@@ -54,9 +54,11 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 - `AGENTS.md`: Guía y Regla de Oro para agentes IA (este archivo).
 - `Docs/BASE_DE_DATOS.md`: Documentación completa del modelo relacional, campos, ENUMs e índices.
 - `Docs/PLANTILLA_CAMBIOS.md`: Plantilla estándar genérica para historiales de cambio diarios.
-- `Docs/HISTORIAL_CAMBIOS.md`: Índice maestro de registros de cambio por día.
+- `Docs/HISTORIAL_CAMBIOS.md`: Índice maestro de registros de cambio.
+- `Docs/historial_cambios/`: Carpeta con todos los registros individuales `HISTORIAL_CAMBIOS_AAAA-MM-DD_CAMBIO[N].md`.
 - `Docs/PLANTILLA_PULL_REQUEST.md`: Plantilla estándar genérica para solicitudes de extracción (PRs).
-- `Docs/PULL_REQUEST.md`: Índice maestro de Pull Requests por día.
+- `Docs/PULL_REQUEST.md`: Índice maestro de Pull Requests.
+- `Docs/pull_requests/`: Carpeta con todos los registros individuales `PULL_REQUEST_AAAA-MM-DD_PR[N].md`.
 - `backend/alembic/`: Directorio de versiones de migración de base de datos.
 - `backend/app/agent/`: Grafo de estado y nodos del agente autónomo (LangGraph + Gemini).
 - `backend/app/api/v1/`: Endpoints FastAPI (`/triage`, `/documents`, `/settings`, `/health`).

@@ -1,6 +1,7 @@
-# 📜 Historial de Cambios — [AAAA-MM-DD]
+# 📜 Historial de Cambios — [AAAA-MM-DD] (CAMBIO[N])
 
 **Fecha**: [DD/MM/AAAA] *(Fecha generada automáticamente por el Agente)*  
+**Identificador de Cambio**: CAMBIO[N] *(CAMBIO1, CAMBIO2, etc. en el día)*  
 **Autor**: [Nombre del Autor]  
 **Sprint / Fase**: [Número o Nombre de la Fase]  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  

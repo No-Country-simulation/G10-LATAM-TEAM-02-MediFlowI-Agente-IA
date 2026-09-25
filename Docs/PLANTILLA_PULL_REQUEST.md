@@ -13,7 +13,7 @@ Este documento registra los Pull Requests generados el día **[FECHA: AAAA-MM-DD
 - **Rama de Origen**: `[rama-origen]`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal
-- **Historial de Cambios Asociado**: [`Docs/HISTORIAL_CAMBIOS_[FECHA: AAAA-MM-DD].md`](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/HISTORIAL_CAMBIOS_[FECHA: AAAA-MM-DD].md)
+- **Historial de Cambios Asociado**: [`Docs/historial_cambios/HISTORIAL_CAMBIOS_[FECHA: AAAA-MM-DD]_CAMBIO[N].md`](file:///c:/proyectos_git_parionayauricasa/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_[FECHA: AAAA-MM-DD]_CAMBIO[N].md)
 
 ---
 
