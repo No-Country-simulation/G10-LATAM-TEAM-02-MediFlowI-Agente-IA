@@ -20,8 +20,8 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 > - Base de Datos: Migraciones de Alembic sincronizadas (`alembic upgrade head`).
 > 
 > **4. Documentación Automática e Incremental por Fecha y Autor**:
-> Al solicitar *"Generar documentación"* o *"Registrar cambios para Autor: [Nombre]"*, el agente debe tomar **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), cargar la plantilla `Docs/PLANTILLA_CAMBIOS.md`, generar el archivo diario `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualizar el índice `Docs/HISTORIAL_CAMBIOS.md`.
-> Asimismo, al solicitar *"Generar PR"* o *"Documentar Pull Request"*, el documento `Docs/PULL_REQUEST.md` debe estructurarse por fecha (`AAAA-MM-DD`) de forma acumulativa e incrementable, **permitiendo múltiples Pull Requests por día** (enumerados correlativamente como `PR #1`, `PR #2`, etc. dentro de la misma fecha).
+> - **Historial de Cambios Diarios**: Al solicitar *"Generar documentación"* o *"Registrar cambios para Autor: [Nombre]"*, el agente debe tomar **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), cargar la plantilla `Docs/PLANTILLA_CAMBIOS.md`, generar el archivo diario `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualizar el índice `Docs/HISTORIAL_CAMBIOS.md`.
+> - **Pull Requests Diarios e Incrementables**: Al solicitar *"Generar PR"* o *"Documentar Pull Request"*, el agente debe cargar la plantilla `Docs/PLANTILLA_PULL_REQUEST.md`, generar/actualizar el archivo por fecha `Docs/PULL_REQUEST_AAAA-MM-DD.md` (permitiendo múltiples PRs por día de forma incremental como `PR #1`, `PR #2`, etc.) y actualizar el índice maestro `Docs/PULL_REQUEST.md`.
 
 ---
 
@@ -54,6 +54,8 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 - `Docs/BASE_DE_DATOS.md`: Documentación completa del modelo relacional, campos, ENUMs e índices.
 - `Docs/PLANTILLA_CAMBIOS.md`: Plantilla estándar genérica para historiales de cambio diarios.
 - `Docs/HISTORIAL_CAMBIOS.md`: Índice maestro de registros de cambio por día.
+- `Docs/PLANTILLA_PULL_REQUEST.md`: Plantilla estándar genérica para solicitudes de extracción (PRs).
+- `Docs/PULL_REQUEST.md`: Índice maestro de Pull Requests por día.
 - `backend/alembic/`: Directorio de versiones de migración de base de datos.
 - `backend/app/agent/`: Grafo de estado y nodos del agente autónomo (LangGraph + Gemini).
 - `backend/app/api/v1/`: Endpoints FastAPI (`/triage`, `/documents`, `/settings`, `/health`).
