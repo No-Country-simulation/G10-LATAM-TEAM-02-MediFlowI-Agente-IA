@@ -41,6 +41,7 @@ class DecisionEnrutamientoState(BaseModel):
         "Cola_Emergencia_Medica",
         "Cola_Rutina",
         "Cola_Auditoria_Humana",
+        "Cola_Revision_Ambigua",
     ]] = None
     requiere_auditoria_humana: bool = False
     justificacion_enrutamiento: Optional[str] = None

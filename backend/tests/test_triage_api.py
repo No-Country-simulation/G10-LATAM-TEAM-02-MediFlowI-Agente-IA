@@ -84,7 +84,7 @@ def test_triage_caso_ambiguo_api_multi_status(client, bearer_headers):
     response = client.post("/api/v1/triage", json=payload, headers=bearer_headers)
     assert response.status_code == status.HTTP_207_MULTI_STATUS
     data = response.json()
-    assert data["decision_enrutamiento"]["destino_principal"] == "Cola_Auditoria_Humana"
+    assert data["decision_enrutamiento"]["destino_principal"] == "Cola_Revision_Ambigua"
     assert data["decision_enrutamiento"]["requiere_auditoria_humana"] is True
 
 

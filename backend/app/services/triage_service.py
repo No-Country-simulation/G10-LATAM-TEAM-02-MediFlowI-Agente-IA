@@ -127,6 +127,7 @@ class TriageService:
             "Cola_Emergencia_Medica": f"urgentes/{doc_id}/resultado.json",
             "Cola_Rutina": f"procesados/{doc_id}/resultado.json",
             "Cola_Auditoria_Humana": f"auditoria_humana/{doc_id}/resultado.json",
+            "Cola_Revision_Ambigua": f"revision_ambigua/{doc_id}/resultado.json",
         }
         return rutas.get(destino, f"procesados/{doc_id}/resultado.json")
 

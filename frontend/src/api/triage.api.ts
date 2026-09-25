@@ -41,7 +41,7 @@ export interface ResultadoTriaje {
     hallazgos_clave?: string[]
   }
   decision_enrutamiento: {
-    destino_principal: 'Cola_Emergencia_Medica' | 'Cola_Rutina' | 'Cola_Auditoria_Humana'
+    destino_principal: 'Cola_Emergencia_Medica' | 'Cola_Rutina' | 'Cola_Auditoria_Humana' | 'Cola_Revision_Ambigua'
     requiere_auditoria_humana: boolean
     justificacion_enrutamiento: string
     notificacion_generada?: { canal: string; mensaje: string }

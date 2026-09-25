@@ -4,6 +4,7 @@ from app.services.llm_service import LLMService
 from app.core.config import get_settings
 from app.agent.nodes.extraction import dividir_texto_en_bloques
 from app.agent.nodes import ingestion
+from app.agent.nodes.routing import _calcular_destino
 
 
 def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
@@ -19,6 +20,18 @@ def test_pdf_sin_capa_texto_usa_fallback_ocr(monkeypatch):
     monkeypatch.setattr(ingestion, "_extraer_texto_pdf_ocr", lambda _: "texto OCR")
 
     assert ingestion._extraer_texto_pdf("cGRm") == "texto OCR"
+
+
+def test_prioridad_ambigua_usa_cola_operativa_dedicada():
+    destino, _, _, requiere_auditoria = _calcular_destino(
+        score=0.8,
+        nivel="Ambiguo",
+        diagnostico=None,
+        paciente_nombre=None,
+    )
+
+    assert destino == "Cola_Revision_Ambigua"
+    assert requiere_auditoria is True
 
 
 @pytest.mark.asyncio
@@ -78,7 +91,7 @@ async def test_caso_2_urgencia_tep():
 async def test_caso_3_ambiguo_hitl():
     """
     Caso 3 (Ambiguo): Documento con texto ilegible o baja legibilidad.
-    Debe derivarse a Cola_Auditoria_Humana con requiere_auditoria_humana = True.
+    Debe derivarse a Cola_Revision_Ambigua con requiere_auditoria_humana = True.
     """
     settings = get_settings()
     llm = LLMService(settings=settings)
@@ -91,6 +104,6 @@ async def test_caso_3_ambiguo_hitl():
         llm_service=llm,
     )
 
-    assert resultado.decision_enrutamiento.destino_principal == "Cola_Auditoria_Humana"
+    assert resultado.decision_enrutamiento.destino_principal == "Cola_Revision_Ambigua"
     assert resultado.decision_enrutamiento.requiere_auditoria_humana is True
     assert resultado.status == "pendiente_auditoria"

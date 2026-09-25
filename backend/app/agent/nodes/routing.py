@@ -67,7 +67,15 @@ def _calcular_destino(
     - score ≥ 0.5 + nivel Rutina → Cola_Rutina
     - Ambiguo → Cola_Auditoria_Humana
     """
-    if score < 0.5 or nivel == "Ambiguo":
+    if nivel == "Ambiguo":
+        return (
+            "Cola_Revision_Ambigua",
+            "Documento ambiguo. Requiere revisión clínica de ambigüedad.",
+            None,
+            True,
+        )
+
+    if score < 0.5:
         return (
             "Cola_Auditoria_Humana",
             f"Score de confianza bajo ({score:.2f}) o documento ambiguo. Requiere revisión humana.",
