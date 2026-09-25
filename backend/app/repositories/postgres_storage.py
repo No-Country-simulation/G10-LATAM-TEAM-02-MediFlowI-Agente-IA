@@ -118,6 +118,7 @@ class PostgresStorageRepository:
             # Mock en memoria
             self._mock_store[resultado.documento_id] = datos
             self._mock_store[resultado.documento_id]["usuario_registro_id"] = usuario_registro_id
+            self._mock_store[resultado.documento_id]["paciente_id"] = resultado.metadata.get("paciente_id")
             self._mock_history.extend([
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "DOCUMENTO_RECIBIDO"},
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_INICIADO"},
@@ -127,6 +128,15 @@ class PostgresStorageRepository:
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "ENRUTAMIENTO_COMPLETADO"},
                 {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_FINALIZADO"},
             ])
+            if resultado.metadata.get("asociacion_paciente"):
+                self._mock_history.append({
+                    "documento_id": resultado.documento_id,
+                    "usuario_id": usuario_registro_id,
+                    "evento": {
+                        "asociado": "PACIENTE_ASOCIADO",
+                        "conflicto": "CONFLICTO_PACIENTE",
+                    }.get(resultado.metadata["asociacion_paciente"], "PACIENTE_SIN_COINCIDENCIA"),
+                })
             logger.info("postgres.mock.guardado", documento_id=resultado.documento_id)
             return True
 
@@ -215,6 +225,12 @@ class PostgresStorageRepository:
                         resultado.documento_id,
                     )
 
+                if resultado.metadata.get("paciente_id"):
+                    await conn.execute(
+                        "UPDATE documentos_triaje SET paciente_id = $1::uuid WHERE documento_id = $2",
+                        resultado.metadata["paciente_id"], resultado.documento_id,
+                    )
+
                 # También registrar en cola_procesamiento para gestión operativa
                 await conn.execute("""
                     INSERT INTO cola_procesamiento (
@@ -248,6 +264,10 @@ class PostgresStorageRepository:
                 ]
                 if resultado.status == "pendiente_auditoria":
                     eventos.append(("PENDIENTE_AUDITORIA", "procesando", "pendiente_auditoria"))
+                if resultado.metadata.get("asociacion_paciente") == "asociado":
+                    eventos.append(("PACIENTE_ASOCIADO", None, None))
+                elif resultado.metadata.get("asociacion_paciente") == "conflicto":
+                    eventos.append(("CONFLICTO_PACIENTE", None, None))
                 for evento, estado_anterior, estado_nuevo in eventos:
                     await conn.execute("""
                         INSERT INTO historial_documento (

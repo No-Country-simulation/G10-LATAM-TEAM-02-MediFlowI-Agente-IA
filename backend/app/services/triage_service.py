@@ -15,6 +15,21 @@ from app.repositories.postgres_storage import PostgresStorageRepository
 logger = structlog.get_logger(__name__)
 
 
+def aplicar_asociacion_paciente(resultado: AgentState, resolucion: dict) -> None:
+    """Aplica una resolución exacta o deriva conflictos a revisión clínica."""
+    estado = resolucion["estado"]
+    resultado.metadata["asociacion_paciente"] = estado
+    if estado == "asociado":
+        resultado.metadata["paciente_id"] = str(resolucion["paciente"]["id"])
+    elif estado == "conflicto":
+        resultado.decision_enrutamiento.destino_principal = "Cola_Revision_Ambigua"
+        resultado.decision_enrutamiento.requiere_auditoria_humana = True
+        resultado.decision_enrutamiento.justificacion_enrutamiento = (
+            "DNI e historia clínica identifican pacientes distintos."
+        )
+        resultado.status = "pendiente_auditoria"
+
+
 class TriageService:
     """
     Servicio principal de triaje clínico.
@@ -59,6 +74,16 @@ class TriageService:
             metadata=metadata,
             llm_service=self._llm_service,
         )
+
+        paciente = resultado.datos_extraidos.paciente
+        if paciente and (paciente.documento_identidad or paciente.historia_clinica):
+            from app.repositories.patient_repository import resolver_paciente_por_identificadores
+
+            resolucion = await resolver_paciente_por_identificadores(
+                paciente.documento_identidad,
+                paciente.historia_clinica,
+            )
+            aplicar_asociacion_paciente(resultado, resolucion)
 
         ext = "pdf" if tipo_archivo == "PDF" else ("png" if tipo_archivo == "IMAGEN" else "txt")
         nombre_orig = nombre_original or f"ingesta_{documento_id}.{ext}"
