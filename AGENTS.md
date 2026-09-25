@@ -19,8 +19,9 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 > - Frontend: `npm run build` (compilación limpia en 0ms con 0 errores de TypeScript).
 > - Base de Datos: Migraciones de Alembic sincronizadas (`alembic upgrade head`).
 > 
-> **4. Documentación Automática por Fecha y Autor**:
-> Al solicitar *"Generar documentación"* o *"Registrar cambios para Autor: [Nombre]"*, el agente debe tomar **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), cargar la plantilla `Docs/PLANTILLA_CAMBIOS.md`, generar el archivo por día `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualizar el índice `Docs/HISTORIAL_CAMBIOS.md`.
+> **4. Documentación Automática e Incremental por Fecha y Autor**:
+> Al solicitar *"Generar documentación"* o *"Registrar cambios para Autor: [Nombre]"*, el agente debe tomar **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), cargar la plantilla `Docs/PLANTILLA_CAMBIOS.md`, generar el archivo diario `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualizar el índice `Docs/HISTORIAL_CAMBIOS.md`.
+> Asimismo, al solicitar *"Generar PR"* o *"Documentar Pull Request"*, el documento `Docs/PULL_REQUEST.md` debe estructurarse por fecha (`AAAA-MM-DD`) de forma acumulativa e incrementable, **permitiendo múltiples Pull Requests por día** (enumerados correlativamente como `PR #1`, `PR #2`, etc. dentro de la misma fecha).
 
 ---
 
