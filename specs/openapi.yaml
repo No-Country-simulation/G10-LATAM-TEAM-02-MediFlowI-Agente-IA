@@ -1,0 +1,99 @@
+openapi: "3.0.3"
+
+info:
+  title: MediFlow — API de Triaje Clínico Autónomo
+  description: |
+    API REST del Agente Autónomo MediFlow para clasificación, extracción y
+    enrutamiento de documentos clínicos usando LLMs multimodales y LangGraph.
+
+    ## Flujo SDD
+    Este archivo es la **fuente de verdad**. Cualquier cambio de contrato
+    debe hacerse aquí primero y luego correr `make generate`.
+
+    ## Casos de uso
+    - **Triaje estándar**: documento de rutina → cola de rutina
+    - **Urgencia médica**: informe crítico → cola de emergencia + alerta
+    - **Caso ambiguo**: documento ilegible → cola de auditoría humana (HITL)
+  version: "1.0.0"
+  contact:
+    name: Grupo 10 — Hackathon ONE G10
+    url: https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Desarrollo local
+  - url: https://mediflow.oci.example.com/api/v1
+    description: Producción OCI
+
+tags:
+  - name: triage
+    description: Procesamiento y clasificación de documentos clínicos
+  - name: documents
+    description: Gestión y consulta de documentos procesados
+  - name: health
+    description: Estado del servicio
+
+paths:
+  /health:
+    $ref: "./paths/health.yaml#/health"
+
+  /triage:
+    $ref: "./paths/triage.yaml#/triage"
+
+  /documents:
+    $ref: "./paths/documents.yaml#/documents"
+
+  /documents/{documento_id}:
+    $ref: "./paths/documents.yaml#/documentById"
+
+components:
+  schemas:
+    DocumentoClinico:
+      $ref: "./components/schemas.yaml#/schemas/DocumentoClinico"
+    Clasificacion:
+      $ref: "./components/schemas.yaml#/schemas/Clasificacion"
+    Paciente:
+      $ref: "./components/schemas.yaml#/schemas/Paciente"
+    MedicoSolicitante:
+      $ref: "./components/schemas.yaml#/schemas/MedicoSolicitante"
+    DatosExtraidos:
+      $ref: "./components/schemas.yaml#/schemas/DatosExtraidos"
+    Notificacion:
+      $ref: "./components/schemas.yaml#/schemas/Notificacion"
+    DecisionEnrutamiento:
+      $ref: "./components/schemas.yaml#/schemas/DecisionEnrutamiento"
+    AlmacenamientoOCI:
+      $ref: "./components/schemas.yaml#/schemas/AlmacenamientoOCI"
+    ResultadoTriaje:
+      $ref: "./components/schemas.yaml#/schemas/ResultadoTriaje"
+    DecisionAuditoria:
+      $ref: "./components/schemas.yaml#/schemas/DecisionAuditoria"
+    ErrorResponse:
+      $ref: "./components/schemas.yaml#/schemas/ErrorResponse"
+    HealthResponse:
+      $ref: "./components/schemas.yaml#/schemas/HealthResponse"
+
+  responses:
+    TriageSuccess:
+      $ref: "./components/responses.yaml#/responses/TriageSuccess"
+    TriagePendingAudit:
+      $ref: "./components/responses.yaml#/responses/TriagePendingAudit"
+    BadRequest:
+      $ref: "./components/responses.yaml#/responses/BadRequest"
+    Unauthorized:
+      $ref: "./components/responses.yaml#/responses/Unauthorized"
+    NotFound:
+      $ref: "./components/responses.yaml#/responses/NotFound"
+    InternalError:
+      $ref: "./components/responses.yaml#/responses/InternalError"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+security:
+  - ApiKeyAuth: []

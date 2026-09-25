@@ -1,0 +1,119 @@
+"""
+Nodo: classification
+Responsabilidad: Clasificar el tipo de documento y nivel de prioridad usando LLM.
+Output: ClasificacionState con tipo_documento, especialidad, nivel_prioridad.
+"""
+
+import json
+import structlog
+from app.agent.state import AgentState, ClasificacionState
+
+logger = structlog.get_logger(__name__)
+
+_CLASSIFICATION_PROMPT = """
+Eres un sistema experto en clasificación de documentos clínicos hospitalarios.
+Analiza el siguiente texto extraído de un documento clínico.
+
+Devuelve SOLO un JSON válido con esta estructura (sin texto adicional):
+{{
+  "tipo_documento": "Informe de Estudio por Imagenes | Analítica de Laboratorio | Receta Médica | Informe Quirúrgico | Orden de Procedimiento | Otro",
+  "especialidad": "especialidad médica o null",
+  "nivel_prioridad": "Urgente | Rutina | Ambiguo",
+  "razon_prioridad": "breve justificación de la prioridad asignada"
+}}
+
+Criterios de prioridad:
+- "Urgente": hallazgos críticos, emergencias, diagnósticos de alto riesgo vital
+- "Rutina": resultados normales, consultas de seguimiento, controles
+- "Ambiguo": texto ilegible, información insuficiente, contradictoria o incierta
+
+Texto del documento:
+---
+{texto}
+---
+
+Datos ya extraídos:
+- Diagnóstico principal: {diagnostico}
+- Hallazgos clave: {hallazgos}
+"""
+
+
+async def node_classification(state: AgentState, llm_service=None) -> dict:
+    """Clasifica el documento y determina nivel de prioridad."""
+    logger.info("nodo.classification.inicio", documento_id=state.documento_id)
+
+    texto = state.texto_extraido or state.documento_texto or ""
+    diagnostico = state.datos_extraidos.diagnostico_principal or "No determinado"
+    hallazgos = ", ".join(state.datos_extraidos.hallazgos_clave) or "Ninguno"
+
+    if not texto.strip():
+        clasificacion = ClasificacionState(
+            tipo_documento="Desconocido",
+            nivel_prioridad="Ambiguo",
+            score_confianza_clasificacion=0.0,
+        )
+        return {
+            "clasificacion": clasificacion,
+            "nodos_ejecutados": state.nodos_ejecutados + ["classification"],
+        }
+
+    try:
+        prompt = _CLASSIFICATION_PROMPT.format(
+            texto=texto[:3000],
+            diagnostico=diagnostico,
+            hallazgos=hallazgos,
+        )
+        respuesta_raw = await _llamar_llm(prompt, llm_service)
+        clasificacion = _parsear_respuesta(respuesta_raw)
+
+        logger.info(
+            "nodo.classification.completado",
+            documento_id=state.documento_id,
+            prioridad=clasificacion.nivel_prioridad,
+        )
+
+        return {
+            "clasificacion": clasificacion,
+            "nodos_ejecutados": state.nodos_ejecutados + ["classification"],
+        }
+
+    except Exception as exc:
+        logger.error("nodo.classification.error", documento_id=state.documento_id, error=str(exc))
+        return {
+            "clasificacion": ClasificacionState(
+                tipo_documento="Error",
+                nivel_prioridad="Ambiguo",
+                score_confianza_clasificacion=0.0,
+            ),
+            "error_mensaje": f"Error en classification: {exc}",
+            "nodos_ejecutados": state.nodos_ejecutados + ["classification"],
+        }
+
+
+async def _llamar_llm(prompt: str, llm_service) -> str:
+    if llm_service is not None:
+        return await llm_service.completar(prompt)
+    from app.services.llm_service import LLMService
+    from app.core.config import get_settings
+    return LLMService(get_settings())._respuesta_mock(prompt)
+
+
+def _parsear_respuesta(raw: str) -> ClasificacionState:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+
+    data = json.loads(raw)
+    nivel = data.get("nivel_prioridad", "Ambiguo")
+
+    # Score de confianza inicial basado en la solidez de la clasificación
+    score_base = {"Urgente": 0.85, "Rutina": 0.80, "Ambiguo": 0.30}.get(nivel, 0.5)
+
+    return ClasificacionState(
+        tipo_documento=data.get("tipo_documento", "Desconocido"),
+        especialidad=data.get("especialidad"),
+        nivel_prioridad=nivel,
+        score_confianza_clasificacion=score_base,
+    )

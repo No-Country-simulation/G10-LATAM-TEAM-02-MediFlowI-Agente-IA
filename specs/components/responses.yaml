@@ -1,0 +1,42 @@
+responses:
+  TriageSuccess:
+    description: Documento procesado exitosamente
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+
+  TriagePendingAudit:
+    description: Documento derivado a auditoría humana
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+
+  BadRequest:
+    description: Solicitud inválida o documento malformado
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
+
+  Unauthorized:
+    description: API Key inválida o ausente
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
+
+  NotFound:
+    description: Documento no encontrado
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
+
+  InternalError:
+    description: Error interno del servidor / agente
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"

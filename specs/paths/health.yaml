@@ -1,0 +1,26 @@
+health:
+  get:
+    tags:
+      - health
+    summary: Verificar estado del servicio
+    description: Retorna el estado de salud del backend y sus dependencias (LLM, OCI).
+    operationId: healthCheck
+    security: []
+    responses:
+      "200":
+        description: Servicio operativo
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/HealthResponse"
+            example:
+              status: "ok"
+              version: "1.0.0"
+              llm_disponible: true
+              oci_disponible: true
+      "503":
+        description: Servicio degradado o no disponible
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/HealthResponse"

@@ -1,0 +1,49 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+*.env
+!.env.example
+
+# ── Pytest / Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.schemathesis/
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.env
+!frontend/.env.example
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+*.log
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+
+# ── OCI ──────────────────────────────────────────────────────────────────────
+oci_private_key.pem
+*.pem
+
+# ── Secretos ─────────────────────────────────────────────────────────────────
+backend/.env
+frontend/.env
+.env

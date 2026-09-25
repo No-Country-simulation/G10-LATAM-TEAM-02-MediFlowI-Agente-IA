@@ -1,0 +1,77 @@
+version: "3.9"
+
+# ── MediFlow — Base de Datos Local (Desarrollo) ───────────────────────────────
+# Levanta PostgreSQL 17 + pgAdmin para desarrollo y pruebas locales.
+# La producción usa OCI Object Storage. Esta config es SOLO para dev.
+#
+# Uso:
+#   docker compose -f infrastructure/docker/docker-compose.db.yml up -d
+#   make db
+#
+# Conexión:
+#   Host:     localhost:5432
+#   DB:       mediflow_dev
+#   User:     mediflow
+#   Password: mediflow_dev_pass
+#
+# pgAdmin:  http://localhost:5050
+#   Email:    admin@mediflow.dev
+#   Password: admin
+
+networks:
+  mediflow-db-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+services:
+  # ── PostgreSQL 17 ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: mediflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mediflow_dev
+      POSTGRES_USER: mediflow
+      POSTGRES_PASSWORD: mediflow_dev_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=es_ES.UTF-8"
+      TZ: America/Bogota
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Ejecutar migraciones automáticamente al iniciar el contenedor
+      - ../../infrastructure/database/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - mediflow-db-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediflow -d mediflow_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── pgAdmin 4 — Interfaz gráfica PostgreSQL ────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mediflow-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mediflow.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ../../infrastructure/database/pgadmin_servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - mediflow-db-net
+    depends_on:
+      postgres:
+        condition: service_healthy
