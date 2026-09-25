@@ -48,7 +48,23 @@ schemas:
     properties:
       tipo_documento:
         type: string
-        example: "Informe de Estudio por Imagenes"
+        enum:
+          - Informe Clínico
+          - Evolución Clínica
+          - Epicrisis
+          - Receta Médica
+          - Orden Médica
+          - Orden de Procedimiento
+          - Solicitud de Interconsulta
+          - Informe de Laboratorio
+          - Informe de Estudio por Imágenes
+          - Informe Quirúrgico
+          - Consentimiento Informado
+          - Certificado Médico
+          - Referencia y Contrarreferencia
+          - Registro de Vacunación
+          - Otro
+        example: "Informe de Estudio por Imágenes"
       especialidad:
         type: string
         nullable: true
@@ -76,6 +92,12 @@ schemas:
         nullable: true
         example: 52
       id_paciente:
+        type: string
+        nullable: true
+      documento_identidad:
+        type: string
+        nullable: true
+      historia_clinica:
         type: string
         nullable: true
 
@@ -139,7 +161,7 @@ schemas:
     properties:
       destino_principal:
         type: string
-        enum: [Cola_Emergencia_Medica, Cola_Rutina, Cola_Auditoria_Humana]
+        enum: [Cola_Emergencia_Medica, Cola_Rutina, Cola_Auditoria_Humana, Cola_Revision_Ambigua]
         example: "Cola_Emergencia_Medica"
       requiere_auditoria_humana:
         type: boolean
@@ -161,7 +183,16 @@ schemas:
       ruta_objeto:
         type: string
         nullable: true
-        example: "procesados/urgentes/DOC-CLIN-2026-8942.json"
+        example: "urgentes/DOC-CLIN-2026-8942/resultado.json"
+      archivo_original:
+        type: string
+        nullable: true
+      resultado_json:
+        type: string
+        nullable: true
+      nombre_original:
+        type: string
+        nullable: true
       status_backup:
         type: string
         enum: [exito, error, pendiente]
@@ -178,7 +209,7 @@ schemas:
     properties:
       status:
         type: string
-        enum: [procesado, error, pendiente_auditoria]
+        enum: [recibido, procesando, procesado, pendiente_auditoria, rechazado, no_soportado, error]
         example: "procesado"
       documento_id:
         type: string
@@ -209,7 +240,12 @@ schemas:
         type: string
         enum: [aprobar, rechazar, reclasificar]
       nueva_clasificacion:
-        $ref: "#/schemas/Clasificacion"
+        type: object
+        additionalProperties: true
+        nullable: true
+      datos_corregidos:
+        type: object
+        additionalProperties: true
         nullable: true
       comentario:
         type: string
@@ -239,17 +275,82 @@ schemas:
     required:
       - status
       - version
+      - postgres_disponible
     properties:
       status:
         type: string
-        enum: [ok, degraded, error]
+        enum: [ok, unavailable]
         example: "ok"
       version:
         type: string
         example: "1.0.0"
+      postgres_disponible:
+        type: boolean
+        example: true
       llm_disponible:
         type: boolean
         example: true
       oci_disponible:
         type: boolean
         example: true
+
+  Usuario:
+    type: object
+    required: [id, documento_identidad, nombres, apellidos, rol, estado]
+    properties:
+      id: { type: string, format: uuid }
+      documento_identidad: { type: string, pattern: '^\d{8}$' }
+      nombres: { type: string }
+      apellidos: { type: string }
+      correo: { type: string, nullable: true }
+      telefono: { type: string, nullable: true }
+      rol: { type: string, enum: [ADMINISTRADOR, OPERADOR, AUDITOR, SUPERVISOR] }
+      estado: { type: string, enum: [ACTIVO, INACTIVO] }
+      created_at: { type: string, nullable: true }
+
+  UsuarioCrear:
+    type: object
+    required: [documento_identidad, password, nombres, apellidos]
+    properties:
+      documento_identidad: { type: string, pattern: '^\d{8}$' }
+      password: { type: string, format: password, minLength: 12 }
+      nombres: { type: string }
+      apellidos: { type: string }
+      correo: { type: string, nullable: true }
+      telefono: { type: string, nullable: true }
+      rol: { type: string, enum: [ADMINISTRADOR, OPERADOR, AUDITOR, SUPERVISOR], default: OPERADOR }
+      estado: { type: string, enum: [ACTIVO, INACTIVO], default: ACTIVO }
+
+  ConfiguracionSistema:
+    type: object
+    required: [storage_mode, oci_configured, llm_provider, llm_configured, database_url_configured]
+    properties:
+      storage_mode: { type: string, enum: [LOCAL, OCI] }
+      oci_configured: { type: boolean }
+      llm_provider: { type: string }
+      llm_configured: { type: boolean }
+      database_url_configured: { type: boolean }
+
+  PacienteRegistrar:
+    type: object
+    required: [tipo_documento, numero_documento, nombres, apellidos]
+    properties:
+      tipo_documento: { type: string, enum: [DNI, CE, PASAPORTE] }
+      numero_documento: { type: string }
+      historia_clinica: { type: string, nullable: true }
+      nombres: { type: string }
+      apellidos: { type: string }
+      fecha_nacimiento: { type: string, format: date, nullable: true }
+      sexo: { type: string, enum: [M, F, OTRO], nullable: true }
+      telefono: { type: string, nullable: true }
+      correo: { type: string, nullable: true }
+
+  PacienteRegistrado:
+    allOf:
+      - $ref: "#/schemas/PacienteRegistrar"
+      - type: object
+        required: [id, nombre_completo]
+        properties:
+          id: { type: string, format: uuid }
+          nombre_completo: { type: string }
+          created_at: { type: string, nullable: true }

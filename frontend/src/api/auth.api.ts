@@ -2,7 +2,7 @@
  * MediFlow - API Client para Autenticación y Gestión de Usuarios (RF-01 al RF-05)
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import { apiRequest } from './httpClient'
 
 export interface User {
   id: string
@@ -24,91 +24,41 @@ export interface LoginResponse {
 }
 
 export async function loginUser(documento_identidad: string, password: string): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+  return apiRequest<LoginResponse>('/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    auth: false,
     body: JSON.stringify({ documento_identidad, password }),
   })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.detail || 'Credenciales inválidas')
-  }
-
-  return response.json()
 }
 
 export async function logoutUser(token: string): Promise<void> {
-  await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  }).catch(() => {})
+  try {
+    await apiRequest<unknown>('/auth/logout', { method: 'POST', token })
+  } catch {
+    // El cierre local de sesión debe continuar aunque el servidor no responda.
+  }
 }
 
 export async function getCurrentUser(token: string): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Sesión no válida o expirada')
-  }
-
-  return response.json()
+  return apiRequest<User>('/auth/me', { token })
 }
 
 export async function fetchUsers(token: string): Promise<User[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al obtener usuarios')
-  }
-
-  return response.json()
+  return apiRequest<User[]>('/users', { token })
 }
 
 export async function createNewUser(token: string, userData: Partial<User> & { password: string }): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
+  return apiRequest<User>('/users', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    token,
     body: JSON.stringify(userData),
   })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al registrar usuario')
-  }
-
-  return response.json()
 }
 
 export async function updateUserDetails(token: string, userId: string, userData: Partial<User> & { password?: string }): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/users/${userId}`, {
+  return apiRequest<User>(`/users/${encodeURIComponent(userId)}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    token,
     body: JSON.stringify(userData),
   })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar usuario')
-  }
-
-  return response.json()
 }

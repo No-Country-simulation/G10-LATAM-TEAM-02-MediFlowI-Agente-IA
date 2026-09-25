@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   fetchPatients,
@@ -32,50 +32,8 @@ import {
 } from 'react-icons/fa'
 import '../App.css'
 
-const DEFAULT_PATIENTS_LIST: Paciente[] = [
-  {
-    id: 'pac-001',
-    tipo_documento: 'DNI',
-    numero_documento: '45678912',
-    historia_clinica: 'HC-2026-0089',
-    nombres: 'Juan Carlos',
-    apellidos: 'Pérez Ramos',
-    nombre_completo: 'Juan Carlos Pérez Ramos',
-    fecha_nacimiento: '1985-06-15',
-    sexo: null,
-    telefono: '987654321',
-    correo: 'juan.perez@email.com',
-    created_at: '2026-09-20T10:00:00Z',
-  },
-  {
-    id: 'pac-002',
-    tipo_documento: 'DNI',
-    numero_documento: '71234567',
-    historia_clinica: 'HC-2026-0104',
-    nombres: 'Ana Sofía',
-    apellidos: 'Mendoza Ruiz',
-    nombre_completo: 'Ana Sofía Mendoza Ruiz',
-    fecha_nacimiento: '1992-11-28',
-    sexo: 'F',
-    telefono: '912345678',
-    correo: 'ana.mendoza@email.com',
-    created_at: '2026-09-22T14:30:00Z',
-  },
-  {
-    id: 'pac-003',
-    tipo_documento: 'CE',
-    numero_documento: '001239874',
-    historia_clinica: 'HC-2026-0155',
-    nombres: 'Luis Alberto',
-    apellidos: 'García Castro',
-    nombre_completo: 'Luis Alberto García Castro',
-    fecha_nacimiento: '1978-03-04',
-    sexo: null,
-    telefono: '955443322',
-    correo: 'luis.garcia@email.com',
-    created_at: '2026-09-24T09:15:00Z',
-  },
-]
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
 
 function SearchableDocSelect({
   documents,
@@ -88,7 +46,7 @@ function SearchableDocSelect({
 }) {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [searchTerm, setSearchTerm] = useState<string>('')
-  const containerRef = React.useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -189,7 +147,7 @@ export default function PatientsManagementView() {
   const navigate = useNavigate()
   const { token } = useAuth()
 
-  const [patients, setPatients] = useState<Paciente[]>(DEFAULT_PATIENTS_LIST)
+  const [patients, setPatients] = useState<Paciente[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -220,11 +178,7 @@ export default function PatientsManagementView() {
     correo: '',
   })
 
-  useEffect(() => {
-    loadPatients()
-  }, [])
-
-  const loadPatients = async (search = searchTerm) => {
+  const loadPatients = useCallback(async (search = searchTerm) => {
     setLoading(true)
     setErrorMessage(null)
     try {
@@ -234,13 +188,17 @@ export default function PatientsManagementView() {
       } else {
         setPatients([])
       }
-    } catch (err: any) {
-      console.warn('API error, no se pudo obtener pacientes:', err.message)
+    } catch (error) {
       setPatients([])
+      setErrorMessage(getErrorMessage(error, 'No se pudo obtener el listado de pacientes.'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchTerm, token])
+
+  useEffect(() => {
+    queueMicrotask(() => void loadPatients())
+  }, [loadPatients])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -291,71 +249,17 @@ export default function PatientsManagementView() {
       if (unlinkedRes && Array.isArray(unlinkedRes.items)) {
         setAvailableDocs(unlinkedRes.items)
       }
-    } catch (e) {
-      setAvailableDocs([
-        { id: '1', documento_id: 'DOC-000001', tipo_documento: 'Informe de Laboratorio - Hematología', tipo_archivo: 'PDF' },
-        { id: '2', documento_id: 'DOC-000015', tipo_documento: 'Radiografía de Tórax', tipo_archivo: 'IMAGEN' },
-        { id: '3', documento_id: 'DOC-001', tipo_documento: 'Receta Médica - Consulta Externa', tipo_archivo: 'PDF' },
-      ])
+    } catch (error) {
+      setAvailableDocs([])
+      setErrorMessage(getErrorMessage(error, 'No se pudieron consultar los documentos disponibles.'))
     }
 
     try {
       const res = await fetchPatientDocuments(patient.id, token || undefined)
       setPatientDocs(res)
-    } catch (err: any) {
-      console.warn('Error fetching patient docs:', err.message)
-      // Fallback mock documents tree
-      setPatientDocs({
-        paciente_id: patient.id,
-        nombre_completo: patient.nombre_completo || `${patient.nombres} ${patient.apellidos}`,
-        numero_documento: patient.numero_documento,
-        historia_clinica: patient.historia_clinica,
-        total_documentos: 3,
-        documentos: [
-          {
-            id: 'doc-tree-1',
-            documento_id: 'DOC-000001',
-            tipo_archivo: 'PDF',
-            canal_origen: 'Triaje de Urgencia',
-            status: 'procesado',
-            tipo_documento: 'Informe de Laboratorio',
-            especialidad: 'Hematología',
-            nivel_prioridad: 'Urgente',
-            score_confianza: 0.98,
-            datos_extraidos_ia: {
-              nombre_detectado: patient.nombre_completo,
-              edad_detectada: 38,
-              dni_hc_detectado: patient.numero_documento,
-              medico_nombre: 'Dra. María Elena Torres',
-              diagnostico: 'Hemograma completo - Anemia leve',
-              cie10: 'D64.9',
-            },
-            destino_principal: 'Cola_Emergencia_Medica',
-            created_at: '2026-09-24T15:20:00Z',
-          },
-          {
-            id: 'doc-tree-2',
-            documento_id: 'DOC-000015',
-            tipo_archivo: 'IMAGEN',
-            canal_origen: 'Consulta Externa',
-            status: 'procesado',
-            tipo_documento: 'Radiografía de Tórax',
-            especialidad: 'Neumología',
-            nivel_prioridad: 'Rutina',
-            score_confianza: 0.94,
-            datos_extraidos_ia: {
-              nombre_detectado: patient.nombre_completo,
-              edad_detectada: 38,
-              dni_hc_detectado: patient.historia_clinica || patient.numero_documento,
-              medico_nombre: 'Dr. Roberto Carlos Silva',
-              diagnostico: 'Sin hallazgos patológicos activos en parénquima pulmonar',
-              cie10: 'Z01.8',
-            },
-            destino_principal: 'Cola_Rutina',
-            created_at: '2026-09-25T08:10:00Z',
-          },
-        ],
-      })
+    } catch (error) {
+      setPatientDocs(null)
+      setErrorMessage(getErrorMessage(error, 'No se pudo consultar el historial del paciente.'))
     } finally {
       setLoadingDocs(false)
     }
@@ -370,8 +274,8 @@ export default function PatientsManagementView() {
       setSuccessMessage(res.message || 'Paciente registrado exitosamente.')
       setShowCreateModal(false)
       loadPatients()
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error al registrar paciente.')
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Error al registrar paciente.'))
     }
   }
 
@@ -385,8 +289,8 @@ export default function PatientsManagementView() {
       setSuccessMessage(res.message || 'Paciente actualizado exitosamente.')
       setShowEditModal(false)
       loadPatients()
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error al actualizar paciente.')
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Error al actualizar paciente.'))
     }
   }
 
@@ -398,8 +302,8 @@ export default function PatientsManagementView() {
       setSuccessMessage(res.message)
       setManualDocId('')
       handleOpenDocsModal(selectedPatient)
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error al asociar documento.')
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Error al asociar documento.'))
     }
   }
 
@@ -682,7 +586,7 @@ export default function PatientsManagementView() {
                       <select
                         className="form-select"
                         value={formData.tipo_documento}
-                        onChange={(e) => setFormData({ ...formData, tipo_documento: e.target.value as any })}
+                        onChange={(e) => setFormData({ ...formData, tipo_documento: e.target.value as PacienteCreatePayload['tipo_documento'] })}
                         required
                       >
                         <option value="DNI">DNI</option>
@@ -835,7 +739,7 @@ export default function PatientsManagementView() {
                       <select
                         className="form-select"
                         value={formData.tipo_documento}
-                        onChange={(e) => setFormData({ ...formData, tipo_documento: e.target.value as any })}
+                        onChange={(e) => setFormData({ ...formData, tipo_documento: e.target.value as PacienteCreatePayload['tipo_documento'] })}
                       >
                         <option value="DNI">DNI</option>
                         <option value="CE">CE</option>

@@ -4,16 +4,8 @@
  * lógica de negocio (headers, error handling, etc.)
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
-
-function getHeaders(includeJsonContentType = true): HeadersInit {
-  const session = localStorage.getItem('mediflow_auth_session')
-  const token = session ? JSON.parse(session).access_token : undefined
-  return {
-    ...(includeJsonContentType ? { 'Content-Type': 'application/json' } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
-}
+import type { ClinicalDocumentType } from '../constants/clinicalDocumentTypes'
+import { apiRequest } from './httpClient'
 
 export interface DocumentoClinicoPayload {
   documento_id: string
@@ -28,13 +20,13 @@ export interface ResultadoTriaje {
   status: 'procesado' | 'error' | 'pendiente_auditoria'
   documento_id: string
   clasificacion: {
-    tipo_documento: string
+    tipo_documento: ClinicalDocumentType
     especialidad?: string
     nivel_prioridad: 'Urgente' | 'Rutina' | 'Ambiguo'
     score_confianza_clasificacion: number
   }
   datos_extraidos: {
-    paciente?: { nombre?: string; edad?: number }
+    paciente?: { nombre?: string; edad?: number; documento_identidad?: string; historia_clinica?: string }
     medico_solicitante?: { nombre?: string; matricula?: string }
     diagnostico_principal?: string
     cie10_sugerido?: string
@@ -59,18 +51,10 @@ export interface ResultadoTriaje {
 export async function procesarDocumento(
   payload: DocumentoClinicoPayload,
 ): Promise<ResultadoTriaje> {
-  const res = await fetch(`${API_BASE}/triage`, {
+  return apiRequest<ResultadoTriaje>('/triage', {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify(payload),
   })
-
-  if (!res.ok && res.status !== 207) {
-    const error = await res.json().catch(() => ({ mensaje: res.statusText }))
-    throw new Error(error.mensaje || 'Error al procesar el documento')
-  }
-
-  return res.json()
 }
 
 /** Sube un archivo PDF/imagen para triaje */
@@ -84,18 +68,10 @@ export async function subirArchivo(
   form.append('canal_origen', canalOrigen)
   form.append('archivo', archivo)
 
-  const res = await fetch(`${API_BASE}/triage/upload`, {
+  return apiRequest<ResultadoTriaje>('/triage/upload', {
     method: 'POST',
-    headers: getHeaders(false),
     body: form,
   })
-
-  if (!res.ok && res.status !== 207) {
-    const error = await res.json().catch(() => ({ mensaje: res.statusText }))
-    throw new Error(error.mensaje || 'Error al subir el archivo')
-  }
-
-  return res.json()
 }
 
 /** Lista documentos procesados */
@@ -109,9 +85,8 @@ export async function listarDocumentos(params?: {
   if (params?.nivel_prioridad) qs.set('nivel_prioridad', params.nivel_prioridad)
   if (params?.limit) qs.set('limit', String(params.limit))
 
-  const res = await fetch(`${API_BASE}/documents?${qs}`, { headers: getHeaders() })
-  if (!res.ok) throw new Error('Error al listar documentos')
-  return res.json()
+  const query = qs.toString()
+  return apiRequest<{ total: number; items: ResultadoTriaje[] }>(`/documents${query ? `?${query}` : ''}`)
 }
 
 /** Registra decisión de auditoría humana */
@@ -120,13 +95,10 @@ export async function registrarAuditoria(
   decision: 'aprobar' | 'rechazar' | 'reclasificar',
   comentario?: string,
 ): Promise<ResultadoTriaje> {
-  const res = await fetch(`${API_BASE}/documents/${documentoId}`, {
+  return apiRequest<ResultadoTriaje>(`/documents/${encodeURIComponent(documentoId)}`, {
     method: 'PATCH',
-    headers: getHeaders(),
     body: JSON.stringify({ decision, comentario }),
   })
-  if (!res.ok) throw new Error('Error al registrar decisión de auditoría')
-  return res.json()
 }
 
 export interface ConfiguracionSistema {
@@ -139,32 +111,16 @@ export interface ConfiguracionSistema {
 
 /** Obtiene la configuración actual del sistema */
 export async function obtenerConfiguracion(): Promise<ConfiguracionSistema> {
-  const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() })
-  if (!res.ok) throw new Error('Error al obtener la configuración del sistema')
-  return res.json()
+  return apiRequest<ConfiguracionSistema>('/settings')
 }
 
 /** Actualiza la configuración del sistema (ej. modo de almacenamiento) */
 export async function actualizarConfiguracion(
   storageMode: 'LOCAL' | 'OCI',
 ): Promise<ConfiguracionSistema> {
-  const res = await fetch(`${API_BASE}/settings`, {
+  return apiRequest<ConfiguracionSistema>('/settings', {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify({ storage_mode: storageMode }),
   })
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null)
-    if (errorData?.detail?.mensaje) {
-      throw new Error(errorData.detail.mensaje)
-    }
-    if (errorData?.detail && typeof errorData.detail === 'string') {
-      throw new Error(errorData.detail)
-    }
-    throw new Error('Error al actualizar la configuración del sistema')
-  }
-
-  return res.json()
 }
 

@@ -10,14 +10,19 @@ Uso:
 """
 
 import json
+
 import structlog
-from typing import Optional
+
 from app.agent.state import AgentState
 from app.core.config import Settings
 
 logger = structlog.get_logger(__name__)
 
 _GLOBAL_DB_POOL = None
+
+
+class DatabaseUnavailableError(RuntimeError):
+    """PostgreSQL no está configurado o no acepta conexiones."""
 
 
 def estado_final_auditoria(decision: str) -> str:
@@ -39,21 +44,50 @@ async def get_db_pool():
     global _GLOBAL_DB_POOL
     if _GLOBAL_DB_POOL is not None:
         return _GLOBAL_DB_POOL
-    
+
     from app.core.config import get_settings
+
     settings = get_settings()
     db_url = getattr(settings, "database_url", None)
     if not db_url:
         return None
-        
+
     try:
         import asyncpg
+
         url = db_url.replace("postgresql+asyncpg://", "postgresql://")
         _GLOBAL_DB_POOL = await asyncpg.create_pool(url, min_size=1, max_size=10)
         return _GLOBAL_DB_POOL
     except Exception as exc:
         logger.error("postgres.pool.error", error=str(exc))
         return None
+
+
+async def get_storage_mode() -> str:
+    """Lee de PostgreSQL el modo de almacenamiento elegido por el usuario."""
+    pool = await get_db_pool()
+    if pool is None:
+        raise DatabaseUnavailableError(
+            "PostgreSQL no está disponible para leer el modo de almacenamiento."
+        )
+    try:
+        async with pool.acquire() as conn:
+            value = await conn.fetchval(
+                "SELECT valor FROM configuracion_sistema WHERE clave = 'modo_almacenamiento'"
+            )
+        mode = (value or "LOCAL").upper()
+        if mode not in {"LOCAL", "OCI"}:
+            raise DatabaseUnavailableError(
+                f"El modo de almacenamiento persistido no es válido: {mode}."
+            )
+        return mode
+    except DatabaseUnavailableError:
+        raise
+    except Exception as exc:
+        logger.error("postgres.storage_mode.error", error=str(exc))
+        raise DatabaseUnavailableError(
+            "No se pudo leer el modo de almacenamiento en PostgreSQL."
+        ) from exc
 
 
 class PostgresStorageRepository:
@@ -64,8 +98,9 @@ class PostgresStorageRepository:
     En modo dev (sin DB configurada), opera en memoria como el OCI mock.
     """
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, allow_in_memory: bool = False):
         self._settings = settings
+        self._allow_in_memory = allow_in_memory
         self._pool = None
         self._mock_store: dict[str, dict] = {}
         self._mock_history: list[dict] = []
@@ -78,28 +113,30 @@ class PostgresStorageRepository:
 
         db_url = getattr(self._settings, "database_url", None)
         if not db_url:
-            logger.warning("postgres.modo_mock", razon="DATABASE_URL no configurada")
-            self._initialized = True
-            return
+            if self._allow_in_memory:
+                logger.warning("postgres.modo_memoria_pruebas", razon="DATABASE_URL no configurada")
+                self._initialized = True
+                return
+            raise DatabaseUnavailableError("DATABASE_URL no está configurada.")
 
         try:
             import asyncpg
+
             # Convertir URL SQLAlchemy a asyncpg format
             url = db_url.replace("postgresql+asyncpg://", "postgresql://")
             self._pool = await asyncpg.create_pool(url, min_size=2, max_size=10)
             self._initialized = True
             logger.info("postgres.inicializado", url=url.split("@")[-1])
         except ImportError:
-            logger.warning("asyncpg.no_instalado", fallback="mock")
-            self._initialized = True
+            raise DatabaseUnavailableError("asyncpg no está instalado.") from None
         except Exception as exc:
             logger.error("postgres.conexion.error", error=str(exc))
-            self._initialized = True
+            raise DatabaseUnavailableError("No se pudo conectar con PostgreSQL.") from exc
 
     async def guardar_resultado(
         self,
         resultado: AgentState,
-        usuario_registro_id: Optional[str] = None,
+        usuario_registro_id: str | None = None,
     ) -> bool:
         """
         Guarda el resultado completo de triaje en PostgreSQL.
@@ -115,28 +152,68 @@ class PostgresStorageRepository:
         datos = resultado.model_dump()
 
         if self._pool is None:
-            # Mock en memoria
+            if not self._allow_in_memory:
+                raise DatabaseUnavailableError(
+                    "PostgreSQL no está disponible para persistir el documento."
+                )
+            # Almacenamiento efímero habilitado exclusivamente por pruebas unitarias.
             self._mock_store[resultado.documento_id] = datos
             self._mock_store[resultado.documento_id]["usuario_registro_id"] = usuario_registro_id
-            self._mock_store[resultado.documento_id]["paciente_id"] = resultado.metadata.get("paciente_id")
-            self._mock_history.extend([
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "DOCUMENTO_RECIBIDO"},
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_INICIADO"},
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "OCR_COMPLETADO"},
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "EXTRACCION_IA_COMPLETADA"},
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "CLASIFICACION_COMPLETADA"},
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "ENRUTAMIENTO_COMPLETADO"},
-                {"documento_id": resultado.documento_id, "usuario_id": usuario_registro_id, "evento": "PROCESAMIENTO_FINALIZADO"},
-            ])
+            self._mock_store[resultado.documento_id]["paciente_id"] = resultado.metadata.get(
+                "paciente_id"
+            )
+            self._mock_history.extend(
+                [
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "DOCUMENTO_RECIBIDO",
+                    },
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "PROCESAMIENTO_INICIADO",
+                    },
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "OCR_COMPLETADO",
+                    },
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "EXTRACCION_IA_COMPLETADA",
+                    },
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "CLASIFICACION_COMPLETADA",
+                    },
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "ENRUTAMIENTO_COMPLETADO",
+                    },
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "PROCESAMIENTO_FINALIZADO",
+                    },
+                ]
+            )
             if resultado.metadata.get("asociacion_paciente"):
-                self._mock_history.append({
-                    "documento_id": resultado.documento_id,
-                    "usuario_id": usuario_registro_id,
-                    "evento": {
-                        "asociado": "PACIENTE_ASOCIADO",
-                        "conflicto": "CONFLICTO_PACIENTE",
-                    }.get(resultado.metadata["asociacion_paciente"], "PACIENTE_SIN_COINCIDENCIA"),
-                })
+                self._mock_history.append(
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": {
+                            "asociado": "PACIENTE_ASOCIADO",
+                            "conflicto": "CONFLICTO_PACIENTE",
+                        }.get(
+                            resultado.metadata["asociacion_paciente"], "PACIENTE_SIN_COINCIDENCIA"
+                        ),
+                    }
+                )
             logger.info("postgres.mock.guardado", documento_id=resultado.documento_id)
             return True
 
@@ -148,7 +225,8 @@ class PostgresStorageRepository:
                 )
                 storage_prov = modo_row.upper() if modo_row else "LOCAL"
 
-                await conn.execute("""
+                await conn.execute(
+                    """
                     INSERT INTO documentos_triaje (
                         documento_id, tipo_archivo, canal_origen, status,
                         texto_extraido,
@@ -191,10 +269,18 @@ class PostgresStorageRepository:
                     resultado.clasificacion.especialidad,
                     resultado.clasificacion.nivel_prioridad,
                     resultado.clasificacion.score_confianza_clasificacion,
-                    resultado.datos_extraidos.paciente.nombre if resultado.datos_extraidos.paciente else None,
-                    resultado.datos_extraidos.paciente.edad if resultado.datos_extraidos.paciente else None,
-                    resultado.datos_extraidos.medico_solicitante.nombre if resultado.datos_extraidos.medico_solicitante else None,
-                    resultado.datos_extraidos.medico_solicitante.matricula if resultado.datos_extraidos.medico_solicitante else None,
+                    resultado.datos_extraidos.paciente.nombre
+                    if resultado.datos_extraidos.paciente
+                    else None,
+                    resultado.datos_extraidos.paciente.edad
+                    if resultado.datos_extraidos.paciente
+                    else None,
+                    resultado.datos_extraidos.medico_solicitante.nombre
+                    if resultado.datos_extraidos.medico_solicitante
+                    else None,
+                    resultado.datos_extraidos.medico_solicitante.matricula
+                    if resultado.datos_extraidos.medico_solicitante
+                    else None,
                     resultado.datos_extraidos.estudio_realizado,
                     resultado.datos_extraidos.diagnostico_principal,
                     resultado.datos_extraidos.cie10_sugerido,
@@ -228,11 +314,13 @@ class PostgresStorageRepository:
                 if resultado.metadata.get("paciente_id"):
                     await conn.execute(
                         "UPDATE documentos_triaje SET paciente_id = $1::uuid WHERE documento_id = $2",
-                        resultado.metadata["paciente_id"], resultado.documento_id,
+                        resultado.metadata["paciente_id"],
+                        resultado.documento_id,
                     )
 
                 # También registrar en cola_procesamiento para gestión operativa
-                await conn.execute("""
+                await conn.execute(
+                    """
                     INSERT INTO cola_procesamiento (
                         documento_id, destino, nivel_prioridad, score_confianza, status
                     ) VALUES ($1, $2, $3, $4, $5)
@@ -269,20 +357,29 @@ class PostgresStorageRepository:
                 elif resultado.metadata.get("asociacion_paciente") == "conflicto":
                     eventos.append(("CONFLICTO_PACIENTE", None, None))
                 for evento, estado_anterior, estado_nuevo in eventos:
-                    await conn.execute("""
+                    await conn.execute(
+                        """
                         INSERT INTO historial_documento (
                             documento_triaje_id, usuario_id, evento,
                             estado_anterior, estado_nuevo
                         ) VALUES ($1, $2, $3, $4, $5)
-                    """, documento["id"], usuario_registro_id, evento, estado_anterior, estado_nuevo)
+                    """,
+                        documento["id"],
+                        usuario_registro_id,
+                        evento,
+                        estado_anterior,
+                        estado_nuevo,
+                    )
 
             logger.info("postgres.guardado", documento_id=resultado.documento_id)
             return True
         except Exception as exc:
-            logger.error("postgres.guardar.error", documento_id=resultado.documento_id, error=str(exc))
+            logger.error(
+                "postgres.guardar.error", documento_id=resultado.documento_id, error=str(exc)
+            )
             raise
 
-    async def obtener_por_id(self, documento_id: str) -> Optional[dict]:
+    async def obtener_por_id(self, documento_id: str) -> dict | None:
         """Obtiene un resultado de triaje por documento_id."""
         await self.inicializar()
 
@@ -298,7 +395,9 @@ class PostgresStorageRepository:
                 return dict(row) if row else None
         except Exception as exc:
             logger.error("postgres.obtener.error", documento_id=documento_id, error=str(exc))
-            return None
+            raise DatabaseUnavailableError(
+                "No se pudo consultar el documento en PostgreSQL."
+            ) from exc
 
     async def listar_historial(self, documento_id: str) -> list[dict]:
         """Lista la trazabilidad funcional del documento en orden cronológico."""
@@ -307,21 +406,30 @@ class PostgresStorageRepository:
         if self._pool is None:
             return [event for event in self._mock_history if event["documento_id"] == documento_id]
 
-        async with self._pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT hd.evento, hd.estado_anterior, hd.estado_nuevo,
-                       hd.descripcion, hd.metadata, hd.created_at, hd.usuario_id
-                FROM historial_documento hd
-                JOIN documentos_triaje dt ON dt.id = hd.documento_triaje_id
-                WHERE dt.documento_id = $1
-                ORDER BY hd.created_at ASC
-            """, documento_id)
-            return [dict(row) for row in rows]
+        try:
+            async with self._pool.acquire() as conn:
+                rows = await conn.fetch(
+                    """
+                    SELECT hd.evento, hd.estado_anterior, hd.estado_nuevo,
+                           hd.descripcion, hd.metadata, hd.created_at, hd.usuario_id
+                    FROM historial_documento hd
+                    JOIN documentos_triaje dt ON dt.id = hd.documento_triaje_id
+                    WHERE dt.documento_id = $1
+                    ORDER BY hd.created_at ASC
+                """,
+                    documento_id,
+                )
+                return [dict(row) for row in rows]
+        except Exception as exc:
+            logger.error("postgres.historial.error", documento_id=documento_id, error=str(exc))
+            raise DatabaseUnavailableError(
+                "No se pudo consultar el historial en PostgreSQL."
+            ) from exc
 
     async def listar(
         self,
-        status: Optional[str] = None,
-        nivel_prioridad: Optional[str] = None,
+        status: str | None = None,
+        nivel_prioridad: str | None = None,
         limit: int = 20,
     ) -> list[dict]:
         """Lista documentos con filtros opcionales."""
@@ -353,32 +461,36 @@ class PostgresStorageRepository:
                 return [dict(r) for r in rows]
         except Exception as exc:
             logger.error("postgres.listar.error", error=str(exc))
-            return []
+            raise DatabaseUnavailableError("No se pudo listar documentos en PostgreSQL.") from exc
 
     async def registrar_auditoria(
         self,
         documento_id: str,
         decision: str,
         auditor_id: str,
-        comentario: Optional[str] = None,
-        nueva_clasificacion: Optional[dict] = None,
+        comentario: str | None = None,
+        nueva_clasificacion: dict | None = None,
+        datos_corregidos: dict | None = None,
     ) -> bool:
         """Registra una decisión de auditoría HITL."""
         await self.inicializar()
 
         if self._pool is None:
-            if documento_id in self._mock_store:
-                self._mock_store[documento_id]["auditoria"] = {
-                    "decision": decision,
-                    "auditor_id": auditor_id,
+            if documento_id not in self._mock_store:
+                return False
+            self._mock_store[documento_id]["auditoria"] = {
+                "decision": decision,
+                "auditor_id": auditor_id,
+            }
+            self._mock_store[documento_id]["status"] = estado_final_auditoria(decision)
+            self._mock_history.append(
+                {
+                    "documento_id": documento_id,
+                    "usuario_id": auditor_id,
+                    "evento": evento_auditoria(decision),
+                    "estado_nuevo": estado_final_auditoria(decision),
                 }
-                self._mock_store[documento_id]["status"] = estado_final_auditoria(decision)
-            self._mock_history.append({
-                "documento_id": documento_id,
-                "usuario_id": auditor_id,
-                "evento": evento_auditoria(decision),
-                "estado_nuevo": estado_final_auditoria(decision),
-            })
+            )
             return True
 
         try:
@@ -393,40 +505,103 @@ class PostgresStorageRepository:
                         return False
 
                     # Insertar registro de auditoría
-                    await conn.execute("""
+                    await conn.execute(
+                        """
                         INSERT INTO auditorias_hitl (
                             documento_triaje_id, documento_id,
                             decision, auditor_id, comentario,
-                            nueva_nivel_prioridad, nuevo_destino
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                            nueva_nivel_prioridad, nuevo_destino,
+                            nuevo_tipo_documento
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                     """,
-                        doc["id"], documento_id,
-                        decision, auditor_id, comentario,
+                        doc["id"],
+                        documento_id,
+                        decision,
+                        auditor_id,
+                        comentario,
                         nueva_clasificacion.get("nivel_prioridad") if nueva_clasificacion else None,
                         nueva_clasificacion.get("destino") if nueva_clasificacion else None,
+                        nueva_clasificacion.get("tipo_documento") if nueva_clasificacion else None,
                     )
 
                     # Actualizar status del documento
                     nuevo_status = estado_final_auditoria(decision)
                     await conn.execute(
-                        "UPDATE documentos_triaje SET status = $1, updated_at = NOW() WHERE documento_id = $2",
-                        nuevo_status, documento_id,
+                        """UPDATE documentos_triaje
+                           SET status = $1,
+                               tipo_documento = COALESCE($3, tipo_documento),
+                               especialidad = COALESCE($4, especialidad),
+                               nivel_prioridad = COALESCE($5, nivel_prioridad),
+                               destino_principal = COALESCE($6, destino_principal),
+                               paciente_nombre = COALESCE($7, paciente_nombre),
+                               paciente_id_externo = COALESCE($8, paciente_id_externo),
+                               paciente_edad = COALESCE($9, paciente_edad),
+                               medico_nombre = COALESCE($10, medico_nombre),
+                               medico_matricula = COALESCE($11, medico_matricula),
+                               diagnostico_principal = COALESCE($12, diagnostico_principal),
+                               cie10_sugerido = COALESCE($13, cie10_sugerido),
+                               requiere_auditoria_humana = FALSE,
+                               updated_at = NOW()
+                           WHERE documento_id = $2""",
+                        nuevo_status,
+                        documento_id,
+                        nueva_clasificacion.get("tipo_documento") if nueva_clasificacion else None,
+                        nueva_clasificacion.get("especialidad") if nueva_clasificacion else None,
+                        nueva_clasificacion.get("nivel_prioridad") if nueva_clasificacion else None,
+                        nueva_clasificacion.get("destino") if nueva_clasificacion else None,
+                        (datos_corregidos.get("paciente") or {}).get("nombre")
+                        if datos_corregidos
+                        else None,
+                        (datos_corregidos.get("paciente") or {}).get("dni")
+                        if datos_corregidos
+                        else None,
+                        (datos_corregidos.get("paciente") or {}).get("edad")
+                        if datos_corregidos
+                        else None,
+                        (datos_corregidos.get("medico") or {}).get("nombre")
+                        if datos_corregidos
+                        else None,
+                        (datos_corregidos.get("medico") or {}).get("cmp")
+                        if datos_corregidos
+                        else None,
+                        datos_corregidos.get("diagnostico") if datos_corregidos else None,
+                        datos_corregidos.get("cie10") if datos_corregidos else None,
                     )
-                    await conn.execute("""
+                    await conn.execute(
+                        """UPDATE cola_procesamiento
+                           SET status = $1,
+                               destino = COALESCE($3, destino),
+                               nivel_prioridad = COALESCE($4, nivel_prioridad),
+                               resuelto_at = NOW()
+                           WHERE documento_id = $2""",
+                        nuevo_status,
+                        documento_id,
+                        nueva_clasificacion.get("destino") if nueva_clasificacion else None,
+                        nueva_clasificacion.get("nivel_prioridad") if nueva_clasificacion else None,
+                    )
+                    await conn.execute(
+                        """
                         INSERT INTO historial_documento (
                             documento_triaje_id, usuario_id, evento,
                             estado_anterior, estado_nuevo, descripcion
                         ) VALUES ($1, $2, $3, 'pendiente_auditoria', $4, $5)
                     """,
-                        doc["id"], auditor_id, evento_auditoria(decision),
-                        nuevo_status, comentario,
+                        doc["id"],
+                        auditor_id,
+                        evento_auditoria(decision),
+                        nuevo_status,
+                        comentario,
                     )
 
-            logger.info("postgres.auditoria.registrada", documento_id=documento_id, decision=decision)
+            logger.info(
+                "postgres.auditoria.registrada", documento_id=documento_id, decision=decision
+            )
             return True
         except Exception as exc:
             logger.error("postgres.auditoria.error", documento_id=documento_id, error=str(exc))
-            raise
+            raise DatabaseUnavailableError(
+                "No se pudo registrar la auditoría en PostgreSQL."
+            ) from exc
 
     async def cerrar(self):
         """Cierra el pool de conexiones."""

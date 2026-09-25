@@ -2,16 +2,7 @@
  * MediFlow — API Client para Gestión de Pacientes (Módulo 2: RF-06 al RF-09)
  */
 
-const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-  let clean = envUrl.trim().replace(/\/+$/, '')
-  if (!clean.endsWith('/api/v1')) {
-    clean = `${clean}/api/v1`
-  }
-  return clean
-}
-
-const API_BASE_URL = getApiBaseUrl()
+import { apiRequest } from './httpClient'
 
 export interface Paciente {
   id: string
@@ -83,75 +74,29 @@ export interface HistorialDocumentosPacienteResponse {
   documentos: DocumentoPaciente[]
 }
 
-const getHeaders = (token?: string) => {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-  return headers
-}
-
 export async function fetchPatients(search?: string, token?: string): Promise<{ total: number; items: Paciente[] }> {
-  const url = new URL(`${API_BASE_URL}/patients`)
-  if (search) {
-    url.searchParams.append('search', search)
-  }
-
-  const response = await fetch(url.toString(), {
-    headers: getHeaders(token),
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al obtener listado de pacientes')
-  }
-
-  return response.json()
+  const query = search ? `?search=${encodeURIComponent(search)}` : ''
+  return apiRequest<{ total: number; items: Paciente[] }>(`/patients${query}`, { token })
 }
 
 export async function createPatient(payload: PacienteCreatePayload, token?: string): Promise<{ message: string; paciente: Paciente }> {
-  const response = await fetch(`${API_BASE_URL}/patients`, {
+  return apiRequest<{ message: string; paciente: Paciente }>('/patients', {
     method: 'POST',
-    headers: getHeaders(token),
+    token,
     body: JSON.stringify(payload),
   })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al registrar paciente')
-  }
-
-  return response.json()
 }
 
 export async function updatePatient(id: string, payload: PacienteUpdatePayload, token?: string): Promise<{ message: string; paciente: Paciente }> {
-  const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
+  return apiRequest<{ message: string; paciente: Paciente }>(`/patients/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: getHeaders(token),
+    token,
     body: JSON.stringify(payload),
   })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar paciente')
-  }
-
-  return response.json()
 }
 
 export async function fetchPatientDocuments(id: string, token?: string): Promise<HistorialDocumentosPacienteResponse> {
-  const response = await fetch(`${API_BASE_URL}/patients/${id}/documents`, {
-    headers: getHeaders(token),
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al obtener historial de documentos del paciente')
-  }
-
-  return response.json()
+  return apiRequest<HistorialDocumentosPacienteResponse>(`/patients/${encodeURIComponent(id)}/documents`, { token })
 }
 
 export interface DocumentoDisponible {
@@ -164,28 +109,15 @@ export interface DocumentoDisponible {
 }
 
 export async function fetchUnlinkedDocuments(token?: string): Promise<{ total: number; items: DocumentoDisponible[] }> {
-  const response = await fetch(`${API_BASE_URL}/patients/unlinked-documents`, {
-    headers: getHeaders(token),
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al obtener documentos disponibles')
-  }
-
-  return response.json()
+  return apiRequest<{ total: number; items: DocumentoDisponible[] }>('/patients/unlinked-documents', { token })
 }
 
 export async function associateDocumentToPatient(patientId: string, documentoId: string, token?: string): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/patients/${patientId}/documents/${documentoId}/associate`, {
+  return apiRequest<{ message: string }>(
+    `/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentoId)}/associate`,
+    {
     method: 'POST',
-    headers: getHeaders(token),
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al asociar documento al paciente')
-  }
-
-  return response.json()
+      token,
+    },
+  )
 }

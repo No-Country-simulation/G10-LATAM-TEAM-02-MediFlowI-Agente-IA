@@ -1,13 +1,19 @@
+import base64
+import io
+import sys
+from types import SimpleNamespace
+
 import pytest
+from PIL import Image
+
 from app.agent.graph import ejecutar_triage
-from app.services.llm_service import LLMService
-from app.core.config import get_settings
-from app.agent.nodes.extraction import dividir_texto_en_bloques
 from app.agent.nodes import ingestion
+from app.agent.nodes.classification import consolidar_clasificaciones
+from app.agent.nodes.extraction import _parsear_respuesta, dividir_texto_en_bloques
 from app.agent.nodes.routing import _calcular_destino
 from app.agent.state import ClasificacionState
-from app.agent.nodes.classification import consolidar_clasificaciones
-from app.agent.nodes.extraction import _parsear_respuesta
+from app.core.config import get_settings
+from app.services.llm_service import LLMService, LLMUnavailableError
 
 
 def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
@@ -18,11 +24,42 @@ def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
     assert bloques == ["a" * 4_000, "HALLAZGO_FINAL_CRITICO"]
 
 
+@pytest.mark.asyncio
+async def test_llm_sin_credenciales_no_genera_resultados_clinicos_ficticios():
+    settings = get_settings().model_copy(
+        update={
+            "google_api_key": "",
+            "openai_api_key": "",
+            "allow_mock_llm": False,
+        }
+    )
+    llm = LLMService(settings=settings)
+
+    assert llm.proveedor == "unavailable"
+    assert llm.disponible is False
+    with pytest.raises(LLMUnavailableError):
+        await llm.completar("Clasifica este documento clínico")
+
+
 def test_pdf_sin_capa_texto_usa_fallback_ocr(monkeypatch):
     monkeypatch.setattr(ingestion, "_extraer_texto_pdf_pymupdf", lambda _: "")
     monkeypatch.setattr(ingestion, "_extraer_texto_pdf_ocr", lambda _: "texto OCR")
 
     assert ingestion._extraer_texto_pdf("cGRm") == "texto OCR"
+
+
+def test_imagen_ejecuta_ocr_tesseract_en_espanol(monkeypatch):
+    image_buffer = io.BytesIO()
+    Image.new("RGB", (2, 2), color="white").save(image_buffer, format="PNG")
+    monkeypatch.setitem(
+        sys.modules,
+        "pytesseract",
+        SimpleNamespace(image_to_string=lambda image, lang: "Receta médica"),
+    )
+
+    texto = ingestion._extraer_texto_imagen(base64.b64encode(image_buffer.getvalue()).decode())
+
+    assert texto == "Receta médica"
 
 
 def test_prioridad_ambigua_usa_cola_operativa_dedicada():
@@ -38,10 +75,20 @@ def test_prioridad_ambigua_usa_cola_operativa_dedicada():
 
 
 def test_consolidar_clasificaciones_prioriza_urgente_en_bloque_final():
-    clasificacion = consolidar_clasificaciones([
-        ClasificacionState(tipo_documento="Evolución Clínica", nivel_prioridad="Rutina", score_confianza_clasificacion=0.8),
-        ClasificacionState(tipo_documento="Informe de Estudio por Imagenes", nivel_prioridad="Urgente", score_confianza_clasificacion=0.85),
-    ])
+    clasificacion = consolidar_clasificaciones(
+        [
+            ClasificacionState(
+                tipo_documento="Evolución Clínica",
+                nivel_prioridad="Rutina",
+                score_confianza_clasificacion=0.8,
+            ),
+            ClasificacionState(
+                tipo_documento="Informe de Estudio por Imagenes",
+                nivel_prioridad="Urgente",
+                score_confianza_clasificacion=0.85,
+            ),
+        ]
+    )
 
     assert clasificacion.nivel_prioridad == "Urgente"
     assert clasificacion.tipo_documento == "Informe de Estudio por Imagenes"

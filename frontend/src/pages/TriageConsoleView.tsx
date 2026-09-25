@@ -6,13 +6,8 @@ import {
   registrarAuditoria,
   type ResultadoTriaje,
 } from '../api/triage.api'
-import {
-  loginUser,
-  logoutUser,
-  getCurrentUser,
-  type User,
-} from '../api/auth.api'
 import { useAuth } from '../hooks/useAuth'
+import { normalizeClinicalDocumentType } from '../constants/clinicalDocumentTypes'
 import '../App.css'
 
 const PRESET_CASES = [
@@ -66,14 +61,7 @@ Notas: Manuscrito borroso. Se identifican valores fuera de rango no especificado
   },
 ]
 
-const QUICK_USERS = [
-  { label: 'Administrador (Full Access)', dni: '12345678', pwd: 'admin' },
-  { label: 'Operador (Carga & Triaje)', dni: '87654321', pwd: 'operador' },
-  { label: 'Auditor (Revisión HITL)', dni: '11223344', pwd: 'auditor' },
-  { label: 'Supervisor (Lectura & KPI)', dni: '44332211', pwd: 'supervisor' },
-]
-
-
+const createDocumentId = () => `DOC-${Math.floor(100000 + Math.random() * 900000)}`
 
 interface TriageConsoleViewProps {
   initialTab?: 'triage' | 'users' | 'settings'
@@ -81,90 +69,25 @@ interface TriageConsoleViewProps {
 }
 
 export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu = true }: TriageConsoleViewProps) {
-  const { user: globalAuthUser } = useAuth()
-
-  // ── ESTADO DE AUTENTICACIÓN (RF-01, RF-02) ─────────────────────────
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    if (globalAuthUser) {
-      return {
-        id: 'usr-admin-global',
-        documento_identidad: '12345678',
-        nombres: globalAuthUser.nombre ? globalAuthUser.nombre.split(' ')[0] : 'Administrador',
-        apellidos: globalAuthUser.nombre ? globalAuthUser.nombre.split(' ').slice(1).join(' ') || 'Clínico' : 'Clínico',
-        correo: globalAuthUser.email || 'admin@mediflow.com',
-        rol: 'ADMINISTRADOR',
-        estado: 'ACTIVO'
-      }
-    }
-    return null
-  })
-  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('mf_token'))
-  const [loginDni, setLoginDni] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginError, setLoginError] = useState<string | null>(null)
-  const [loggingIn, setLoggingIn] = useState(false)
+  const { user: currentUser, logout } = useAuth()
 
   // ── NAVEGACIÓN Y VISTAS ────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'triage' | 'users' | 'settings'>(initialTab)
 
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab)
-    }
-  }, [initialTab])
-
-  // Auto-sincronizar cuando el usuario está logueado en la app principal
-  useEffect(() => {
-    if (!currentUser && globalAuthUser) {
-      setCurrentUser({
-        id: 'usr-admin-global',
-        documento_identidad: '12345678',
-        nombres: globalAuthUser.nombre ? globalAuthUser.nombre.split(' ')[0] : 'Administrador',
-        apellidos: globalAuthUser.nombre ? globalAuthUser.nombre.split(' ').slice(1).join(' ') || 'Clínico' : 'Clínico',
-        correo: globalAuthUser.email || 'admin@mediflow.com',
-        rol: 'ADMINISTRADOR',
-        estado: 'ACTIVO'
-      })
-    }
-  }, [globalAuthUser, currentUser])
-
   // ── ESTADO DE TRIAJE ───────────────────────────────────────────────
   const [activePreset, setActivePreset] = useState<string>('CASO-1-RUTINA')
-  const [docId, setDocId] = useState('')
+  const [docId, setDocId] = useState(createDocumentId)
   const [canalOrigen, setCanalOrigen] = useState('Consulta_Externa')
   const [tipoEntrada, setTipoEntrada] = useState<'texto' | 'archivo'>('texto')
-  const [textoClinico, setTextoClinico] = useState('')
+  const [textoClinico, setTextoClinico] = useState(PRESET_CASES[0].texto)
   const [fileToUpload, setFileToUpload] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resultado, setResultado] = useState<ResultadoTriaje | null>(null)
   const [auditSuccess, setAuditSuccess] = useState<string | null>(null)
   const [documentosRecientes, setDocumentosRecientes] = useState<ResultadoTriaje[]>([])
-
-
-
-  // Cargar sesión persistente
-  useEffect(() => {
-    if (authToken) {
-      getCurrentUser(authToken)
-        .then((user: User) => setCurrentUser(user))
-        .catch(() => {
-          localStorage.removeItem('mf_token')
-          setAuthToken(null)
-          setCurrentUser(null)
-        })
-    }
-  }, [authToken])
-
-  // Cargar caso preset por defecto
-  useEffect(() => {
-    handleSelectPreset('CASO-1-RUTINA')
-    loadRecentDocs()
-  }, [])
-
   const generateNewId = () => {
-    const randomNum = Math.floor(100000 + Math.random() * 900000)
-    setDocId(`DOC-${randomNum}`)
+    setDocId(createDocumentId())
   }
 
   const handleSelectPreset = (presetId: string) => {
@@ -190,71 +113,15 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
     }
   }
 
+  useEffect(() => {
+    listarDocumentos({ limit: 10 })
+      .then((res) => setDocumentosRecientes(res.items || []))
+      .catch((error: unknown) => console.error('Error cargando historial de documentos:', error))
+  }, [])
 
-
-  // Login handler
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoginError(null)
-
-    if (!/^\d{8}$/.test(loginDni.trim())) {
-      setLoginError('El documento de identidad debe tener exactamente 8 cifras numéricas.')
-      return
-    }
-
-    setLoggingIn(true)
-    try {
-      const res = await loginUser(loginDni.trim(), loginPassword)
-      localStorage.setItem('mf_token', res.access_token)
-      setAuthToken(res.access_token)
-      setCurrentUser(res.user)
-      setLoginDni('')
-      setLoginPassword('')
-    } catch (err: any) {
-      const quickUser = QUICK_USERS.find((u) => u.dni === loginDni.trim())
-      if (quickUser || loginDni.trim() === '12345678') {
-        const roleMap: Record<string, 'ADMINISTRADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'> = {
-          '12345678': 'ADMINISTRADOR',
-          '87654321': 'OPERADOR',
-          '11223344': 'AUDITOR',
-          '44332211': 'SUPERVISOR',
-        }
-        const assignedRole = roleMap[loginDni.trim()] || 'ADMINISTRADOR'
-        setCurrentUser({
-          id: `usr-demo-${loginDni.trim()}`,
-          documento_identidad: loginDni.trim(),
-          nombres: quickUser?.label.split(' ')[0] || 'Usuario',
-          apellidos: assignedRole,
-          correo: `usuario.${loginDni.trim()}@mediflow.com`,
-          rol: assignedRole,
-          estado: 'ACTIVO',
-        })
-        setLoginDni('')
-        setLoginPassword('')
-      } else {
-        setLoginError(err.message || 'Error al iniciar sesión')
-      }
-    } finally {
-      setLoggingIn(false)
-    }
-  }
-
-  // Logout handler
-  const handleLogout = async () => {
-    if (authToken) {
-      await logoutUser(authToken).catch(() => {})
-    }
-    localStorage.removeItem('mf_token')
-    setAuthToken(null)
-    setCurrentUser(null)
+  const handleLogout = () => {
+    logout()
     setActiveTab('triage')
-  }
-
-  // Quick preset login
-  const handleQuickLogin = (dni: string, pwd: string) => {
-    setLoginDni(dni)
-    setLoginPassword(pwd)
-    setLoginError(null)
   }
 
   // Procesar Triaje
@@ -279,8 +146,8 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
       }
       setResultado(res)
       loadRecentDocs()
-    } catch (err: any) {
-      setError(err.message || 'Ocurrió un error inesperado al clasificar el documento.')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Ocurrió un error inesperado al clasificar el documento.')
     } finally {
       setLoading(false)
     }
@@ -297,8 +164,8 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
       )
       setAuditSuccess(`Auditoría registrada: Decisión "${decision.toUpperCase()}" enviada.`)
       loadRecentDocs()
-    } catch (err: any) {
-      setError('Error al registrar auditoría: ' + err.message)
+    } catch (error) {
+      setError('Error al registrar auditoría: ' + (error instanceof Error ? error.message : 'Error inesperado'))
     }
   }
 
@@ -325,7 +192,7 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
 
           {/* CONTROLES DE SESIÓN & BADGE DE USUARIO */}
           <div className="header-actions">
-            {currentUser ? (
+            {currentUser && (
               <div className="user-profile-badge">
                 <div className="user-info">
                   <span className="user-name">{currentUser.nombres} {currentUser.apellidos}</span>
@@ -338,76 +205,9 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                   Cerrar Sesión
                 </button>
               </div>
-            ) : (
-              <button type="button" className="btn-login-trigger" onClick={() => setAuthToken(null)}>
-                Iniciar Sesión
-              </button>
             )}
           </div>
         </header>
-      )}
-
-      {/* ── MODAL DE AUTENTICACIÓN (RF-01) SI NO HAY SESIÓN ─────────────── */}
-      {!currentUser && (
-        <div className="login-overlay">
-          <div className="login-card">
-            <div className="login-header">
-              <h3>Iniciar Sesión en MediFlow</h3>
-              <p>Ingrese su número de documento de identidad de 8 cifras y contraseña para acceder al sistema.</p>
-            </div>
-
-            {loginError && <div className="alert-error">{loginError}</div>}
-
-            <form onSubmit={handleLoginSubmit} className="login-form">
-              <div className="form-group">
-                <label htmlFor="login-dni">Documento de Identidad (DNI 8 cifras):</label>
-                <input
-                  id="login-dni"
-                  type="text"
-                  maxLength={8}
-                  placeholder="Ej. 12345678"
-                  value={loginDni}
-                  onChange={(e) => setLoginDni(e.target.value.replace(/\D/g, ''))}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="login-pwd">Contraseña:</label>
-                <input
-                  id="login-pwd"
-                  type="password"
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              <button type="submit" className="btn-submit-triage" disabled={loggingIn}>
-                {loggingIn ? <><span className="spinner"></span> Validando Credenciales...</> : 'Iniciar Sesión'}
-              </button>
-            </form>
-
-            {/* PRESETS DE ACCESO RÁPIDO PARA DEMO Y PRUEBAS */}
-            <div className="quick-login-section">
-              <h4>Accesos Rápidos de Prueba por Rol:</h4>
-              <div className="quick-users-grid">
-                {QUICK_USERS.map((u, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className="btn-quick-user"
-                    onClick={() => handleQuickLogin(u.dni, u.pwd)}
-                  >
-                    <strong>{u.label}</strong>
-                    <span>DNI: {u.dni} | Pass: {u.pwd}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ── CONTENIDO PRINCIPAL ───────────────── */}
@@ -423,7 +223,6 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                 className={`vertical-nav-item ${activeTab === 'triage' ? 'active' : ''}`}
                 onClick={() => setActiveTab('triage')}
               >
-                <span className="nav-icon">🩺</span>
                 <div className="nav-text">
                   <strong>Triaje Clínico</strong>
                   <small>Carga & Diagnóstico IA</small>
@@ -436,7 +235,6 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                   className={`vertical-nav-item ${activeTab === 'users' ? 'active' : ''}`}
                   onClick={() => setActiveTab('users')}
                 >
-                  <span className="nav-icon">👥</span>
                   <div className="nav-text">
                     <strong>Gestión de Usuarios</strong>
                     <small>Control de Acceso RBAC</small>
@@ -450,7 +248,6 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                   className={`vertical-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
                   onClick={() => setActiveTab('settings')}
                 >
-                  <span className="nav-icon">⚙️</span>
                   <div className="nav-text">
                     <strong>Configuración</strong>
                     <small>Almacenamiento Local/OCI</small>
@@ -476,10 +273,12 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                 </div>
                 <div className="presets-grid">
                   {PRESET_CASES.map((preset) => (
-                    <div
+                    <button
+                      type="button"
                       key={preset.id}
                       className={`preset-item ${activePreset === preset.id ? 'active-preset' : ''}`}
                       onClick={() => handleSelectPreset(preset.id)}
+                      aria-pressed={activePreset === preset.id}
                     >
                       <div className="preset-item-header">
                         <span className={`badge ${preset.badgeColor}`}>{preset.badge}</span>
@@ -488,15 +287,12 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                       <h4>{preset.titulo}</h4>
                       <p className="preset-sub">{preset.subtitulo}</p>
                       <div className="preset-btn-wrapper">
-                        <button
-                          type="button"
-                          className={`btn-preset-action ${activePreset === preset.id ? 'active-btn' : ''}`}
-                        >
+                        <span className={`btn-preset-action ${activePreset === preset.id ? 'active-btn' : ''}`}>
                           {activePreset === preset.id ? 'Cargado en Formulario' : 'Cargar Caso'}
-                        </button>
+                        </span>
                         {activePreset === preset.id && <span className="active-pill">Activo</span>}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -737,8 +533,7 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                         <h5>Diagnóstico & CIE-10</h5>
                         <div className="entity-val highlight-diag">
                           {resultado.datos_extraidos.diagnostico_principal ||
-                            resultado.clasificacion.tipo_documento ||
-                            'En evaluación'}
+                            normalizeClinicalDocumentType(resultado.clasificacion.tipo_documento)}
                         </div>
                         {resultado.datos_extraidos.cie10_sugerido && (
                           <span className="cie10-pill">
@@ -754,7 +549,7 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                         <div className="findings-section">
                           <h5>Hallazgos Clínicos Clave Detectados:</h5>
                           <ul className="findings-list">
-                            {resultado.datos_extraidos.hallazgos_clave.map((h: any, i: number) => (
+                            {resultado.datos_extraidos.hallazgos_clave.map((h, i) => (
                               <li key={i}>{h}</li>
                             ))}
                           </ul>

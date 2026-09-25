@@ -58,10 +58,47 @@ make dev          # Backend :8000 + Frontend :5173 (sin Docker)
 make dev-docker   # Todo en Docker con hot-reload
 ```
 
+### Despliegue completo con Docker
+
+El stack incluye PostgreSQL 17, FastAPI con todas sus dependencias, OCR Tesseract
+en español, migraciones automáticas de Alembic y el frontend compilado servido por
+Nginx. No es necesario instalar Python, Node.js ni Tesseract en el equipo anfitrión.
+
+```bash
+# Opcional: configurar claves LLM/OCI y seguridad
+cp backend/.env.example backend/.env
+
+# Construir y levantar frontend, backend y PostgreSQL
+docker compose -f infrastructure/docker/docker-compose.yml up --build -d
+
+# Ver estado y logs
+docker compose -f infrastructure/docker/docker-compose.yml ps
+docker compose -f infrastructure/docker/docker-compose.yml logs -f
+```
+
+También puede usarse `make docker-up`. Los datos de PostgreSQL y los documentos
+almacenados en modo `LOCAL` se conservan en volúmenes Docker. Para detener sin
+borrar información use `make docker-down`.
+
+Accesos del despliegue Docker:
+
+- Aplicación y API mediante proxy: `http://localhost`
+- Swagger UI: `http://localhost/docs`
+- Backend directo para diagnóstico: `http://localhost:8000`
+- Desarrollo con recarga: `http://localhost:5173`
+
 ### 3. Acceder
 - **Frontend**: http://localhost:5173
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
+
+Credencial administrativa inicial de desarrollo:
+
+- **DNI**: `12345678`
+- **Contraseña**: `MediFlow#Admin2026`
+
+Esta cuenta es únicamente para desarrollo. Cambie su contraseña antes de
+exponer MediFlow en una red compartida.
 
 ---
 

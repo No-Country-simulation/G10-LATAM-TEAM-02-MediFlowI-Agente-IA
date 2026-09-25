@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import {
   fetchUsers,
   createNewUser,
@@ -31,54 +31,10 @@ import {
 } from 'react-icons/fa'
 import '../App.css'
 
-const DEFAULT_USERS_LIST: User[] = [
-  {
-    id: 'usr-admin-1',
-    documento_identidad: '12345678',
-    nombres: 'Carlos Eduardo',
-    apellidos: 'Mendes',
-    correo: 'admin@mediflow.com',
-    telefono: '999888777',
-    rol: 'ADMINISTRADOR',
-    estado: 'ACTIVO',
-  },
-  {
-    id: 'usr-op-1',
-    documento_identidad: '87654321',
-    nombres: 'María Fernanda',
-    apellidos: 'Gómez Torres',
-    correo: 'maria.gomez@clinica.com',
-    telefono: '988777666',
-    rol: 'OPERADOR',
-    estado: 'ACTIVO',
-  },
-  {
-    id: 'usr-aud-1',
-    documento_identidad: '11223344',
-    nombres: 'Roberto',
-    apellidos: 'López',
-    correo: 'roberto.lopez@clinica.com',
-    telefono: '977666555',
-    rol: 'AUDITOR',
-    estado: 'ACTIVO',
-  },
-  {
-    id: 'usr-sup-1',
-    documento_identidad: '44332211',
-    nombres: 'Renata',
-    apellidos: 'Silveira',
-    correo: 'renata.silveira@clinica.com',
-    telefono: '966555444',
-    rol: 'SUPERVISOR',
-    estado: 'ACTIVO',
-  },
-]
-
 export default function UsersManagementView() {
-  const { user: currentUser } = useAuth()
-  const [authToken] = useState<string | null>(() => localStorage.getItem('mf_token'))
+  const { user: currentUser, token: authToken } = useAuth()
 
-  const [usersList, setUsersList] = useState<User[]>(DEFAULT_USERS_LIST)
+  const [usersList, setUsersList] = useState<User[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
 
   // Modal State
@@ -114,30 +70,24 @@ export default function UsersManagementView() {
   const canManageUsers =
     !currentUser ||
     currentUser.rol === 'ADMINISTRADOR' ||
-    currentUser.rol === 'ADMIN' ||
-    currentUser.username === 'admin'
+    currentUser.documento_identidad === 'admin'
 
-  useEffect(() => {
-    loadUsers()
-  }, [])
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoadingUsers(true)
     try {
-      if (authToken) {
-        const remoteUsers = await fetchUsers(authToken)
-        if (remoteUsers && Array.isArray(remoteUsers) && remoteUsers.length > 0) {
-          setUsersList(remoteUsers)
-          return
-        }
-      }
-      setUsersList(DEFAULT_USERS_LIST)
-    } catch {
-      setUsersList(DEFAULT_USERS_LIST)
+      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
+      setUsersList(await fetchUsers(authToken))
+    } catch (error) {
+      setUsersList([])
+      setUserFormError(error instanceof Error ? error.message : 'No se pudieron cargar los usuarios.')
     } finally {
       setLoadingUsers(false)
     }
-  }
+  }, [authToken])
+
+  useEffect(() => {
+    queueMicrotask(() => void loadUsers())
+  }, [loadUsers])
 
   const handleOpenCreateModal = () => {
     setEditingUser(null)
@@ -209,9 +159,8 @@ export default function UsersManagementView() {
 
     setSavingPassword(true)
     try {
-      if (authToken) {
-        await updateUserDetails(authToken, passwordUser.id, { password: pwdNew }).catch(() => {})
-      }
+      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
+      await updateUserDetails(authToken, passwordUser.id, { password: pwdNew })
       setUserFormSuccess(`Contraseña de "${passwordUser.nombres} ${passwordUser.apellidos}" actualizada correctamente.`)
       handleClosePasswordModal()
     } catch {
@@ -223,12 +172,13 @@ export default function UsersManagementView() {
 
   const handleToggleUserStatus = async (user: User) => {
     const nextState = user.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'
-    if (authToken) {
-      await updateUserDetails(authToken, user.id, { estado: nextState }).catch(() => {})
+    try {
+      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
+      const updated = await updateUserDetails(authToken, user.id, { estado: nextState })
+      setUsersList((prev) => prev.map((item) => (item.id === user.id ? updated : item)))
+    } catch (error) {
+      setUserFormError(error instanceof Error ? error.message : 'No se pudo actualizar el estado.')
     }
-    setUsersList((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, estado: nextState } : u))
-    )
   }
 
   const handleCreateOrUpdateUserSubmit = async (e: React.FormEvent) => {
@@ -256,70 +206,34 @@ export default function UsersManagementView() {
     setSavingUser(true)
 
     try {
+      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
       if (editingUser) {
-        if (authToken) {
-          await updateUserDetails(authToken, editingUser.id, {
-            nombres: newNombres,
-            apellidos: newApellidos,
-            correo: newCorreo || undefined,
-            telefono: newTelefono || undefined,
-            rol: newRol,
-          }).catch(() => {})
-        }
-
-        setUsersList((prev) =>
-          prev.map((u) =>
-            u.id === editingUser.id
-              ? {
-                  ...u,
-                  nombres: newNombres,
-                  apellidos: newApellidos,
-                  correo: newCorreo || undefined,
-                  telefono: newTelefono || undefined,
-                  rol: newRol,
-                }
-              : u
-          )
-        )
-        setUserFormSuccess(`Trabajador "${newNombres} ${newApellidos}" actualizado con éxito.`)
-      } else {
-        if (authToken) {
-          const created = await createNewUser(authToken, {
-            documento_identidad: newDni,
-            password: newPassword,
-            nombres: newNombres,
-            apellidos: newApellidos,
-            correo: newCorreo || undefined,
-            telefono: newTelefono || undefined,
-            rol: newRol,
-          }).catch(() => null)
-
-          if (created) {
-            setUsersList((prev) => [created, ...prev])
-            setUserFormSuccess(`Usuario DNI ${newDni} registrado correctamente.`)
-            handleCloseUserModal()
-            setSavingUser(false)
-            return
-          }
-        }
-
-        const localNewUser: User = {
-          id: `usr-${Date.now()}`,
-          documento_identidad: newDni,
+        const updated = await updateUserDetails(authToken, editingUser.id, {
           nombres: newNombres,
           apellidos: newApellidos,
           correo: newCorreo || undefined,
           telefono: newTelefono || undefined,
           rol: newRol,
-          estado: 'ACTIVO',
-        }
-        setUsersList((prev) => [localNewUser, ...prev])
-        setUserFormSuccess(`Usuario DNI ${newDni} registrado correctamente en sistema.`)
+        })
+        setUsersList((prev) => prev.map((user) => (user.id === editingUser.id ? updated : user)))
+        setUserFormSuccess(`Trabajador "${newNombres} ${newApellidos}" actualizado con éxito.`)
+      } else {
+        const created = await createNewUser(authToken, {
+          documento_identidad: newDni,
+          password: newPassword,
+          nombres: newNombres,
+          apellidos: newApellidos,
+          correo: newCorreo || undefined,
+          telefono: newTelefono || undefined,
+          rol: newRol,
+        })
+        setUsersList((prev) => [created, ...prev])
+        setUserFormSuccess(`Usuario DNI ${newDni} registrado correctamente.`)
       }
 
       handleCloseUserModal()
-    } catch {
-      setUserFormError('Ocurrió un error al procesar la solicitud.')
+    } catch (error) {
+      setUserFormError(error instanceof Error ? error.message : 'Ocurrió un error al procesar la solicitud.')
     } finally {
       setSavingUser(false)
     }
@@ -847,7 +761,7 @@ export default function UsersManagementView() {
                                 borderWidth: isSelected ? '2px' : '1px',
                                 transition: 'all 0.2s ease-in-out',
                               }}
-                              onClick={() => setNewRol(item.role as any)}
+                              onClick={() => setNewRol(item.role as User['rol'])}
                             >
                               <div className="d-flex align-items-center gap-3">
                                 <div

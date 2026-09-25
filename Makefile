@@ -1,7 +1,7 @@
 # MediFlow — Makefile
 # Comandos unificados para desarrollo, generación SDD, testing y despliegue.
 
-.PHONY: help validate generate dev dev-docker test test-backend test-contract docs build clean
+.PHONY: help validate generate dev dev-docker docker-up docker-down test test-backend test-contract docs build clean
 
 # ── Default ──────────────────────────────────────────────────────────────────
 help:
@@ -25,6 +25,8 @@ help:
 	@echo ""
 	@echo "  Producción:"
 	@echo "    make build        Build completo (Docker)"
+	@echo "    make docker-up    Construye y levanta el stack completo"
+	@echo "    make docker-down  Detiene el stack sin borrar los volúmenes"
 	@echo "    make clean        Limpia contenedores y volúmenes"
 	@echo ""
 
@@ -81,6 +83,14 @@ test-contract:
 build:
 	@echo "🏗️  Building producción..."
 	docker compose -f infrastructure/docker/docker-compose.yml build
+
+docker-up:
+	@echo "🐳 Levantando MediFlow completo..."
+	docker compose -f infrastructure/docker/docker-compose.yml up --build -d
+
+docker-down:
+	@echo "🛑 Deteniendo MediFlow..."
+	docker compose -f infrastructure/docker/docker-compose.yml down
 
 clean:
 	@echo "🧹 Limpiando contenedores y volúmenes..."

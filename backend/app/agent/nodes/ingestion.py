@@ -5,7 +5,10 @@ Soporta: texto directo, PDF (PyMuPDF), imagen (Gemini Vision).
 """
 
 import base64
+import io
+
 import structlog
+
 from app.agent.state import AgentState
 
 logger = structlog.get_logger(__name__)
@@ -28,10 +31,7 @@ async def node_ingestion(state: AgentState) -> dict:
             texto_extraido = _extraer_texto_pdf(state.documento_base64)
 
         elif state.tipo_archivo == "IMAGEN" and state.documento_base64:
-            # Para imágenes, la extracción real la hará el LLM en el nodo extraction
-            # Aquí solo validamos que el base64 sea válido
-            base64.b64decode(state.documento_base64, validate=True)
-            texto_extraido = None  # Gemini procesará la imagen directo
+            texto_extraido = _extraer_texto_imagen(state.documento_base64)
 
         else:
             texto_extraido = ""
@@ -94,9 +94,36 @@ def _extraer_texto_pdf_ocr(pdf_bytes: bytes) -> str:
         textos = []
         for page in doc:
             pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-            image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
+            image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
             textos.append(pytesseract.image_to_string(image, lang="spa"))
         doc.close()
         return "\n".join(textos).strip()
     except Exception as exc:
         raise RuntimeError(f"No se pudo realizar OCR del PDF: {exc}") from exc
+
+
+def _extraer_texto_imagen(base64_content: str) -> str:
+    """Valida una imagen y extrae su texto con Tesseract en español."""
+    try:
+        import pytesseract
+        from PIL import Image, UnidentifiedImageError
+    except ImportError:
+        raise RuntimeError(
+            "OCR no disponible: instale Pillow, pytesseract y el binario Tesseract."
+        ) from None
+
+    try:
+        image_bytes = base64.b64decode(base64_content, validate=True)
+        with Image.open(io.BytesIO(image_bytes)) as source:
+            source.verify()
+        with Image.open(io.BytesIO(image_bytes)) as source:
+            image = source.convert("RGB")
+            texto = pytesseract.image_to_string(image, lang="spa").strip()
+    except (ValueError, UnidentifiedImageError) as exc:
+        raise RuntimeError("La imagen recibida no es válida o está dañada.") from exc
+    except Exception as exc:
+        raise RuntimeError(f"No se pudo realizar OCR de la imagen: {exc}") from exc
+
+    if not texto:
+        raise RuntimeError("El OCR no detectó texto legible en la imagen.")
+    return texto

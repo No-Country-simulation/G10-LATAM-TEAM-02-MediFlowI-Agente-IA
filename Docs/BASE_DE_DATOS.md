@@ -221,3 +221,17 @@ Control y gestión de la cola de trabajo clínica por destino.
 | `asignado_at` | `TIMESTAMPTZ` | NULL | Fecha de asignación. |
 | `resuelto_at` | `TIMESTAMPTZ` | NULL | Fecha de resolución. |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()` | Fecha de ingreso a la cola. |
+
+---
+
+### 6. 🔐 Tabla `sesiones_usuario`
+Mantiene sesiones autenticadas revocables y compartidas entre instancias del backend. El token Bearer original nunca se persiste: solo se almacena su hash SHA-256.
+
+| Campo | Tipo | Restricciones | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` | `PRIMARY KEY`, `uuid_generate_v4()` | Identificador de la sesión. |
+| `token_hash` | `CHAR(64)` | `UNIQUE`, `NOT NULL` | Hash SHA-256 irreversible del token Bearer. |
+| `usuario_id` | `UUID` | `FK -> usuarios(id) ON DELETE CASCADE` | Usuario propietario de la sesión. |
+| `expires_at` | `TIMESTAMPTZ` | `NOT NULL` | Vencimiento de la sesión. |
+| `revoked_at` | `TIMESTAMPTZ` | NULL | Momento del cierre o revocación; `NULL` mientras esté activa. |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()` | Fecha de creación. |

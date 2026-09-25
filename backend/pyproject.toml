@@ -60,6 +60,15 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# Ruff format ya gestiona la longitud de expresiones; E501 genera falsos positivos
+# en contratos y mensajes que no pueden dividirse sin degradar su lectura.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Depends/File/Form en valores por defecto es el patrón declarativo de FastAPI.
+"app/api/**/*.py" = ["B008"]
+"app/core/dependencies.py" = ["B008"]
+"app/core/security.py" = ["B008"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -72,3 +81,4 @@ markers = [
 python_version = "3.11"
 strict = false
 ignore_missing_imports = true
+explicit_package_bases = true

@@ -1,37 +1,63 @@
-version: "3.9"
-
 networks:
   mediflow-net:
     driver: bridge
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mediflow-postgres-dev
+    environment:
+      POSTGRES_DB: mediflow_dev
+      POSTGRES_USER: mediflow
+      POSTGRES_PASSWORD: mediflow_dev_pass
+    volumes:
+      - mediflow-postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - mediflow-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediflow -d mediflow_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   # ── Backend: Hot-reload con uvicorn --reload ───────────────────────────────
   backend:
     build:
       context: ../../backend
       dockerfile: Dockerfile
+      args:
+        INSTALL_DEV: "true"
     container_name: mediflow-backend-dev
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
-      - ../../backend/.env
+      - path: ../../backend/.env
+        required: false
     environment:
       APP_ENV: development
       LOG_LEVEL: DEBUG
+      DATABASE_URL: postgresql+asyncpg://mediflow:mediflow_dev_pass@postgres:5432/mediflow_dev
     ports:
       - "8000:8000"
     volumes:
-      # Montar código fuente para hot-reload
       - ../../backend/app:/app/app:rw
+      - ../../backend/alembic:/app/alembic:rw
+      - mediflow-storage-dev:/app/storage
     networks:
       - mediflow-net
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   # ── Frontend: Vite dev server con HMR ─────────────────────────────────────
   frontend:
-    image: node:20-alpine
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      target: development
     container_name: mediflow-frontend-dev
     working_dir: /app
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     ports:
       - "5173:5173"
     volumes:
@@ -42,3 +68,7 @@ services:
     networks:
       - mediflow-net
     restart: unless-stopped
+
+volumes:
+  mediflow-postgres-dev-data:
+  mediflow-storage-dev:

@@ -1,5 +1,11 @@
 import io
+from unittest.mock import AsyncMock, patch
+
 from fastapi import status
+
+from app.agent.state import AgentState
+from app.repositories.postgres_storage import DatabaseUnavailableError
+from app.services.llm_service import LLMUnavailableError
 
 
 def test_triage_sin_api_key(client):
@@ -89,19 +95,85 @@ def test_triage_caso_ambiguo_api_multi_status(client, bearer_headers):
 
 
 def test_triage_upload_archivo(client, bearer_headers):
-    """POST /api/v1/triage/upload procesa un archivo subido."""
-    contenido = b"Informe clinico de laboratorio. Todo normal."
-    archivo = ("reporte.txt", io.BytesIO(contenido), "text/plain")
+    """POST /api/v1/triage/upload acepta una imagen cuya firma coincide con el MIME."""
+    contenido = b"\x89PNG\r\n\x1a\ncontenido-prueba"
+    archivo = ("reporte.png", io.BytesIO(contenido), "image/png")
     data = {
         "documento_id": "DOC-UPLOAD-01",
         "canal_origen": "Laboratorio_Central",
     }
-    response = client.post(
-        "/api/v1/triage/upload",
-        data=data,
-        files={"archivo": archivo},
-        headers={"Authorization": bearer_headers["Authorization"]},
-    )
+    result = AgentState(documento_id="DOC-UPLOAD-01", tipo_archivo="IMAGEN", status="procesado")
+    with patch(
+        "app.services.triage_service.TriageService.procesar_documento",
+        new=AsyncMock(return_value=result),
+    ) as process:
+        response = client.post(
+            "/api/v1/triage/upload",
+            data=data,
+            files={"archivo": archivo},
+            headers={"Authorization": bearer_headers["Authorization"]},
+        )
     assert response.status_code in [status.HTTP_200_OK, status.HTTP_207_MULTI_STATUS]
     res_data = response.json()
     assert res_data["documento_id"] == "DOC-UPLOAD-01"
+    assert process.await_args.kwargs["tipo_archivo"] == "IMAGEN"
+
+
+def test_triage_upload_rechaza_mime_no_permitido(client, bearer_headers):
+    response = client.post(
+        "/api/v1/triage/upload",
+        data={"documento_id": "DOC-UPLOAD-TXT"},
+        files={"archivo": ("reporte.txt", io.BytesIO(b"texto"), "text/plain")},
+        headers={"Authorization": bearer_headers["Authorization"]},
+    )
+
+    assert response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+
+
+def test_triage_upload_rechaza_contenido_que_no_coincide_con_mime(client, bearer_headers):
+    response = client.post(
+        "/api/v1/triage/upload",
+        data={"documento_id": "DOC-UPLOAD-FALSO"},
+        files={"archivo": ("reporte.pdf", io.BytesIO(b"no es un pdf"), "application/pdf")},
+        headers={"Authorization": bearer_headers["Authorization"]},
+    )
+
+    assert response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+
+
+def test_triage_retorna_503_si_postgres_no_persiste(client, bearer_headers):
+    with patch(
+        "app.repositories.postgres_storage.PostgresStorageRepository.guardar_resultado",
+        new=AsyncMock(side_effect=DatabaseUnavailableError("PostgreSQL caído")),
+    ):
+        response = client.post(
+            "/api/v1/triage",
+            json={
+                "documento_id": "DOC-DB-FAIL",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Analítica normal.",
+            },
+            headers=bearer_headers,
+        )
+
+    assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert response.json()["detail"]["error"] == "POSTGRES_NO_DISPONIBLE"
+
+
+def test_triage_retorna_503_si_no_hay_proveedor_llm(client, bearer_headers):
+    with patch(
+        "app.services.triage_service.TriageService.procesar_documento",
+        new=AsyncMock(side_effect=LLMUnavailableError("Sin proveedor")),
+    ):
+        response = client.post(
+            "/api/v1/triage",
+            json={
+                "documento_id": "DOC-LLM-FAIL",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Analítica normal.",
+            },
+            headers=bearer_headers,
+        )
+
+    assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert response.json()["detail"]["error"] == "LLM_NO_DISPONIBLE"

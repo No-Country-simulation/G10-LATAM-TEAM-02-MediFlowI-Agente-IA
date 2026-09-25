@@ -6,14 +6,17 @@ generación y validación de tokens de sesión y contraseñas.
 """
 
 import hashlib
-import os
 import secrets
-from typing import Callable, Dict, Optional, Tuple
-from datetime import datetime, timezone, timedelta
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+
 from fastapi import Depends, Header, HTTPException, status
 
-# Tokens simples en memoria para sesiones activas (o JWT fallback)
-_ACTIVE_SESSIONS: Dict[str, dict] = {}
+from app.repositories.session_repository import (
+    create_session,
+    get_active_session_user,
+    revoke_session,
+)
 
 
 def generate_salt() -> str:
@@ -21,18 +24,18 @@ def generate_salt() -> str:
     return secrets.token_hex(16)
 
 
-def hash_password(password: str, salt: Optional[str] = None) -> Tuple[str, str]:
+def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
     """
     Genera el hash PBKDF2-HMAC-SHA256 de una contraseña.
     Retorna la tupla (password_hash, salt).
     """
     if not salt:
         salt = generate_salt()
-    
-    password_bytes = password.encode('utf-8')
-    salt_bytes = salt.encode('utf-8')
-    
-    dk = hashlib.pbkdf2_hmac('sha256', password_bytes, salt_bytes, 100000)
+
+    password_bytes = password.encode("utf-8")
+    salt_bytes = salt.encode("utf-8")
+
+    dk = hashlib.pbkdf2_hmac("sha256", password_bytes, salt_bytes, 100000)
     return dk.hex(), salt
 
 
@@ -42,58 +45,43 @@ def verify_password(password: str, stored_hash: str, salt: str) -> bool:
     return secrets.compare_digest(calculated_hash, stored_hash)
 
 
-def create_access_token(user_data: dict, expires_delta_hours: int = 12) -> str:
-    """Crea un token de acceso seguro para la sesión del usuario."""
+async def create_access_token(user_data: dict, expires_delta_hours: int = 12) -> str:
+    """Crea y persiste un token de acceso revocable para el usuario."""
     token = f"mf_session_{secrets.token_hex(32)}"
-    expiration = datetime.now(timezone.utc) + timedelta(hours=expires_delta_hours)
-    
-    _ACTIVE_SESSIONS[token] = {
-        "user": user_data,
-        "expires_at": expiration
-    }
+    expiration = datetime.now(UTC) + timedelta(hours=expires_delta_hours)
+    await create_session(token, str(user_data["id"]), expiration)
     return token
 
 
-def verify_access_token(token: str) -> Optional[dict]:
-    """Valida un token de sesión activo. Retorna los datos del usuario o None."""
-    if not token or token not in _ACTIVE_SESSIONS:
-        return None
-    
-    session = _ACTIVE_SESSIONS[token]
-    if datetime.now(timezone.utc) > session["expires_at"]:
-        del _ACTIVE_SESSIONS[token]
-        return None
-    
-    return session["user"]
+async def verify_access_token(token: str) -> dict | None:
+    """Valida en PostgreSQL un token activo y retorna su usuario."""
+    return await get_active_session_user(token)
 
 
-def invalidate_access_token(token: str) -> bool:
-    """Invalida/destruye una sesión activa (Logout)."""
-    if token in _ACTIVE_SESSIONS:
-        del _ACTIVE_SESSIONS[token]
-        return True
-    return False
+async def invalidate_access_token(token: str) -> bool:
+    """Revoca una sesión persistida (logout)."""
+    return await revoke_session(token)
 
 
 async def require_api_key(
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    api_key_query: Optional[str] = None
+    x_api_key: str | None = Header(None, alias="X-API-Key"), api_key_query: str | None = None
 ) -> str:
     """Verifica que la petición incluya una API key válida."""
     from app.core.config import get_settings
+
     settings = get_settings()
-    
+
     key = x_api_key or api_key_query
     if not key or key != settings.api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API Key inválida o no proporcionada en la cabecera X-API-Key."
+            detail="API Key inválida o no proporcionada en la cabecera X-API-Key.",
         )
     return key
 
 
 async def require_current_user(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ) -> dict:
     """Retorna el usuario de una sesión Bearer activa o rechaza la solicitud."""
     if not authorization or not authorization.startswith("Bearer "):
@@ -103,7 +91,13 @@ async def require_current_user(
         )
 
     token = authorization.removeprefix("Bearer ").strip()
-    user = verify_access_token(token)
+    try:
+        user = await verify_access_token(token)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El servicio de autenticación no está disponible temporalmente.",
+        ) from exc
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -114,6 +108,7 @@ async def require_current_user(
 
 def require_roles(*allowed_roles: str) -> Callable:
     """Crea una dependencia que exige uno de los roles indicados."""
+
     async def role_dependency(current_user: dict = Depends(require_current_user)) -> dict:
         if current_user.get("rol") not in allowed_roles:
             raise HTTPException(

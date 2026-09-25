@@ -5,19 +5,18 @@ Endpoints para inicio de sesión con documento de identidad de 8 cifras,
 cierre de sesión y verificación de usuario activo en sesión.
 """
 
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, Header, status
-from pydantic import BaseModel, Field, field_validator
 import re
 
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from pydantic import BaseModel, Field, field_validator
+
 from app.core.security import (
-    verify_password,
     create_access_token,
-    verify_access_token,
     invalidate_access_token,
     require_current_user,
+    verify_password,
 )
-from app.repositories.user_repository import get_user_by_document, get_user_by_id
+from app.repositories.user_repository import get_user_by_document
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
@@ -26,9 +25,11 @@ class LoginRequest(BaseModel):
     documento_identidad: str = Field(
         ...,
         description="Número de documento de identidad de 8 cifras (DNI)",
-        json_schema_extra={"example": "12345678"}
+        json_schema_extra={"example": "12345678"},
     )
-    password: str = Field(..., description="Contraseña del usuario", json_schema_extra={"example": "admin"})
+    password: str = Field(
+        ..., description="Contraseña del usuario", json_schema_extra={"example": "admin"}
+    )
 
     @field_validator("documento_identidad")
     @classmethod
@@ -44,8 +45,8 @@ class UserResponse(BaseModel):
     documento_identidad: str
     nombres: str
     apellidos: str
-    correo: Optional[str] = None
-    telefono: Optional[str] = None
+    correo: str | None = None
+    telefono: str | None = None
     rol: str
     estado: str
 
@@ -67,23 +68,23 @@ async def login(req: LoginRequest):
     Valida que el usuario exista, esté activo y la contraseña sea correcta.
     """
     user = await get_user_by_document(req.documento_identidad)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales inválidas. El usuario no existe."
+            detail="Credenciales inválidas. El usuario no existe.",
         )
 
     if user["estado"] != "ACTIVO":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso denegado. El usuario se encuentra deshabilitado/inactivo."
+            detail="Acceso denegado. El usuario se encuentra deshabilitado/inactivo.",
         )
 
     if not verify_password(req.password, user["password_hash"], user["salt"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales inválidas. Contraseña incorrecta."
+            detail="Credenciales inválidas. Contraseña incorrecta.",
         )
 
     user_payload = {
@@ -94,29 +95,41 @@ async def login(req: LoginRequest):
         "correo": user["correo"],
         "telefono": user["telefono"],
         "rol": user["rol"],
-        "estado": user["estado"]
+        "estado": user["estado"],
     }
 
-    token = create_access_token(user_payload)
+    try:
+        token = await create_access_token(user_payload)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No fue posible iniciar la sesión porque PostgreSQL no está disponible.",
+        ) from exc
 
     return LoginResponse(
         access_token=token,
         token_type="Bearer",
         user=UserResponse(**user_payload),
-        mensaje=f"Bienvenido/a {user['nombres']} {user['apellidos']} ({user['rol']})"
+        mensaje=f"Bienvenido/a {user['nombres']} {user['apellidos']} ({user['rol']})",
     )
 
 
 @router.post("/logout", summary="RF-02 — Cierre de Sesión")
-async def logout(authorization: Optional[str] = Header(None)):
+async def logout(authorization: str | None = Header(None)):
     """
     Invalida el token/sesión activa del usuario y desautoriza accesos posteriores.
     """
     if not authorization:
         return {"mensaje": "Sesión ya cerrada o token no provisto"}
-    
+
     token = authorization.replace("Bearer ", "").strip()
-    invalidate_access_token(token)
+    try:
+        await invalidate_access_token(token)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No fue posible cerrar la sesión porque PostgreSQL no está disponible.",
+        ) from exc
     return {"mensaje": "Cierre de sesión exitoso. Token invalidado."}
 
 

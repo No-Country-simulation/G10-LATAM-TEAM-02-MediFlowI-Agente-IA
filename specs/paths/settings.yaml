@@ -1,0 +1,35 @@
+settings:
+  get:
+    tags: [settings]
+    summary: Obtener configuración del sistema
+    operationId: obtenerConfiguracion
+    responses:
+      "200":
+        description: Configuración activa
+        content:
+          application/json:
+            schema: { $ref: "../components/schemas.yaml#/schemas/ConfiguracionSistema" }
+      "403": { description: Requiere rol ADMINISTRADOR }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+  post:
+    tags: [settings]
+    summary: Actualizar modo de almacenamiento
+    operationId: actualizarConfiguracion
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [storage_mode]
+            properties:
+              storage_mode: { type: string, enum: [LOCAL, OCI] }
+    responses:
+      "200":
+        description: Configuración actualizada
+        content:
+          application/json:
+            schema: { $ref: "../components/schemas.yaml#/schemas/ConfiguracionSistema" }
+      "400": { description: OCI seleccionado sin credenciales completas }
+      "403": { description: Requiere rol ADMINISTRADOR }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }

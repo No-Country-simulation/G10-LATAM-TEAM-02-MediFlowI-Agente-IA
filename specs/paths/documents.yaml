@@ -43,6 +43,8 @@ documents:
         $ref: "../components/responses.yaml#/responses/Unauthorized"
       "403":
         description: Rol sin permisos de auditoría
+      "503":
+        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
 
 documentById:
   get:
@@ -69,6 +71,8 @@ documentById:
         $ref: "../components/responses.yaml#/responses/NotFound"
       "401":
         $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "503":
+        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
 
   patch:
     tags:
@@ -101,7 +105,41 @@ documentById:
         $ref: "../components/responses.yaml#/responses/BadRequest"
       "404":
         $ref: "../components/responses.yaml#/responses/NotFound"
+      "409":
+        description: El documento ya no está pendiente de auditoría humana
       "401":
         $ref: "../components/responses.yaml#/responses/Unauthorized"
       "422":
         description: Datos de auditoría inválidos
+      "503":
+        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
+
+documentHistory:
+  get:
+    tags: [documents]
+    summary: Consultar trazabilidad funcional del documento
+    operationId: obtenerHistorialDocumento
+    parameters:
+      - name: documento_id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Secuencia cronológica de eventos del documento
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documento_id, items]
+              properties:
+                documento_id:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      "503":
+        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"

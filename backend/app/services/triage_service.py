@@ -5,12 +5,14 @@ Orquesta la ejecución del agente LangGraph y persiste los resultados
 en OCI Object Storage y la base de datos PostgreSQL (documentos_triaje).
 """
 
-import json
 import structlog
+
 from app.agent.graph import ejecutar_triage
 from app.agent.state import AgentState
 from app.core.config import Settings
-from app.repositories.postgres_storage import PostgresStorageRepository
+from app.repositories.oci_storage import StoragePersistenceError
+from app.repositories.postgres_storage import DatabaseUnavailableError, PostgresStorageRepository
+from app.services.llm_service import LLMUnavailableError
 
 logger = structlog.get_logger(__name__)
 
@@ -36,8 +38,11 @@ class TriageService:
     Coordina: agente LangGraph + persistencia PostgreSQL + OCI/Disco Local.
     """
 
-    def __init__(self, settings: Settings, llm_service=None, oci_storage=None, postgres_storage=None):
+    def __init__(
+        self, settings: Settings, llm_service=None, oci_storage=None, postgres_storage=None
+    ):
         from app.repositories.oci_storage import OCIStorageRepository
+
         self._settings = settings
         self._llm_service = llm_service
         self._oci_storage = oci_storage or OCIStorageRepository(settings)
@@ -64,6 +69,11 @@ class TriageService:
         """
         logger.info("triage_service.inicio", documento_id=documento_id)
 
+        if self._llm_service is None or not self._llm_service.disponible:
+            raise LLMUnavailableError(
+                "El triaje requiere un proveedor LLM real o un mock habilitado explícitamente."
+            )
+
         # 1. Ejecutar agente
         resultado = await ejecutar_triage(
             documento_id=documento_id,
@@ -89,12 +99,14 @@ class TriageService:
         nombre_orig = nombre_original or f"ingesta_{documento_id}.{ext}"
 
         # 2. Persistir en OCI Object Storage / Disco Local
+        storage_error: Exception | None = None
         if self._oci_storage:
             try:
                 # A. Guardar archivo original (recibidos/<documento_id>/original.<ext>)
                 ruta_orig = f"recibidos/{documento_id}/original.{ext}"
                 if documento_base64:
                     import base64
+
                     contenido_bytes = base64.b64decode(documento_base64)
                     mime = "application/pdf" if tipo_archivo == "PDF" else "image/png"
                     await self._oci_storage.guardar_documento(
@@ -111,30 +123,42 @@ class TriageService:
 
                 # B. Guardar resultado JSON (<estado>/<documento_id>/resultado.json)
                 ruta_res = self._calcular_ruta_oci(resultado)
-                await self._oci_storage.guardar_documento(
-                    objeto_key=ruta_res,
-                    contenido=resultado.model_dump_json(indent=2),
-                    content_type="application/json",
-                )
-
                 resultado.almacenamiento_oci.bucket = self._settings.oci_bucket_name
                 resultado.almacenamiento_oci.ruta_objeto = ruta_res
                 resultado.almacenamiento_oci.archivo_original = ruta_orig
                 resultado.almacenamiento_oci.resultado_json = ruta_res
                 resultado.almacenamiento_oci.nombre_original = nombre_orig
                 resultado.almacenamiento_oci.status_backup = "exito"
+                await self._oci_storage.guardar_documento(
+                    objeto_key=ruta_res,
+                    contenido=resultado.model_dump_json(indent=2),
+                    content_type="application/json",
+                )
                 logger.info("triage_service.oci.guardado", original=ruta_orig, resultado=ruta_res)
             except Exception as exc:
                 logger.error("triage_service.oci.error", error=str(exc))
                 resultado.almacenamiento_oci.status_backup = "error"
+                storage_error = exc
 
-        # 3. Persistir en la base de datos PostgreSQL (documentos_triaje)
-        if self._postgres_storage:
-            try:
-                await self._postgres_storage.guardar_resultado(resultado, usuario_registro_id)
-                logger.info("triage_service.postgres.guardado", documento_id=documento_id)
-            except Exception as exc:
-                logger.error("triage_service.postgres.error", documento_id=documento_id, error=str(exc))
+        # 3. PostgreSQL es la fuente única de verdad. Una persistencia fallida
+        # invalida la operación y nunca debe presentarse como triaje exitoso.
+        try:
+            guardado = await self._postgres_storage.guardar_resultado(
+                resultado, usuario_registro_id
+            )
+            if guardado is not True:
+                raise DatabaseUnavailableError(
+                    "PostgreSQL no confirmó la persistencia del documento."
+                )
+            logger.info("triage_service.postgres.guardado", documento_id=documento_id)
+        except Exception as exc:
+            logger.error("triage_service.postgres.error", documento_id=documento_id, error=str(exc))
+            raise
+
+        if storage_error is not None:
+            raise StoragePersistenceError(
+                "PostgreSQL registró el fallo, pero el archivo físico no pudo persistirse."
+            ) from storage_error
 
         logger.info(
             "triage_service.completado",
@@ -154,5 +178,4 @@ class TriageService:
             "Cola_Auditoria_Humana": f"auditoria_humana/{doc_id}/resultado.json",
             "Cola_Revision_Ambigua": f"revision_ambigua/{doc_id}/resultado.json",
         }
-        return rutas.get(destino, f"procesados/{doc_id}/resultado.json")
-
+        return rutas.get(destino or "", f"procesados/{doc_id}/resultado.json")

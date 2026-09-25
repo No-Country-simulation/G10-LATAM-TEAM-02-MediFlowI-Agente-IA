@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import {
   obtenerConfiguracion,
   actualizarConfiguracion,
@@ -28,14 +28,9 @@ export default function StorageSettingsView() {
   const canManageSettings =
     !currentUser ||
     currentUser.rol === 'ADMINISTRADOR' ||
-    currentUser.rol === 'ADMIN' ||
-    currentUser.username === 'admin'
+    currentUser.documento_identidad === 'admin'
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const cfg = await obtenerConfiguracion()
       setConfigSys(cfg)
@@ -43,7 +38,11 @@ export default function StorageSettingsView() {
     } catch {
       // Fallback
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    queueMicrotask(() => void loadSettings())
+  }, [loadSettings])
 
   const handleSaveSettings = async () => {
     setSavingSettings(true)
@@ -55,8 +54,8 @@ export default function StorageSettingsView() {
       setConfigSys(updated)
       setSelectedStorageMode(updated.storage_mode)
       setSettingsSuccess(`Preferencia guardada: Almacenamiento ${updated.storage_mode} actualizado en PostgreSQL.`)
-    } catch (err: any) {
-      setSettingsError(err?.message || 'Error al guardar la preferencia en la base de datos.')
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Error al guardar la preferencia en la base de datos.')
     } finally {
       setSavingSettings(false)
     }

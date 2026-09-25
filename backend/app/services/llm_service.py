@@ -6,15 +6,20 @@ Google Gemini, OpenAI u otros sin modificar los nodos del agente.
 """
 
 import structlog
+
 from app.core.config import Settings
 
 logger = structlog.get_logger(__name__)
 
 
+class LLMUnavailableError(RuntimeError):
+    """No existe un proveedor LLM real disponible para procesar documentos."""
+
+
 class LLMService:
     """
     Servicio unificado de LLM.
-    Prioridad: Google Gemini → OpenAI (fallback) → Mock (dev sin credenciales).
+    Prioridad: Google Gemini → OpenAI. El mock requiere habilitación explícita.
     """
 
     def __init__(self, settings: Settings):
@@ -29,13 +34,16 @@ class LLMService:
         if g_key and not g_key.startswith("your-"):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
+
                 self._client = ChatGoogleGenerativeAI(
                     model=self._settings.gemini_model,
                     google_api_key=g_key,
                     temperature=0.1,  # Baja temperatura para extracción estructurada
                 )
                 self._provider = "gemini"
-                logger.info("llm.inicializado", provider="gemini", model=self._settings.gemini_model)
+                logger.info(
+                    "llm.inicializado", provider="gemini", model=self._settings.gemini_model
+                )
                 return
             except Exception as exc:
                 logger.warning("llm.gemini.fallo", error=str(exc))
@@ -44,6 +52,7 @@ class LLMService:
         if o_key and not o_key.startswith("your-"):
             try:
                 from langchain_openai import ChatOpenAI
+
                 self._client = ChatOpenAI(
                     model="gpt-4o-mini",
                     api_key=o_key,
@@ -55,9 +64,16 @@ class LLMService:
             except Exception as exc:
                 logger.warning("llm.openai.fallo", error=str(exc))
 
-        # Sin credenciales válidas: modo mock (solo para desarrollo/pruebas)
-        self._provider = "mock"
-        logger.warning("llm.modo_mock", razon="Sin credenciales configuradas o clave placeholder")
+        if self._settings.allow_mock_llm:
+            self._provider = "mock"
+            logger.warning(
+                "llm.modo_mock",
+                razon="Mock habilitado explícitamente para pruebas controladas.",
+            )
+            return
+
+        self._provider = "unavailable"
+        logger.error("llm.no_disponible", razon="No hay credenciales LLM válidas.")
 
     async def completar(self, prompt: str) -> str:
         """
@@ -74,14 +90,20 @@ class LLMService:
         """
         if self._provider == "mock":
             return self._respuesta_mock(prompt)
+        if self._provider == "unavailable" or self._client is None:
+            raise LLMUnavailableError(
+                "No hay un proveedor LLM configurado para procesar el documento."
+            )
 
         from langchain_core.messages import HumanMessage
+
         respuesta = await self._client.ainvoke([HumanMessage(content=prompt)])
         return respuesta.content
 
     def _respuesta_mock(self, prompt: str) -> str:
         """Mock de respuesta LLM para desarrollo sin credenciales."""
         import json
+
         prompt_lower = prompt.lower()
         is_extraction = "extrae" in prompt_lower or "diagnostico_principal" in prompt_lower
 
@@ -96,59 +118,92 @@ class LLMService:
         # Caso 3: Ambiguo / ilegible
         if any(w in cuerpo for w in ["ilegible", "ambiguo", "???"]):
             if is_extraction:
-                return json.dumps({
-                    "paciente": {"nombre": None, "edad": None, "id_paciente": None},
-                    "medico_solicitante": {"nombre": None, "matricula": None},
-                    "estudio_realizado": None,
-                    "diagnostico_principal": None,
-                    "cie10_sugerido": None,
-                    "hallazgos_clave": ["Texto fragmentado o ilegible"],
-                })
-            return json.dumps({
-                "tipo_documento": "Otro",
-                "especialidad": None,
-                "nivel_prioridad": "Ambiguo",
-                "razon_prioridad": "Texto con baja legibilidad e información insuficiente",
-            })
+                return json.dumps(
+                    {
+                        "paciente": {"nombre": None, "edad": None, "id_paciente": None},
+                        "medico_solicitante": {"nombre": None, "matricula": None},
+                        "estudio_realizado": None,
+                        "diagnostico_principal": None,
+                        "cie10_sugerido": None,
+                        "hallazgos_clave": ["Texto fragmentado o ilegible"],
+                    }
+                )
+            return json.dumps(
+                {
+                    "tipo_documento": "Otro",
+                    "especialidad": None,
+                    "nivel_prioridad": "Ambiguo",
+                    "razon_prioridad": "Texto con baja legibilidad e información insuficiente",
+                }
+            )
 
         # Caso 2: Urgencia (TEP / emergencia / crítico)
-        if any(w in cuerpo for w in ["tep", "tromboembolismo", "urgente", "crítico", "critico", "guardia_emergencias"]):
+        if any(
+            w in cuerpo
+            for w in [
+                "tep",
+                "tromboembolismo",
+                "urgente",
+                "crítico",
+                "critico",
+                "guardia_emergencias",
+            ]
+        ):
             if is_extraction:
-                return json.dumps({
-                    "paciente": {"nombre": "Carlos Eduardo Mendes", "edad": 52, "id_paciente": "PAC-8942"},
-                    "medico_solicitante": {"nombre": "Dra. Renata Silveira", "matricula": "145892"},
-                    "estudio_realizado": "Tomografía de Tórax con contraste",
-                    "diagnostico_principal": "Tromboembolismo Pulmonar Agudo (TEP)",
-                    "cie10_sugerido": "I26.9",
-                    "hallazgos_clave": ["Defecto de llenado en arteria pulmonar", "TEP agudo detectado", "Correlación clínica urgente"],
-                })
-            return json.dumps({
-                "tipo_documento": "Informe de Estudio por Imagenes",
-                "especialidad": "Radiología / Neumonología",
-                "nivel_prioridad": "Urgente",
-                "razon_prioridad": "Hallazgo de TEP agudo con compromiso vascular urgente detectado",
-            })
+                return json.dumps(
+                    {
+                        "paciente": {
+                            "nombre": "Carlos Eduardo Mendes",
+                            "edad": 52,
+                            "id_paciente": "PAC-8942",
+                        },
+                        "medico_solicitante": {
+                            "nombre": "Dra. Renata Silveira",
+                            "matricula": "145892",
+                        },
+                        "estudio_realizado": "Tomografía de Tórax con contraste",
+                        "diagnostico_principal": "Tromboembolismo Pulmonar Agudo (TEP)",
+                        "cie10_sugerido": "I26.9",
+                        "hallazgos_clave": [
+                            "Defecto de llenado en arteria pulmonar",
+                            "TEP agudo detectado",
+                            "Correlación clínica urgente",
+                        ],
+                    }
+                )
+            return json.dumps(
+                {
+                    "tipo_documento": "Informe de Estudio por Imágenes",
+                    "especialidad": "Radiología / Neumonología",
+                    "nivel_prioridad": "Urgente",
+                    "razon_prioridad": "Hallazgo de TEP agudo con compromiso vascular urgente detectado",
+                }
+            )
 
         # Caso 1 / Default: Rutina
         if is_extraction:
-            return json.dumps({
-                "paciente": {"nombre": "Ana García", "edad": 35, "id_paciente": "PAC-0001"},
-                "medico_solicitante": {"nombre": "Dr. Roberto López", "matricula": "98231"},
-                "estudio_realizado": "Hemograma completo",
-                "diagnostico_principal": "Analítica normal sin hallazgos patológicos",
-                "cie10_sugerido": "Z00.0",
-                "hallazgos_clave": ["Parámetros hematológicos normales"],
-            })
-        return json.dumps({
-            "tipo_documento": "Analítica de Laboratorio",
-            "especialidad": "Medicina General",
-            "nivel_prioridad": "Rutina",
-            "razon_prioridad": "Analítica normal sin hallazgos de alarma",
-        })
+            return json.dumps(
+                {
+                    "paciente": {"nombre": "Ana García", "edad": 35, "id_paciente": "PAC-0001"},
+                    "medico_solicitante": {"nombre": "Dr. Roberto López", "matricula": "98231"},
+                    "estudio_realizado": "Hemograma completo",
+                    "diagnostico_principal": "Analítica normal sin hallazgos patológicos",
+                    "cie10_sugerido": "Z00.0",
+                    "hallazgos_clave": ["Parámetros hematológicos normales"],
+                }
+            )
+        return json.dumps(
+            {
+                "tipo_documento": "Informe de Laboratorio",
+                "especialidad": "Medicina General",
+                "nivel_prioridad": "Rutina",
+                "razon_prioridad": "Analítica normal sin hallazgos de alarma",
+            }
+        )
 
     @property
     def disponible(self) -> bool:
-        return self._provider != "mock"
+        return self._provider not in {None, "unavailable"}
 
     @property
     def proveedor(self) -> str:

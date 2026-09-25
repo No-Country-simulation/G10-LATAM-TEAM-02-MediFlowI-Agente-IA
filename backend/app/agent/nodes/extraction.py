@@ -5,8 +5,10 @@ Output: DatosExtraidosState con paciente, médico, diagnóstico, CIE-10, hallazg
 """
 
 import json
+
 import structlog
-from app.agent.state import AgentState, DatosExtraidosState, PacienteState, MedicoSolicitanteState
+
+from app.agent.state import AgentState, DatosExtraidosState, MedicoSolicitanteState, PacienteState
 
 logger = structlog.get_logger(__name__)
 
@@ -45,7 +47,7 @@ def dividir_texto_en_bloques(texto: str, max_chars: int = 4_000) -> list[str]:
     """Divide texto largo sin descartar ningún carácter del documento."""
     if max_chars <= 0:
         raise ValueError("max_chars debe ser mayor que cero")
-    return [texto[indice:indice + max_chars] for indice in range(0, len(texto), max_chars)]
+    return [texto[indice : indice + max_chars] for indice in range(0, len(texto), max_chars)]
 
 
 async def node_extraction(state: AgentState, llm_service=None) -> dict:
@@ -109,11 +111,11 @@ def _consolidar_datos(
 
 async def _llamar_llm(prompt: str, llm_service) -> str:
     """Llama al LLM y retorna el texto de la respuesta."""
-    if llm_service is not None:
-        return await llm_service.completar(prompt)
-    from app.services.llm_service import LLMService
-    from app.core.config import get_settings
-    return LLMService(get_settings())._respuesta_mock(prompt)
+    if llm_service is None:
+        from app.services.llm_service import LLMUnavailableError
+
+        raise LLMUnavailableError("El nodo de extracción requiere un servicio LLM.")
+    return await llm_service.completar(prompt)
 
 
 def _parsear_respuesta(raw: str) -> DatosExtraidosState:
