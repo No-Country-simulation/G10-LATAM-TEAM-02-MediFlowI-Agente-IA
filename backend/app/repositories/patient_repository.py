@@ -150,6 +150,24 @@ async def get_patient_by_hc(historia_clinica: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+async def resolver_paciente_por_identificadores(
+    dni: str | None,
+    historia_clinica: str | None,
+) -> dict[str, Any]:
+    """Resuelve identidad sólo por DNI/HC y nunca infiere por el nombre."""
+    paciente_dni = await get_patient_by_doc(dni) if dni else None
+    paciente_hc = await get_patient_by_hc(historia_clinica) if historia_clinica else None
+
+    if paciente_dni and paciente_hc and paciente_dni["id"] != paciente_hc["id"]:
+        return {"estado": "conflicto", "paciente": None}
+
+    paciente = paciente_dni or paciente_hc
+    return {
+        "estado": "asociado" if paciente else "sin_coincidencia",
+        "paciente": paciente,
+    }
+
+
 async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     RF-06 — Registro de paciente.
