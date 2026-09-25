@@ -149,6 +149,16 @@ async def registrar_decision_auditoria(
         "comentario": payload.comentario,
     }
 
+    from app.repositories.postgres_storage import PostgresStorageRepository
+    pg = PostgresStorageRepository(settings=settings)
+    await pg.registrar_auditoria(
+        documento_id=documento_id,
+        decision=payload.decision,
+        auditor_id=current_user["id"],
+        comentario=payload.comentario,
+        nueva_clasificacion=payload.nueva_clasificacion,
+    )
+
     if payload.decision == "aprobar":
         doc["status"] = "procesado"
         doc["decision_enrutamiento"]["requiere_auditoria_humana"] = False
@@ -162,7 +172,7 @@ async def registrar_decision_auditoria(
         await oci.guardar_documento(clave_original, json.dumps(doc, ensure_ascii=False))
 
     else:  # rechazar
-        doc["status"] = "error"
+        doc["status"] = "rechazado"
         await oci.guardar_documento(clave_original, json.dumps(doc, ensure_ascii=False))
 
     logger.info(

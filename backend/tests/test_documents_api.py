@@ -1,6 +1,20 @@
 from fastapi import status
 
 
+def test_rechazar_documento_maps_to_rechazado_status():
+    """Un rechazo HITL es una decisión clínica válida, no un fallo técnico."""
+    from app.repositories.postgres_storage import estado_final_auditoria
+
+    assert estado_final_auditoria("rechazar") == "rechazado"
+
+
+def test_rechazar_documento_creates_rejection_history_event():
+    """La trazabilidad distingue un rechazo de un error técnico."""
+    from app.repositories.postgres_storage import evento_auditoria
+
+    assert evento_auditoria("rechazar") == "AUDITORIA_RECHAZADA"
+
+
 def test_listar_documentos_auth_required(client):
     """GET /api/v1/documents sin auth retorna 401."""
     response = client.get("/api/v1/documents")

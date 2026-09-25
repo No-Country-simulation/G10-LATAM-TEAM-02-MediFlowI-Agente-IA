@@ -20,6 +20,20 @@ logger = structlog.get_logger(__name__)
 _GLOBAL_DB_POOL = None
 
 
+def estado_final_auditoria(decision: str) -> str:
+    """Devuelve el estado terminal correcto para una decisión HITL."""
+    return "rechazado" if decision == "rechazar" else "procesado"
+
+
+def evento_auditoria(decision: str) -> str:
+    """Identifica el evento funcional que corresponde a una decisión HITL."""
+    return {
+        "aprobar": "AUDITORIA_APROBADA",
+        "reclasificar": "AUDITORIA_RECLASIFICADA",
+        "rechazar": "AUDITORIA_RECHAZADA",
+    }[decision]
+
+
 async def get_db_pool():
     """Obtiene o inicializa el pool global de conexiones asyncpg."""
     global _GLOBAL_DB_POOL
@@ -54,6 +68,7 @@ class PostgresStorageRepository:
         self._settings = settings
         self._pool = None
         self._mock_store: dict[str, dict] = {}
+        self._mock_history: list[dict] = []
         self._initialized = False
 
     async def inicializar(self):
@@ -273,6 +288,13 @@ class PostgresStorageRepository:
                     "decision": decision,
                     "auditor_id": auditor_id,
                 }
+                self._mock_store[documento_id]["status"] = estado_final_auditoria(decision)
+            self._mock_history.append({
+                "documento_id": documento_id,
+                "usuario_id": auditor_id,
+                "evento": evento_auditoria(decision),
+                "estado_nuevo": estado_final_auditoria(decision),
+            })
             return True
 
         try:
@@ -301,10 +323,19 @@ class PostgresStorageRepository:
                     )
 
                     # Actualizar status del documento
-                    nuevo_status = "procesado" if decision in ("aprobar", "reclasificar") else "error"
+                    nuevo_status = estado_final_auditoria(decision)
                     await conn.execute(
                         "UPDATE documentos_triaje SET status = $1, updated_at = NOW() WHERE documento_id = $2",
                         nuevo_status, documento_id,
+                    )
+                    await conn.execute("""
+                        INSERT INTO historial_documento (
+                            documento_triaje_id, usuario_id, evento,
+                            estado_anterior, estado_nuevo, descripcion
+                        ) VALUES ($1, $2, $3, 'pendiente_auditoria', $4, $5)
+                    """,
+                        doc["id"], auditor_id, evento_auditoria(decision),
+                        nuevo_status, comentario,
                     )
 
             logger.info("postgres.auditoria.registrada", documento_id=documento_id, decision=decision)

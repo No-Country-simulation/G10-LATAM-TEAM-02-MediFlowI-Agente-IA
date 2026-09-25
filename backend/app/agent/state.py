@@ -90,7 +90,15 @@ class AgentState(BaseModel):
     )
 
     # ── Control de flujo ─────────────────────────────────────────────────────
-    status: Literal["procesado", "error", "pendiente_auditoria"] = "pendiente_auditoria"
+    status: Literal[
+        "recibido",
+        "procesando",
+        "procesado",
+        "pendiente_auditoria",
+        "rechazado",
+        "no_soportado",
+        "error",
+    ] = "recibido"
     error_mensaje: Optional[str] = None
     tiempo_procesamiento_ms: Optional[int] = None
 
