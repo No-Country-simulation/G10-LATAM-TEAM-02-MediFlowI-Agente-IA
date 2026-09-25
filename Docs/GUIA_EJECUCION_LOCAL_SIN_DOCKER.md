@@ -96,7 +96,7 @@ Antes de comenzar, asegúrate de tener instaladas las siguientes herramientas en
 
 3. Crear el archivo `.env` en la carpeta `frontend/` (opcional, por defecto apunta a localhost:8000):
    ```env
-   VITE_API_URL=http://localhost:8000
+   VITE_API_URL=http://localhost:8000/api/v1
    ```
 
 4. Iniciar el servidor de desarrollo de Vite:

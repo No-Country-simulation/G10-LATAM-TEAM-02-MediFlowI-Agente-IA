@@ -34,8 +34,8 @@ Configuración integral del entorno de desarrollo local sin Docker. Corrección 
 - Instalación de todas las dependencias del agente IA (`langgraph`, `langchain`, `google-genai`, etc.).
 
 #### 🎨 Frontend & UX
-- Creación de `frontend/.env` definiendo `VITE_API_URL=http://localhost:8000`.
-- Instalación de dependencias `npm install` y compilación de producción probada con `npm run build` (0 errores en 740ms).
+- Creación de `frontend/.env` definiendo `VITE_API_URL=http://localhost:8000/api/v1` (apuntando al prefijo `/api/v1` de FastAPI).
+- Instalación de dependencias `npm install` y compilación de producción probada con `npm run build` (0 errores en 207ms).
 
 #### 🐳 Infraestructura & Documentación
 - Actualización de los índices maestro `Docs/HISTORIAL_CAMBIOS.md` y `Docs/PULL_REQUEST.md`.

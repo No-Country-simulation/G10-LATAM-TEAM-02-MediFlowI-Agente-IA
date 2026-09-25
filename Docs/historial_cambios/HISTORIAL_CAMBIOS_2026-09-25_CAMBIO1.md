@@ -27,13 +27,13 @@ Configuración y puesta a punto del entorno local de desarrollo para backend y f
 
 ### 🎨 3. Frontend & UX (React / Vite / TypeScript / CSS)
 3. **Setup de Variables de Entorno e Instalación** (`frontend/.env`, `frontend/package-lock.json`):
-   - **Configuración**: Creación de `frontend/.env` definiendo `VITE_API_URL=http://localhost:8000`.
-   - **Instalación de paquetes**: Ejecución de `npm install` (70 paquetes auditados) y verificación de compilación limpia con `npm run build` (0 errores de TypeScript en 740ms).
+   - **Configuración**: Creación de `frontend/.env` definiendo `VITE_API_URL=http://localhost:8000/api/v1` para apuntar correctamente a los endpoints con el prefijo `/api/v1` de FastAPI.
+   - **Instalación de paquetes**: Ejecución de `npm install` (70 paquetes auditados) y verificación de compilación limpia con `npm run build` (0 errores de TypeScript en 207ms).
 
 ### 🐳 4. Infraestructura, Scripts & Documentación
 4. **Archivos de Entorno e Índices**:
    - **Configuración**: Creación de `backend/.env` y `frontend/.env` (ambos excluidos por `.gitignore`).
-   - **Documentación**: Actualización del índice maestro `Docs/HISTORIAL_CAMBIOS.md` y `Docs/PULL_REQUEST.md`.
+   - **Documentación**: Corrección de `VITE_API_URL` en `Docs/GUIA_EJECUCION_LOCAL_SIN_DOCKER.md` y actualización del índice maestro `Docs/HISTORIAL_CAMBIOS.md` y `Docs/PULL_REQUEST.md`.
 
 ---
 
