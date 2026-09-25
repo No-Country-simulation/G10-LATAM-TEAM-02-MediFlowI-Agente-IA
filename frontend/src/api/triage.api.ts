@@ -49,6 +49,7 @@ export interface ResultadoTriaje {
     status_backup: 'exito' | 'error' | 'pendiente'
   }
   tiempo_procesamiento_ms?: number
+  created_at?: string
 }
 
 /** Envía un documento al agente para triaje */
@@ -125,3 +126,43 @@ export async function registrarAuditoria(
   if (!res.ok) throw new Error('Error al registrar decisión de auditoría')
   return res.json()
 }
+
+export interface ConfiguracionSistema {
+  storage_mode: 'LOCAL' | 'OCI'
+  oci_configured: boolean
+  llm_provider: string
+  llm_configured: boolean
+  database_url_configured: boolean
+}
+
+/** Obtiene la configuración actual del sistema */
+export async function obtenerConfiguracion(): Promise<ConfiguracionSistema> {
+  const res = await fetch(`${API_BASE}/settings`, { headers })
+  if (!res.ok) throw new Error('Error al obtener la configuración del sistema')
+  return res.json()
+}
+
+/** Actualiza la configuración del sistema (ej. modo de almacenamiento) */
+export async function actualizarConfiguracion(
+  storageMode: 'LOCAL' | 'OCI',
+): Promise<ConfiguracionSistema> {
+  const res = await fetch(`${API_BASE}/settings`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ storage_mode: storageMode }),
+  })
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null)
+    if (errorData?.detail?.mensaje) {
+      throw new Error(errorData.detail.mensaje)
+    }
+    if (errorData?.detail && typeof errorData.detail === 'string') {
+      throw new Error(errorData.detail)
+    }
+    throw new Error('Error al actualizar la configuración del sistema')
+  }
+
+  return res.json()
+}
+

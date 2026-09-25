@@ -47,6 +47,15 @@ dev:
 	@start cmd /k "cd backend && pip install -e .[dev] -q && uvicorn app.main:app --reload --port 8000"
 	@start cmd /k "cd frontend && npm install --silent && npm run dev"
 
+# ── Base de Datos & Migraciones ──────────────────────────────────────────────
+db:
+	@echo "🐘 Levantando PostgreSQL 17 + pgAdmin..."
+	docker compose -f infrastructure/docker/docker-compose.db.yml up -d
+
+migrate:
+	@echo "🔄 Aplicando migraciones de Alembic..."
+	cd backend && alembic upgrade head
+
 # ── Desarrollo con Docker Compose ────────────────────────────────────────────
 dev-docker:
 	@echo "🐳 Levantando con Docker Compose (dev)..."

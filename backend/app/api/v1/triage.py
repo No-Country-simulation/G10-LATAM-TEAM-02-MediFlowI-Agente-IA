@@ -125,6 +125,7 @@ async def procesar_documento_upload(
         tipo_archivo=tipo,
         documento_base64=base64_content,
         canal_origen=canal_origen,
+        nombre_original=archivo.filename,
     )
     if resultado.decision_enrutamiento.requiere_auditoria_humana:
         response.status_code = status.HTTP_207_MULTI_STATUS

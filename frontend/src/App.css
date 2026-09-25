@@ -249,6 +249,49 @@
   }
 }
 
+.preset-card.active-preset {
+  border: 2px solid #0284c7;
+  background-color: #f0f9ff;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  .preset-card.active-preset {
+    background-color: #0c2a45;
+    border-color: #38bdf8;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+  }
+}
+
+.preset-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.btn-use-preset.active-btn {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.active-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .active-pill {
+    color: #38bdf8;
+    background: #0c4a6e;
+  }
+}
+
 /* ── BADGES ────────────────────────────────────────────────────────── */
 .badge {
   font-size: 11px;
@@ -936,6 +979,19 @@
   background: #0369a1;
 }
 
+.doc-date {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .doc-date {
+    color: #94a3b8;
+  }
+}
+
 .text-green {
   color: #10b981;
   font-weight: 700;
@@ -944,3 +1000,286 @@
   color: #f59e0b;
   font-weight: 700;
 }
+
+/* ── HEADER RIGHT & TABS ───────────────────────────────────────────── */
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.nav-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nav-tabs {
+    background: #0f172a;
+    border-color: #334155;
+  }
+}
+
+.nav-tab-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-tab-btn:hover {
+  color: #0284c7;
+}
+
+.nav-tab-btn.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .nav-tab-btn {
+    color: #94a3b8;
+  }
+  .nav-tab-btn.active {
+    background: #1e293b;
+    color: #38bdf8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ── SETTINGS PAGE ─────────────────────────────────────────────────── */
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  text-align: left;
+}
+
+.settings-card {
+  padding: 24px;
+}
+
+.settings-intro {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-intro {
+    color: #94a3b8;
+  }
+}
+
+.alert-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.alert-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .alert-success {
+    background: #064e3b;
+    border-color: #047857;
+    color: #6ee7b7;
+  }
+  .alert-warning {
+    background: #451a03;
+    border-color: #78350f;
+    color: #fde68a;
+  }
+}
+
+.storage-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .storage-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.storage-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+@media (prefers-color-scheme: dark) {
+  .storage-card {
+    background: #0f172a;
+    border-color: #334155;
+  }
+}
+
+.storage-card:hover {
+  border-color: #0284c7;
+}
+
+.storage-card.selected {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .storage-card.selected {
+    background: #0369a122;
+    border-color: #38bdf8;
+  }
+}
+
+.card-warning-border {
+  border-color: #f59e0b;
+}
+
+.storage-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.storage-card-header h4,
+.storage-card-header label {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  cursor: pointer;
+}
+
+.storage-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+
+.storage-path-info {
+  font-size: 12px;
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  .storage-desc {
+    color: #94a3b8;
+  }
+  .storage-path-info {
+    color: #38bdf8;
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.info-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .info-sub {
+    color: #94a3b8;
+  }
+}
+
+.storage-status-badge {
+  align-self: flex-start;
+  font-size: 11px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+/* ── SYSTEM INFO PANEL ─────────────────────────────────────────────── */
+.system-info-card {
+  padding: 24px;
+}
+
+.system-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.info-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .info-item {
+    background: #0f172a;
+    border-color: #334155;
+  }
+}
+
+.info-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .info-value {
+    color: #f1f5f9;
+  }
+}
+
+.badge-highlight {
+  color: #0284c7;
+}
+

@@ -79,6 +79,12 @@ class PostgresStorageRepository:
 
         try:
             async with self._pool.acquire() as conn:
+                # Obtener el modo de almacenamiento activo en configuracion_sistema
+                modo_row = await conn.fetchval(
+                    "SELECT valor FROM configuracion_sistema WHERE clave = 'modo_almacenamiento'"
+                )
+                storage_prov = modo_row.upper() if modo_row else "LOCAL"
+
                 await conn.execute("""
                     INSERT INTO documentos_triaje (
                         documento_id, tipo_archivo, canal_origen, status,
@@ -92,12 +98,13 @@ class PostgresStorageRepository:
                         justificacion_enrutamiento, notificacion_generada,
                         oci_bucket, oci_ruta_objeto, oci_status,
                         nodos_ejecutados, tiempo_procesamiento_ms,
-                        metadata, error_mensaje
+                        metadata, error_mensaje, storage_provider,
+                        archivo_original, resultado_json, nombre_original
                     ) VALUES (
                         $1, $2, $3, $4, $5, $6, $7, $8, $9,
                         $10, $11, $12, $13, $14, $15, $16, $17,
                         $18, $19, $20, $21, $22, $23, $24, $25,
-                        $26, $27, $28
+                        $26, $27, $28, $29, $30, $31, $32
                     )
                     ON CONFLICT (documento_id) DO UPDATE SET
                         status                     = EXCLUDED.status,
@@ -106,6 +113,10 @@ class PostgresStorageRepository:
                         destino_principal          = EXCLUDED.destino_principal,
                         requiere_auditoria_humana  = EXCLUDED.requiere_auditoria_humana,
                         oci_status                 = EXCLUDED.oci_status,
+                        storage_provider           = EXCLUDED.storage_provider,
+                        archivo_original           = EXCLUDED.archivo_original,
+                        resultado_json             = EXCLUDED.resultado_json,
+                        nombre_original            = EXCLUDED.nombre_original,
                         updated_at                 = NOW()
                 """,
                     resultado.documento_id,
@@ -136,7 +147,30 @@ class PostgresStorageRepository:
                     resultado.tiempo_procesamiento_ms,
                     json.dumps(resultado.metadata),
                     resultado.error_mensaje,
+                    storage_prov,
+                    resultado.almacenamiento_oci.archivo_original,
+                    resultado.almacenamiento_oci.resultado_json,
+                    resultado.almacenamiento_oci.nombre_original,
                 )
+
+                # También registrar en cola_procesamiento para gestión operativa
+                await conn.execute("""
+                    INSERT INTO cola_procesamiento (
+                        documento_id, destino, nivel_prioridad, score_confianza, status
+                    ) VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (documento_id) DO UPDATE SET
+                        destino         = EXCLUDED.destino,
+                        nivel_prioridad = EXCLUDED.nivel_prioridad,
+                        score_confianza = EXCLUDED.score_confianza,
+                        status          = EXCLUDED.status
+                """,
+                    resultado.documento_id,
+                    resultado.decision_enrutamiento.destino_principal,
+                    resultado.clasificacion.nivel_prioridad,
+                    resultado.clasificacion.score_confianza_clasificacion,
+                    resultado.status,
+                )
+
             logger.info("postgres.guardado", documento_id=resultado.documento_id)
             return True
         except Exception as exc:

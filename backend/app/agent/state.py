@@ -50,6 +50,9 @@ class DecisionEnrutamientoState(BaseModel):
 class AlmacenamientoOCIState(BaseModel):
     bucket: Optional[str] = None
     ruta_objeto: Optional[str] = None
+    archivo_original: Optional[str] = None
+    resultado_json: Optional[str] = None
+    nombre_original: Optional[str] = None
     status_backup: Literal["exito", "error", "pendiente"] = "pendiente"
 
 

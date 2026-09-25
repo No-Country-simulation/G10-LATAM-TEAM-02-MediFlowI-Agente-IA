@@ -11,10 +11,13 @@ Buckets:
 """
 
 import io
+from pathlib import Path
 import structlog
 from app.core.config import Settings
 
 logger = structlog.get_logger(__name__)
+
+LOCAL_STORAGE_DIR = Path(__file__).resolve().parent.parent.parent / "storage"
 
 
 class OCIStorageRepository:
@@ -22,7 +25,7 @@ class OCIStorageRepository:
     Repositorio para OCI Object Storage.
 
     En modo desarrollo (sin credenciales OCI configuradas),
-    opera en modo 'local mock' que guarda en memoria.
+    guarda automáticamente los archivos en el disco local (backend/storage/).
     """
 
     _shared_mock_store: dict[str, str] = {}
@@ -37,9 +40,11 @@ class OCIStorageRepository:
         """Inicializa el cliente OCI si las credenciales están disponibles."""
         if not self._settings.oci_configured:
             logger.warning(
-                "oci.modo_mock",
-                razon="OCI no configurado. Usando almacenamiento en memoria.",
+                "oci.modo_local",
+                razon="OCI no configurado. Guardando en disco local (backend/storage/).",
+                ruta=str(LOCAL_STORAGE_DIR),
             )
+            LOCAL_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
             return
 
         try:
@@ -54,40 +59,58 @@ class OCIStorageRepository:
             self._client = oci.object_storage.ObjectStorageClient(config)
             logger.info("oci.inicializado", region=self._settings.oci_region)
         except ImportError:
-            logger.warning("oci.sdk.no_disponible", fallback="mock")
+            logger.warning("oci.sdk.no_disponible", fallback="local")
+            LOCAL_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
         except Exception as exc:
             logger.error("oci.inicializacion.error", error=str(exc))
+            LOCAL_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
     async def guardar_documento(
         self,
         objeto_key: str,
-        contenido: str,
+        contenido: str | bytes,
         content_type: str = "application/json",
     ) -> bool:
         """
-        Guarda un documento en OCI Object Storage.
+        Guarda un documento (original o resultado) en OCI Object Storage o en almacenamiento local.
 
         Args:
-            objeto_key: Ruta del objeto (ej: "procesados/urgentes/DOC-001.json")
-            contenido: Contenido del archivo como string
+            objeto_key: Ruta del objeto (ej: "recibidos/DOC-001.pdf" o "resultados/DOC-001.json")
+            contenido: Contenido del archivo como string o bytes
             content_type: MIME type del contenido
 
         Returns:
             True si se guardó correctamente
         """
         if self._client is None:
-            # Mock: guardar en memoria
-            self._mock_store[objeto_key] = contenido
-            logger.info("oci.mock.guardado", key=objeto_key, bytes=len(contenido))
+            # Fallback local: guardar en memoria y en disco local
+            if isinstance(contenido, str):
+                self._mock_store[objeto_key] = contenido
+            try:
+                local_file = LOCAL_STORAGE_DIR / objeto_key
+                local_file.parent.mkdir(parents=True, exist_ok=True)
+                if isinstance(contenido, bytes):
+                    local_file.write_bytes(contenido)
+                else:
+                    local_file.write_text(contenido, encoding="utf-8")
+                logger.info(
+                    "oci.local.guardado",
+                    key=objeto_key,
+                    path=str(local_file),
+                    bytes=len(contenido),
+                )
+            except Exception as err:
+                logger.warning("oci.local.escritura_error", key=objeto_key, error=str(err))
             return True
 
         try:
             import oci
+            body_bytes = contenido if isinstance(contenido, bytes) else contenido.encode("utf-8")
             self._client.put_object(
                 namespace_name=self._settings.oci_namespace,
                 bucket_name=self._settings.oci_bucket_name,
                 object_name=objeto_key,
-                put_object_body=io.BytesIO(contenido.encode("utf-8")),
+                put_object_body=io.BytesIO(body_bytes),
                 content_type=content_type,
             )
             logger.info("oci.guardado", key=objeto_key)
@@ -97,9 +120,14 @@ class OCIStorageRepository:
             raise
 
     async def obtener_documento(self, objeto_key: str) -> str | None:
-        """Obtiene el contenido de un objeto del bucket."""
+        """Obtiene el contenido de un objeto del bucket o del disco local."""
         if self._client is None:
-            return self._mock_store.get(objeto_key)
+            if objeto_key in self._mock_store:
+                return self._mock_store[objeto_key]
+            local_file = LOCAL_STORAGE_DIR / objeto_key
+            if local_file.exists():
+                return local_file.read_text(encoding="utf-8")
+            return None
 
         try:
             import oci
@@ -114,9 +142,15 @@ class OCIStorageRepository:
             return None
 
     async def listar_documentos(self, prefix: str = "") -> list[str]:
-        """Lista objetos en el bucket con un prefijo dado."""
+        """Lista objetos en el bucket o en el disco local con un prefijo dado."""
         if self._client is None:
-            return [k for k in self._mock_store if k.startswith(prefix)]
+            keys = set(self._mock_store.keys())
+            search_dir = LOCAL_STORAGE_DIR / prefix
+            if search_dir.exists():
+                for p in search_dir.rglob("*.json"):
+                    rel_path = str(p.relative_to(LOCAL_STORAGE_DIR)).replace("\\", "/")
+                    keys.add(rel_path)
+            return [k for k in keys if k.startswith(prefix)]
 
         try:
             import oci

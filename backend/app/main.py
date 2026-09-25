@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.api.v1 import triage, documents, health
+from app.api.v1 import settings as settings_router
 
 logger = structlog.get_logger(__name__)
 
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix=api_prefix)        # GET /api/v1/health
     app.include_router(triage.router, prefix=api_prefix)       # POST /api/v1/triage
     app.include_router(documents.router, prefix=api_prefix)    # GET|PATCH /api/v1/documents
+    app.include_router(settings_router.router, prefix=api_prefix) # GET|POST /api/v1/settings
 
     return app
 

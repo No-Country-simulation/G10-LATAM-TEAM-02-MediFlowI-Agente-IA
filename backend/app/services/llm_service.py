@@ -25,12 +25,13 @@ class LLMService:
 
     def _inicializar(self):
         """Inicializa el cliente LLM disponible según configuración."""
-        if self._settings.google_api_key:
+        g_key = self._settings.google_api_key
+        if g_key and not g_key.startswith("your-"):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 self._client = ChatGoogleGenerativeAI(
                     model=self._settings.gemini_model,
-                    google_api_key=self._settings.google_api_key,
+                    google_api_key=g_key,
                     temperature=0.1,  # Baja temperatura para extracción estructurada
                 )
                 self._provider = "gemini"
@@ -39,12 +40,13 @@ class LLMService:
             except Exception as exc:
                 logger.warning("llm.gemini.fallo", error=str(exc))
 
-        if self._settings.openai_api_key:
+        o_key = self._settings.openai_api_key
+        if o_key and not o_key.startswith("your-"):
             try:
                 from langchain_openai import ChatOpenAI
                 self._client = ChatOpenAI(
                     model="gpt-4o-mini",
-                    api_key=self._settings.openai_api_key,
+                    api_key=o_key,
                     temperature=0.1,
                 )
                 self._provider = "openai"
@@ -53,9 +55,9 @@ class LLMService:
             except Exception as exc:
                 logger.warning("llm.openai.fallo", error=str(exc))
 
-        # Sin credenciales: modo mock (solo para desarrollo)
+        # Sin credenciales válidas: modo mock (solo para desarrollo/pruebas)
         self._provider = "mock"
-        logger.warning("llm.modo_mock", razon="Sin credenciales configuradas")
+        logger.warning("llm.modo_mock", razon="Sin credenciales configuradas o clave placeholder")
 
     async def completar(self, prompt: str) -> str:
         """

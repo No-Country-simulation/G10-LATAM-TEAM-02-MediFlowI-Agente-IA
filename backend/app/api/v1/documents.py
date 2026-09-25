@@ -34,10 +34,49 @@ async def listar_documentos(
     _auth: str = Depends(require_api_key),
     settings: Settings = Depends(get_settings),
 ):
-    """Lista documentos procesados, con filtros opcionales por estado y prioridad."""
-    oci = OCIStorageRepository(settings=settings)
+    """Lista documentos procesados desde PostgreSQL (o fallback a disco local si DB no está activa)."""
+    from app.repositories.postgres_storage import PostgresStorageRepository
+    pg = PostgresStorageRepository(settings=settings)
+    await pg.inicializar()
 
-    # Construir prefijo de búsqueda según filtros
+    if pg.disponible:
+        rows = await pg.listar(status=estado, nivel_prioridad=nivel_prioridad, limit=limit)
+        formatted = []
+        for r in rows:
+            formatted.append({
+                "status": r.get("status", "procesado"),
+                "documento_id": r.get("documento_id"),
+                "clasificacion": {
+                    "tipo_documento": r.get("tipo_documento", "Documento Clínico"),
+                    "especialidad": r.get("especialidad", "General"),
+                    "nivel_prioridad": r.get("nivel_prioridad", "Rutina"),
+                    "score_confianza_clasificacion": r.get("score_confianza", 0.95),
+                },
+                "datos_extraidos": {
+                    "paciente": {"nombre": r.get("paciente_nombre"), "edad": r.get("paciente_edad")},
+                    "medico_solicitante": {"nombre": r.get("medico_nombre"), "matricula": r.get("medico_matricula")},
+                    "diagnostico_principal": r.get("diagnostico_principal"),
+                    "cie10_sugerido": r.get("cie10_sugerido"),
+                    "hallazgos_clave": json.loads(r["hallazgos_clave"]) if r.get("hallazgos_clave") and isinstance(r["hallazgos_clave"], str) else (r.get("hallazgos_clave") or []),
+                },
+                "decision_enrutamiento": {
+                    "destino_principal": r.get("destino_principal", "Cola_Rutina"),
+                    "requiere_auditoria_humana": r.get("requiere_auditoria_humana", False),
+                    "justificacion_enrutamiento": r.get("justificacion_enrutamiento", ""),
+                    "notificacion_generada": json.loads(r["notificacion_generada"]) if r.get("notificacion_generada") and isinstance(r["notificacion_generada"], str) else r.get("notificacion_generada"),
+                },
+                "almacenamiento_oci": {
+                    "bucket": r.get("oci_bucket") or "mediflow-documentos-clinicos",
+                    "ruta_objeto": r.get("oci_ruta_objeto") or f"procesados/{r.get('documento_id')}.json",
+                    "status_backup": r.get("oci_status") or "exito",
+                },
+                "tiempo_procesamiento_ms": r.get("tiempo_procesamiento_ms", 35),
+                "created_at": r.get("created_at").isoformat() if hasattr(r.get("created_at"), "isoformat") else (str(r.get("created_at")) if r.get("created_at") else None),
+            })
+        return {"total": len(formatted), "items": formatted}
+
+    # Fallback a archivos en disco / OCI sólo si PostgreSQL NO está disponible
+    oci = OCIStorageRepository(settings=settings)
     if nivel_prioridad == "Urgente":
         prefix = "procesados/urgentes/"
     elif nivel_prioridad == "Ambiguo" or estado == "pendiente_auditoria":
@@ -47,7 +86,6 @@ async def listar_documentos(
 
     claves = await oci.listar_documentos(prefix=prefix)
     documentos = []
-
     for clave in claves[:limit]:
         raw = await oci.obtener_documento(clave)
         if raw:

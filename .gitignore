@@ -17,6 +17,10 @@ ENV/
 *.env
 !.env.example
 
+# ── Local Storage / Temp Files ─────────────────────────────────────────────
+backend/storage/
+storage/
+
 # ── Pytest / Coverage ────────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
