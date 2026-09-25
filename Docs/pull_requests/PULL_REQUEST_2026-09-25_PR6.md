@@ -10,7 +10,7 @@ Este documento registra el Pull Request #6 generado el día **2026-09-25** para 
 - **Título del PR**: `style(frontend): mejorar maquetacion de formulario de usuarios y tabla RBAC`
 - **Número de PR**: 6 (PR #6 del día 2026-09-25)
 - **Fecha**: 2026-09-25
-- **Autor**: Antigravity & Erick Pariona
+- **Autor**: Erick Pariona
 - **Rama de Origen**: `dev-erick-pariona`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal

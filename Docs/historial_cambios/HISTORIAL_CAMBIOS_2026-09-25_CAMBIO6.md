@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-09-25  
 **Identificador de Cambio**: CAMBIO6  
-**Autor**: Antigravity & Erick Pariona  
+**Autor**: Erick Pariona  
 **Sprint / Fase**: Rediseño UX/UI — Formulario de Registro de Usuarios & Tabla RBAC  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  
 

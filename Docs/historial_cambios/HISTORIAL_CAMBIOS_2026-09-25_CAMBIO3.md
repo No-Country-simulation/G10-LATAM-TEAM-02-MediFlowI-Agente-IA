@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-09-25  
 **Identificador de Cambio**: CAMBIO3  
-**Autor**: Antigravity & Erick Pariona  
+**Autor**: Erick Pariona  
 **Sprint / Fase**: Módulo 1 — Autenticación y RBAC / Depuración de Advertencias Pydantic v2  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  
 

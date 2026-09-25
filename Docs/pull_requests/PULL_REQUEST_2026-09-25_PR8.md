@@ -10,7 +10,7 @@ Este documento registra el Pull Request #8 generado el día **2026-09-25** para 
 - **Título del PR**: `feat(frontend): transformar navegacion de consola a menu vertical responsivo`
 - **Número de PR**: 8 (PR #8 del día 2026-09-25)
 - **Fecha**: 2026-09-25
-- **Autor**: Antigravity & Erick Pariona
+- **Autor**: Erick Pariona
 - **Rama de Origen**: `dev-erick-pariona`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal

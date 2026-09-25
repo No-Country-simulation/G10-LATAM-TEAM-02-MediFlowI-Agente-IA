@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-09-25  
 **Identificador de Cambio**: CAMBIO5  
-**Autor**: Antigravity & Erick Pariona  
+**Autor**: Erick Pariona  
 **Sprint / Fase**: Rediseño UX/UI — Configuración de Almacenamiento & Pestañas de Navegación  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  
 

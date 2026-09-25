@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-09-25  
 **Identificador de Cambio**: CAMBIO4  
-**Autor**: Antigravity & Erick Pariona  
+**Autor**: Erick Pariona  
 **Sprint / Fase**: Integración de Interfaz / Acoplamiento de `mediflow-frontend` a `frontend`  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  
 

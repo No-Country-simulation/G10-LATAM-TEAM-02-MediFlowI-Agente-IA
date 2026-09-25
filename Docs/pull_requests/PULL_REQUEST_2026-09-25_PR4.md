@@ -10,7 +10,7 @@ Este documento registra el Pull Request #4 generado el día **2026-09-25** para 
 - **Título del PR**: `feat(frontend): acoplar mediflow-frontend manteniendo intacta la consola de triaje y usuarios`
 - **Número de PR**: 4 (PR #4 del día 2026-09-25)
 - **Fecha**: 2026-09-25
-- **Autor**: Antigravity & Erick Pariona
+- **Autor**: Erick Pariona
 - **Rama de Origen**: `dev-erick-pariona`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal

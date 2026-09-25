@@ -10,7 +10,7 @@ Este documento registra el Pull Request #5 generado el día **2026-09-25** para 
 - **Título del PR**: `style(frontend): mejorar disposicion visual de configuracion de almacenamiento y pestanas nav`
 - **Número de PR**: 5 (PR #5 del día 2026-09-25)
 - **Fecha**: 2026-09-25
-- **Autor**: Antigravity & Erick Pariona
+- **Autor**: Erick Pariona
 - **Rama de Origen**: `dev-erick-pariona`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal

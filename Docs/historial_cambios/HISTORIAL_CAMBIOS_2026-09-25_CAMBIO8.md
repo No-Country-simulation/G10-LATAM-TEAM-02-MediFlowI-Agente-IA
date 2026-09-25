@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-09-25  
 **Identificador de Cambio**: CAMBIO8  
-**Autor**: Antigravity & Erick Pariona  
+**Autor**: Erick Pariona  
 **Sprint / Fase**: Implementación de Menú Vertical en la Consola de Triaje  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  
 

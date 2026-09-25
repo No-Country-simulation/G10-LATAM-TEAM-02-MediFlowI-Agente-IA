@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-09-25  
 **Identificador de Cambio**: CAMBIO7  
-**Autor**: Antigravity & Erick Pariona  
+**Autor**: Erick Pariona  
 **Sprint / Fase**: Rediseño Visual de Consola de Triaje Clínico & Maquetación Responsiva MainLayout  
 **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal  
 

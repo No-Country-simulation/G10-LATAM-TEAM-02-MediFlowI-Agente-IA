@@ -10,7 +10,7 @@ Este documento registra el Pull Request #3 generado el día **2026-09-25** para 
 - **Título del PR**: `fix(backend): actualizar esquemas Pydantic v2 con json_schema_extra y eliminar advertencias de deprecacion`
 - **Número de PR**: 3 (PR #3 del día 2026-09-25)
 - **Fecha**: 2026-09-25
-- **Autor**: Antigravity & Erick Pariona
+- **Autor**: Erick Pariona
 - **Rama de Origen**: `dev-erick-pariona`
 - **Rama de Destino**: `develop` / `main`
 - **Proyecto**: MediFlow — Agente Autónomo de Triaje Clínico Multimodal
