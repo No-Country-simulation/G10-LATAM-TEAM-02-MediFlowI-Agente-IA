@@ -24,7 +24,7 @@ class PatientCreateRequest(BaseModel):
     nombres: str = Field(..., description="Nombres del paciente")
     apellidos: str = Field(..., description="Apellidos del paciente")
     fecha_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento en formato YYYY-MM-DD")
-    sexo: Optional[str] = Field("M", description="Sexo (M, F, OTRO)")
+    sexo: Optional[str] = Field(None, description="Sexo (M, F, OTRO; opcional)")
     telefono: Optional[str] = Field(None, description="Teléfono de contacto")
     correo: Optional[str] = Field(None, description="Correo electrónico")
 

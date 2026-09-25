@@ -22,7 +22,7 @@ export interface Paciente {
   apellidos: string
   nombre_completo: string
   fecha_nacimiento?: string
-  sexo?: 'M' | 'F' | 'OTRO'
+  sexo?: 'M' | 'F' | 'OTRO' | null
   telefono?: string
   correo?: string
   created_at?: string
@@ -35,7 +35,7 @@ export interface PacienteCreatePayload {
   nombres: string
   apellidos: string
   fecha_nacimiento?: string
-  sexo?: 'M' | 'F' | 'OTRO'
+  sexo?: 'M' | 'F' | 'OTRO' | null
   telefono?: string
   correo?: string
 }
@@ -47,7 +47,7 @@ export interface PacienteUpdatePayload {
   nombres?: string
   apellidos?: string
   fecha_nacimiento?: string
-  sexo?: 'M' | 'F' | 'OTRO'
+  sexo?: 'M' | 'F' | 'OTRO' | null
   telefono?: string
   correo?: string
 }

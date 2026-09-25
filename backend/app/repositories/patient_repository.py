@@ -169,7 +169,7 @@ async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "nombres": data["nombres"].strip(),
             "apellidos": data["apellidos"].strip(),
             "fecha_nacimiento": data.get("fecha_nacimiento"),
-            "sexo": data.get("sexo", "M"),
+            "sexo": data.get("sexo"),
             "telefono": data.get("telefono"),
             "correo": data.get("correo"),
             "created_at": now_dt,
@@ -195,7 +195,7 @@ async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 data["nombres"].strip(),
                 data["apellidos"].strip(),
                 data.get("fecha_nacimiento"),
-                data.get("sexo", "M"),
+                data.get("sexo"),
                 data.get("telefono"),
                 data.get("correo")
             )
@@ -211,7 +211,7 @@ async def create_patient(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "nombres": data["nombres"].strip(),
             "apellidos": data["apellidos"].strip(),
             "fecha_nacimiento": data.get("fecha_nacimiento"),
-            "sexo": data.get("sexo", "M"),
+            "sexo": data.get("sexo"),
             "telefono": data.get("telefono"),
             "correo": data.get("correo"),
             "created_at": now_dt,
