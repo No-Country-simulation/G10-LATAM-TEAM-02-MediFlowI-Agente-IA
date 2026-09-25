@@ -90,10 +90,10 @@ components:
       $ref: "./components/responses.yaml#/responses/InternalError"
 
   securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-session-token
 
 security:
-  - ApiKeyAuth: []
+  - BearerAuth: []

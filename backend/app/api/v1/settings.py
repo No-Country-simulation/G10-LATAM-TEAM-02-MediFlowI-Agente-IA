@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings, Settings
-from app.core.security import require_api_key
+from app.core.security import require_roles
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -75,7 +75,7 @@ async def _guardar_modo_almacenamiento_db(settings: Settings, modo: str) -> None
 
 @router.get("", response_model=ConfigResponse, summary="Obtener configuración del sistema")
 async def obtener_configuracion(
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_roles("ADMINISTRADOR")),
     settings: Settings = Depends(get_settings),
 ):
     modo = await _obtener_modo_almacenamiento_db(settings)
@@ -94,7 +94,7 @@ async def obtener_configuracion(
 @router.post("", response_model=ConfigResponse, summary="Actualizar configuración del sistema")
 async def actualizar_configuracion(
     payload: ConfigRequest,
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_roles("ADMINISTRADOR")),
     settings: Settings = Depends(get_settings),
 ):
     # Validación: Si se elige OCI, verificar que OCI esté configurado en .env

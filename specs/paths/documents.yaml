@@ -41,6 +41,8 @@ documents:
                     $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
       "401":
         $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "403":
+        description: Rol sin permisos de auditoría
 
 documentById:
   get:

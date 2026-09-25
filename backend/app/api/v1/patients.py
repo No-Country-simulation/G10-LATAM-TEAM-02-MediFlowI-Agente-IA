@@ -6,36 +6,15 @@ documentos asociados a un paciente.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query, Header, status
+from fastapi import APIRouter, HTTPException, Depends, Query, status
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
 import re
 
-from app.core.security import verify_access_token
+from app.core.security import require_current_user
 from app.repositories import patient_repository
 
 router = APIRouter(prefix="/patients", tags=["Gestión de Pacientes"])
-
-
-async def get_current_user_or_api_key(
-    authorization: Optional[str] = Header(None),
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
-) -> Optional[dict]:
-    """
-    Permite autenticación flexible vía Token Bearer (sesión activa)
-    o vía cabecera X-API-Key para la API REST.
-    """
-    if authorization and "Bearer " in authorization:
-        token = authorization.replace("Bearer ", "").strip()
-        user = verify_access_token(token)
-        if user:
-            return user
-    if x_api_key:
-        from app.core.config import get_settings
-        settings = get_settings()
-        if x_api_key == settings.api_key:
-            return {"rol": "ADMINISTRADOR", "nombres": "API Key User"}
-    return None
 
 
 class PatientCreateRequest(BaseModel):
@@ -81,7 +60,7 @@ class PatientUpdateRequest(BaseModel):
 @router.get("", summary="RF-07 — Búsqueda y listado de pacientes")
 async def listar_pacientes(
     search: Optional[str] = Query(None, description="Buscar por DNI, Historia Clínica o Nombres/Apellidos"),
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """Retorna la lista de pacientes registrados con soporte para búsqueda (RF-07)."""
     patients = await patient_repository.list_patients(search=search)
@@ -106,7 +85,7 @@ async def listar_pacientes(
 
 @router.get("/unlinked-documents", summary="Obtener lista de documentos disponibles para asociar")
 async def listar_documentos_disponibles(
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """Retorna los documentos clínicos disponibles para vincular a un paciente."""
     docs = await patient_repository.get_unlinked_documents()
@@ -126,7 +105,7 @@ async def listar_documentos_disponibles(
 @router.post("", summary="RF-06 — Registro de nuevo paciente", status_code=status.HTTP_201_CREATED)
 async def registrar_paciente(
     payload: PatientCreateRequest,
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """RF-06: Registra un nuevo paciente en la base de datos (PostgreSQL)."""
     existing = await patient_repository.get_patient_by_doc(payload.numero_documento)
@@ -192,7 +171,7 @@ async def registrar_paciente(
 @router.get("/{id}", summary="Obtener detalle de paciente")
 async def obtener_paciente(
     id: str,
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """Consulta los datos detallados de un paciente por su ID."""
     patient = await patient_repository.get_patient_by_id(id)
@@ -222,7 +201,7 @@ async def obtener_paciente(
 async def actualizar_paciente(
     id: str,
     payload: PatientUpdateRequest,
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """Actualiza la información de un paciente."""
     existing = await patient_repository.get_patient_by_id(id)
@@ -264,7 +243,7 @@ async def actualizar_paciente(
 @router.get("/{id}/documents", summary="RF-08 & RF-09 — Historial de documentos del paciente")
 async def listar_documentos_paciente(
     id: str,
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """
     RF-08 — Retorna el árbol/lista de documentos clínicos asociados al paciente.
@@ -316,7 +295,7 @@ async def listar_documentos_paciente(
 async def asociar_documento(
     id: str,
     documento_id: str,
-    _user: Optional[dict] = Depends(get_current_user_or_api_key),
+    _user: dict = Depends(require_current_user),
 ):
     """RF-08: Asocia manualmente un documento clínico a un paciente."""
     patient = await patient_repository.get_patient_by_id(id)

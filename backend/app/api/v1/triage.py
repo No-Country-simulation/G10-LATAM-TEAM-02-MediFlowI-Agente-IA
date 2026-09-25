@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import base64
 
-from app.core.security import require_api_key
+from app.core.security import require_current_user
 from app.core.config import get_settings, Settings
 from app.services.triage_service import TriageService
 from app.services.llm_service import LLMService
@@ -42,7 +42,7 @@ class DocumentoClinicoRequest(BaseModel):
 async def procesar_documento(
     payload: DocumentoClinicoRequest,
     response: Response,
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_current_user),
     settings: Settings = Depends(get_settings),
 ):
     """
@@ -107,7 +107,7 @@ async def procesar_documento_upload(
     documento_id: str = Form(...),
     canal_origen: str = Form(default=""),
     archivo: UploadFile = File(...),
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_current_user),
     settings: Settings = Depends(get_settings),
 ):
     """Variante del endpoint /triage que acepta upload de archivos binarios (PDF, imagen)."""

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from typing import Optional, Literal
 
-from app.core.security import require_api_key
+from app.core.security import require_current_user, require_roles
 from app.core.config import get_settings, Settings
 from app.repositories.oci_storage import OCIStorageRepository
 from app.agent.state import AgentState, ClasificacionState
@@ -21,7 +21,6 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 class DecisionAuditoriaRequest(BaseModel):
     decision: Literal["aprobar", "rechazar", "reclasificar"]
-    auditor_id: str
     nueva_clasificacion: Optional[dict] = None
     comentario: Optional[str] = None
 
@@ -31,7 +30,7 @@ async def listar_documentos(
     estado: Optional[str] = Query(None, pattern="^(procesado|pendiente_auditoria|error)$"),
     nivel_prioridad: Optional[str] = Query(None, pattern="^(Urgente|Rutina|Ambiguo)$"),
     limit: int = Query(default=20, le=100),
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_current_user),
     settings: Settings = Depends(get_settings),
 ):
     """Lista documentos procesados desde PostgreSQL (o fallback a disco local si DB no está activa)."""
@@ -103,7 +102,7 @@ async def listar_documentos(
 @router.get("/{documento_id}", summary="Obtener documento por ID")
 async def obtener_documento(
     documento_id: str,
-    _auth: str = Depends(require_api_key),
+    _current_user: dict = Depends(require_current_user),
     settings: Settings = Depends(get_settings),
 ):
     """Retorna el resultado de triaje de un documento específico."""
@@ -126,7 +125,7 @@ async def obtener_documento(
 async def registrar_decision_auditoria(
     documento_id: str,
     payload: DecisionAuditoriaRequest,
-    _auth: str = Depends(require_api_key),
+    current_user: dict = Depends(require_roles("AUDITOR", "ADMINISTRADOR")),
     settings: Settings = Depends(get_settings),
 ):
     """
@@ -146,7 +145,7 @@ async def registrar_decision_auditoria(
     doc = json.loads(raw)
     doc["auditoria"] = {
         "decision": payload.decision,
-        "auditor_id": payload.auditor_id,
+        "auditor_id": current_user["id"],
         "comentario": payload.comentario,
     }
 
@@ -170,6 +169,6 @@ async def registrar_decision_auditoria(
         "api.auditoria.decision_registrada",
         documento_id=documento_id,
         decision=payload.decision,
-        auditor=payload.auditor_id,
+        auditor=current_user["id"],
     )
     return doc

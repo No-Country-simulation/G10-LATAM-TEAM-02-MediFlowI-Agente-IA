@@ -3,6 +3,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
 from app.core.config import get_settings
+from app.core.security import create_access_token
 
 
 @pytest.fixture(scope="session")
@@ -35,3 +36,21 @@ def auth_headers(settings):
         "X-API-Key": settings.api_key,
         "Content-Type": "application/json",
     }
+
+
+@pytest.fixture
+def bearer_headers():
+    token = create_access_token({"id": "11111111-2222-3333-4444-555555555555", "rol": "OPERADOR"})
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+
+@pytest.fixture
+def auditor_bearer_headers():
+    token = create_access_token({"id": "22222222-2222-3333-4444-555555555555", "rol": "AUDITOR"})
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+
+@pytest.fixture
+def admin_bearer_headers():
+    token = create_access_token({"id": "33333333-2222-3333-4444-555555555555", "rol": "ADMINISTRADOR"})
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}

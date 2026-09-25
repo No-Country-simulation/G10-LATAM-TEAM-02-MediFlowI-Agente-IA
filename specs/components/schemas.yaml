@@ -203,17 +203,11 @@ schemas:
   DecisionAuditoria:
     type: object
     required:
-      - documento_id
       - decision
-      - auditor_id
     properties:
-      documento_id:
-        type: string
       decision:
         type: string
         enum: [aprobar, rechazar, reclasificar]
-      auditor_id:
-        type: string
       nueva_clasificacion:
         $ref: "#/schemas/Clasificacion"
         nullable: true
