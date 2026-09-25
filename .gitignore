@@ -1,42 +1,61 @@
-# Dependencies
-node_modules/
-package-lock.json
-
-# Production Build
-dist/
-dist-ssr/
-build/
-
-# Environment Variables
-.env
-.env.local
-.env.*.local
-*.env
-
-# Python / Backend
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*.pyo
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-.venv/
 *.egg-info/
-.pytest_cache/
+.eggs/
+dist/
+dist-ssr/
+build/
+.venv/
+venv/
+env/
+ENV/
+*.env
+!.env.example
 
-# Logs
+# ── Pytest / Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.schemathesis/
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+frontend/dist/
+frontend/.env
+!frontend/.env.example
+
+# ── Logs & Debug ─────────────────────────────────────────────────────────────
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# IDEs and Editors
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
+
+# ── OCI ──────────────────────────────────────────────────────────────────────
+oci_private_key.pem
+*.pem
+
+# ── Secretos ─────────────────────────────────────────────────────────────────
+backend/.env
+frontend/.env
+.env
+.env.local
+.env.*.local
