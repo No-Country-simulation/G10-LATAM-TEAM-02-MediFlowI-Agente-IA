@@ -21,7 +21,7 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 > 
 > **4. Documentación Automática e Incremental por Fecha y Autor**:
 > - **Historial de Cambios Diarios**: Al solicitar *"Generar documentación"* o *"Registrar cambios para Autor: [Nombre]"*, el agente debe tomar **automáticamente la fecha actual del sistema** (`AAAA-MM-DD`), cargar la plantilla `Docs/PLANTILLA_CAMBIOS.md`, generar el archivo diario `Docs/HISTORIAL_CAMBIOS_AAAA-MM-DD.md` y actualizar el índice `Docs/HISTORIAL_CAMBIOS.md`.
-> - **Pull Requests Diarios e Incrementables**: Al solicitar *"Generar PR"* o *"Documentar Pull Request"*, el agente debe cargar la plantilla `Docs/PLANTILLA_PULL_REQUEST.md`, generar/actualizar el archivo por fecha `Docs/PULL_REQUEST_AAAA-MM-DD.md` (permitiendo múltiples PRs por día de forma incremental como `PR #1`, `PR #2`, etc.) y actualizar el índice maestro `Docs/PULL_REQUEST.md`.
+> - **Pull Requests Diarios e Incrementables**: Al solicitar *"Generar PR"* o *"Documentar Pull Request"*, el agente debe cargar la plantilla `Docs/PLANTILLA_PULL_REQUEST.md`, generar el archivo individual con la nomenclatura `Docs/PULL_REQUEST_AAAA-MM-DD_PR[N].md` (donde `PR[N]` es `PR1`, `PR2`, etc. permitiendo múltiples PRs por día) y actualizar el índice maestro `Docs/PULL_REQUEST.md`.
 
 ---
 
