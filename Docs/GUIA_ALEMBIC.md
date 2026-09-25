@@ -1,90 +1,102 @@
 # ⚗️ Guía de Uso de Alembic en MediFlow
 
-Esta guía explica a los desarrolladores del equipo **MediFlow** cómo gestionar las migraciones de la base de datos PostgreSQL (`mediflow_dev`) utilizando **Alembic**.
+Esta guía detalla para los desarrolladores del equipo **MediFlow** cómo gestionar las migraciones de la base de datos PostgreSQL (`mediflow_dev`) tanto de **forma manual (CLI / Consola)** como de **forma automática (Makefile / Docker)**.
 
 ---
 
 ## 📌 ¿Qué es Alembic y cómo se usa en MediFlow?
 
-En MediFlow, **Alembic** es la herramienta oficial de migraciones para PostgreSQL. Permite actualizar la estructura de las tablas (`documentos_triaje`, `configuracion_sistema`, etc.) de forma controlada, reversible y sincronizada entre todos los miembros del equipo y los entornos de Docker.
+En MediFlow, **Alembic** es la herramienta oficial de control de versiones y migraciones para PostgreSQL. Permite actualizar la estructura de las tablas (`documentos_triaje`, `configuracion_sistema`, etc.) de forma controlada, reversible y sincronizada entre los entornos de desarrollo local y producción.
 
-- **Ubicación de la configuración**: `backend/alembic.ini`
-- **Ubicación de las migraciones**: `backend/alembic/versions/`
-- **Base de datos objetivo**: PostgreSQL 17 (`mediflow_dev`)
+- **Archivo de configuración**: `backend/alembic.ini`
+- **Script de entorno**: `backend/alembic/env.py`
+- **Directorio de versiones**: `backend/alembic/versions/`
+- **Base de datos objetivo**: PostgreSQL 17 (`mediflow_dev` en `localhost:5432`)
 
 ---
 
-## 🚀 Requisitos Previos
+## 💻 1. FORMA MANUAL: Ejecución por Línea de Comandos (CLI)
 
-Asegúrate de estar en el entorno virtual del backend o haber instalado el proyecto:
+El uso manual se realiza directamente desde la terminal del sistema dentro del directorio `backend/` activando el entorno virtual de Python (`.venv`).
+
+### A. Preparar la Terminal (Modo Manual)
 
 ```bash
-# Desde el directorio raíz del proyecto
+# 1. Posicionarse en la carpeta backend
 cd backend
-# O instalar dependencias
+
+# 2. Activar el entorno virtual de Python
+# En Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# En Linux / macOS:
+source .venv/bin/activate
+
+# 3. Asegurar que las dependencias estén instaladas
 pip install -e .
 ```
 
-Si usas la consola en la raíz del proyecto, puedes utilizar directamente los comandos simplificados del **Makefile**:
-
-```bash
-make db       # Levanta PostgreSQL 17 + pgAdmin en Docker
-make migrate  # Aplica todas las migraciones pendientes con Alembic
-```
-
 ---
 
-## 🛠️ Comandos Frecuentes para el Equipo
+### B. Comandos Manuales de Aplicación y Control
 
-### 1. 🔄 Aplicar migraciones pendientes (Tras hacer `git pull`)
-
-Cuando bajes cambios del repositorio que incluyan nuevas migraciones creadas por otros compañeros, ejecuta:
-
+#### 1. Aplicar la última migración disponible (Manual)
+Aplica todas las migraciones pendientes hasta dejar la base de datos en la última versión (`head`):
 ```bash
-# Opción A: Usando Makefile desde la raíz
-make migrate
-
-# Opción B: Ejecutando directamente en la carpeta backend
-cd backend
 alembic upgrade head
 ```
 
----
-
-### 2. 📍 Verificar la versión actual de la Base de Datos
-
-Para consultar en qué migración se encuentra tu base de datos local y verificar si estás al día con `head`:
-
+#### 2. Avanzar de a una migración (Paso a paso)
+Aplica solo la siguiente migración pendiente:
 ```bash
-cd backend
+alembic upgrade +1
+```
 
-# Muestra la versión aplicada en tu BD local
+#### 3. Revertir la última migración (Downgrade Manual)
+Deshace únicamente la última migración aplicada en la base de datos:
+```bash
+alembic downgrade -1
+```
+
+#### 4. Revertir todas las migraciones (Base cero)
+Regresa la base de datos al estado inicial antes de cualquier migración:
+```bash
+alembic downgrade base
+```
+
+#### 5. Consultar el estado actual de la base de datos
+Muestra el ID de la migración actualmente activa en PostgreSQL:
+```bash
 alembic current
+```
 
-# Muestra la última versión disponible en el código
-alembic heads
+#### 6. Ver el historial de revisiones registradas
+Muestra el árbol cronológico de todas las migraciones creadas:
+```bash
+alembic history --verbose
 ```
 
 ---
 
-### 3. ➕ Crear una nueva migración
+### C. Crear una Nueva Migración Manualmente
 
-Cuando necesites agregar una nueva tabla, nueva columna o modificar restricciones:
+Cuando un desarrollador añade o modifica tablas en PostgreSQL, debe crear una nueva revisión manual:
 
 ```bash
 cd backend
-alembic revision -m "nombre_descriptivo_del_cambio"
+
+# Generar el archivo de migración
+alembic revision -m "descripcion_del_cambio"
 ```
 
-Esto generará un archivo Python en `backend/alembic/versions/` (ej. `f8g990032bc5_nombre_descriptivo_del_cambio.py`).
+Esto creará un nuevo archivo Python en `backend/alembic/versions/` (ej: `g9h001143cd6_descripcion_del_cambio.py`).
 
-Abre el archivo generado y define las operaciones en la función `upgrade()` y su reverso en `downgrade()`:
+El desarrollador edita el archivo definiendo la lógica en `upgrade()` y `downgrade()`:
 
 ```python
-"""nombre_descriptivo_del_cambio
+"""descripcion_del_cambio
 
-Revision ID: f8g990032bc5
-Revises: g9h001143cd6
+Revision ID: g9h001143cd6
+Revises: f8g990032bc5
 Create Date: 2026-09-24 22:30:00
 
 """
@@ -92,47 +104,54 @@ from alembic import op
 import sqlalchemy as sa
 
 def upgrade() -> None:
-    """Aplica la modificación."""
+    """Modificación manual a aplicar."""
     op.execute("""
     ALTER TABLE documentos_triaje 
     ADD COLUMN mi_nueva_columna VARCHAR(255);
     """)
 
 def downgrade() -> None:
-    """Revierte la modificación."""
+    """Reverso manual de la modificación."""
     op.execute("""
     ALTER TABLE documentos_triaje 
     DROP COLUMN IF EXISTS mi_nueva_columna;
     """)
 ```
 
----
-
-### 4. ⏪ Revertir la última migración (Downgrade)
-
-Si necesitas deshacer la última migración aplicada en tu base de datos local:
-
+Finalmente, aplica la migración manualmente:
 ```bash
-cd backend
-alembic downgrade -1
+alembic upgrade head
 ```
 
-O revertir hasta una revisión específica:
+---
+
+## 🐳 2. FORMA MANUAL EN DOCKER (Contenedores)
+
+Si PostgreSQL o el backend están corriendo en contenedores Docker, también se puede ejecutar Alembic manualmente dentro del contenedor:
 
 ```bash
-cd backend
-alembic downgrade <revision_id>
+# Ejecución manual de Alembic dentro del contenedor de backend
+docker compose -f infrastructure/docker/docker-compose.dev.yml exec backend alembic upgrade head
+```
+
+---
+
+## ⚡ 3. FORMA AUTOMÁTICA (Makefile)
+
+Para mayor comodidad durante el desarrollo diario desde la raíz del proyecto:
+
+```bash
+# Levanta la base de datos PostgreSQL 17 en Docker
+make db
+
+# Ejecuta automáticamente alembic upgrade head
+make migrate
 ```
 
 ---
 
 ## 🏆 Buenas Prácticas para el Equipo
 
-1. **Siempre subir las migraciones a Git**:
-   - Todo archivo creado en `backend/alembic/versions/` **debe ser enviado en tus commits**. Nunca los agregues al `.gitignore`.
-2. **No modificar migraciones ya fusionadas**:
-   - Si una migración ya fue subida a la rama `develop` o `main`, **no modifiques ese archivo**. Crea una nueva migración para realizar correcciones sobre el schema.
-3. **Ejecutar `make migrate` tras cada `git pull`**:
-   - Acostúmbrate a correr `make migrate` (o `alembic upgrade head`) para asegurarte de que tu PostgreSQL local tenga todas las columnas que el código del backend espera.
-4. **Incluir comentarios SQL en las tablas**:
-   - Si creas una nueva tabla o columna, incluye sentencias `COMMENT ON TABLE` y `COMMENT ON COLUMN` dentro de la función `upgrade()`.
+1. **Commit obligatorio de migraciones**: Todo archivo creado en `backend/alembic/versions/` **debe subirse a Git**.
+2. **Nunca editar migraciones ya compartidas**: Si una migración ya está en `main` o `develop`, crea una nueva revisión arriba.
+3. **Ejecutar `alembic upgrade head` tras `git pull`**: Garantiza que tu base de datos local tenga las últimas columnas creadas por tus compañeros.
