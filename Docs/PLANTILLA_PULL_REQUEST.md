@@ -7,6 +7,7 @@ Este documento registra los Pull Requests generados el día **[FECHA: AAAA-MM-DD
 ## 🔀 1. PR #1 — [Título del PR]
 
 ### 📌 Datos del Pull Request
+- **Título del PR**: `[feat/fix/docs(scope): descripción clara del PR]`
 - **Número de PR**: 1 (PR #1 del día [FECHA: AAAA-MM-DD])
 - **Fecha**: [AAAA-MM-DD]
 - **Autor**: [Nombre del Autor]

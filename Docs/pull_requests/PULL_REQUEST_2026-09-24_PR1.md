@@ -7,6 +7,7 @@ Este documento registra los Pull Requests generados el día **24/09/2026** para 
 ## 🔀 1. PR #1 — Control Manual de Almacenamiento (LOCAL/OCI), Comentarios BD, Aislamiento Pytest & UX Polish
 
 ### 📌 Datos del Pull Request
+- **Título del PR**: `feat(fullstack): preferencia manual LOCAL/OCI, comentarios BD PostgreSQL, aislamiento pytest y polish UX`
 - **Número de PR**: 1 (PR #1 del día 24/09/2026)
 - **Fecha**: 24/09/2026
 - **Autor**: Erick Pariona

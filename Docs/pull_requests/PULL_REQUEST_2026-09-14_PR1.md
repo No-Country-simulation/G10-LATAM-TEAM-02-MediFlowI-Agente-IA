@@ -7,6 +7,7 @@ Este documento registra los Pull Requests generados el día **14/09/2026** para 
 ## 🔀 1. PR #1 — Setup Inicial de Arquitectura, LangGraph Agent & API de Triaje
 
 ### 📌 Datos del Pull Request
+- **Título del PR**: `feat(setup): arquitectura inicial de MediFlow, LangGraph agent, schema PostgreSQL y API triaje`
 - **Número de PR**: 1 (PR #1 del día 14/09/2026)
 - **Fecha**: 14/09/2026
 - **Autor**: Todos
