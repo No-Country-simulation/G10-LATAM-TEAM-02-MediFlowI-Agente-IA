@@ -1,12 +1,13 @@
-# 🚀 Pull Request — 14/09/2026
+# 1. 🚀 Pull Request #1 — 14/09/2026
 
 Este documento registra los Pull Requests generados el día **14/09/2026** para el proyecto **MediFlow**.
 
 ---
 
-## 🔀 PR #1 — Setup Inicial de Arquitectura, LangGraph Agent & API de Triaje
+## 🔀 1. PR #1 — Setup Inicial de Arquitectura, LangGraph Agent & API de Triaje
 
 ### 📌 Datos del Pull Request
+- **Número de PR**: 1 (PR #1 del día 14/09/2026)
 - **Fecha**: 14/09/2026
 - **Autor**: Todos
 - **Rama de Origen**: `feature/initial-setup`

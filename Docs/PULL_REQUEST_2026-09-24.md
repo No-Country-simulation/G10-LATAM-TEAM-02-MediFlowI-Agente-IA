@@ -1,12 +1,13 @@
-# 🚀 Pull Request — 24/09/2026
+# 1. 🚀 Pull Request #1 — 24/09/2026
 
 Este documento registra los Pull Requests generados el día **24/09/2026** para el proyecto **MediFlow**.
 
 ---
 
-## 🔀 PR #1 — Control Manual de Almacenamiento (LOCAL/OCI), Comentarios BD, Aislamiento Pytest & UX Polish
+## 🔀 1. PR #1 — Control Manual de Almacenamiento (LOCAL/OCI), Comentarios BD, Aislamiento Pytest & UX Polish
 
 ### 📌 Datos del Pull Request
+- **Número de PR**: 1 (PR #1 del día 24/09/2026)
 - **Fecha**: 24/09/2026
 - **Autor**: Erick Pariona
 - **Rama de Origen**: `dev-erick-pariona`

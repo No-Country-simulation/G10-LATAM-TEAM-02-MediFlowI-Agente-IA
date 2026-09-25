@@ -1,12 +1,13 @@
-# 🚀 Pull Request — [FECHA: AAAA-MM-DD]
+# 1. 🚀 Pull Request #1 — [FECHA: AAAA-MM-DD]
 
-Este documento registra los Pull Requests generados el día **[FECHA: AAAA-MM-DD]** para el proyecto **MediFlow**. Si se realizan múltiples PRs en el mismo día, se enumeran de forma incremental (`PR #1`, `PR #2`, etc.).
+Este documento registra los Pull Requests generados el día **[FECHA: AAAA-MM-DD]** para el proyecto **MediFlow**. Si se realizan múltiples PRs en el mismo día, se enumeran de forma incremental (`1. PR #1`, `2. PR #2`, etc.).
 
 ---
 
-## 🔀 PR #1 — [Título del PR]
+## 🔀 1. PR #1 — [Título del PR]
 
 ### 📌 Datos del Pull Request
+- **Número de PR**: 1 (PR #1 del día [FECHA: AAAA-MM-DD])
 - **Fecha**: [AAAA-MM-DD]
 - **Autor**: [Nombre del Autor]
 - **Rama de Origen**: `[rama-origen]`
