@@ -29,11 +29,31 @@ VALID_ROLES = {"ADMINISTRADOR", "OPERADOR", "AUDITOR", "SUPERVISOR"}
 VALID_ESTADOS = {"ACTIVO", "INACTIVO"}
 
 
+def validar_password_segura(password: str) -> str:
+    """Aplica la política mínima para credenciales de usuarios clínicos."""
+    if len(password) < 12:
+        raise ValueError("La contraseña debe tener al menos 12 caracteres.")
+    if not re.search(r"[A-Z]", password):
+        raise ValueError("La contraseña debe incluir una mayúscula.")
+    if not re.search(r"[a-z]", password):
+        raise ValueError("La contraseña debe incluir una minúscula.")
+    if not re.search(r"\d", password):
+        raise ValueError("La contraseña debe incluir un número.")
+    if not re.search(r"[^A-Za-z0-9]", password):
+        raise ValueError("La contraseña debe incluir un símbolo.")
+    return password
+
+
 class UserCreateRequest(BaseModel):
     documento_identidad: str = Field(
         ..., description="Número de documento de identidad de 8 cifras", json_schema_extra={"example": "88776655"}
     )
-    password: str = Field(..., min_length=4, description="Contraseña inicial", json_schema_extra={"example": "clave123"})
+    password: str = Field(
+        ...,
+        min_length=12,
+        description="Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo",
+        json_schema_extra={"example": "ClaveSegura#2026"},
+    )
     nombres: str = Field(..., json_schema_extra={"example": "María"})
     apellidos: str = Field(..., json_schema_extra={"example": "Gómez"})
     correo: Optional[str] = Field(None, json_schema_extra={"example": "maria.gomez@clinica.com"})
@@ -48,6 +68,11 @@ class UserCreateRequest(BaseModel):
         if not re.match(r"^\d{8}$", v_clean):
             raise ValueError("El documento de identidad debe contener exactamente 8 cifras numéricas.")
         return v_clean
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return validar_password_segura(v)
 
     @field_validator("rol")
     @classmethod
@@ -74,6 +99,11 @@ class UserUpdateRequest(BaseModel):
     rol: Optional[str] = None
     estado: Optional[str] = None
     password: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
+        return validar_password_segura(v) if v is not None else None
 
     @field_validator("rol")
     @classmethod
