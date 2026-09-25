@@ -7,7 +7,8 @@ import {
   FaUserCog,
   FaCog,
   FaClipboardCheck,
-  FaHistory
+  FaHistory,
+  FaBook
 } from "react-icons/fa";
 
 const Sidebar = ({ isOpen, closeSidebar }) => {
@@ -46,6 +47,11 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       path: "/documentos",
       label: "Historial",
       icon: <FaHistory className="me-2 fs-5" />
+    },
+    {
+      path: "/documentacion",
+      label: "Documentación",
+      icon: <FaBook className="me-2 fs-5" />
     }
   ];
 

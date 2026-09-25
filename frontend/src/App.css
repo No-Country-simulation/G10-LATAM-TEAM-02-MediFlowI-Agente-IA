@@ -2029,3 +2029,29 @@
   min-width: 0 !important;
 }
 
+/* ── ESTILIZACIÓN DE COMBOS DE SELECCIÓN (SELECTS) ─────────────────── */
+select, .form-select, .select-role-change {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease-in-out !important;
+  cursor: pointer !important;
+}
+
+select:focus, .form-select:focus, .select-role-change:focus {
+  border-color: #0284c7 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+  outline: none !important;
+}
+
+select:hover, .form-select:hover, .select-role-change:hover {
+  border-color: #0284c7 !important;
+  background-color: #f8fafc !important;
+}
+

@@ -10,6 +10,7 @@ import Documents from "../pages/Documents";
 import Audit from "../pages/Audit";
 import AuditDetail from "../pages/AuditDetail";
 import TriageConsoleView from "../pages/TriageConsoleView";
+import DocumentationView from "../pages/DocumentationView";
 
 const AppRoutes = () => {
   return (
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="/admin-usuarios" element={<TriageConsoleView initialTab="users" hideInnerMenu={true} />} />
         <Route path="/configuracion" element={<TriageConsoleView initialTab="settings" hideInnerMenu={true} />} />
         <Route path="/admin-triaje" element={<TriageConsoleView initialTab="triage" hideInnerMenu={true} />} />
+        <Route path="/documentacion" element={<DocumentationView />} />
       </Route>
 
       {/* Catch-all fallback */}
