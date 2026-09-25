@@ -39,6 +39,13 @@ Documento a analizar:
 """
 
 
+def dividir_texto_en_bloques(texto: str, max_chars: int = 4_000) -> list[str]:
+    """Divide texto largo sin descartar ningún carácter del documento."""
+    if max_chars <= 0:
+        raise ValueError("max_chars debe ser mayor que cero")
+    return [texto[indice:indice + max_chars] for indice in range(0, len(texto), max_chars)]
+
+
 async def node_extraction(state: AgentState, llm_service=None) -> dict:
     """
     Extrae entidades clínicas del texto usando el LLM.
@@ -56,9 +63,12 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
         }
 
     try:
-        prompt = _EXTRACTION_PROMPT.format(texto=texto[:4000])  # límite de contexto
-        respuesta_raw = await _llamar_llm(prompt, llm_service)
-        datos = _parsear_respuesta(respuesta_raw)
+        bloques = dividir_texto_en_bloques(texto)
+        datos = DatosExtraidosState()
+        for bloque in bloques:
+            prompt = _EXTRACTION_PROMPT.format(texto=bloque)
+            datos_bloque = _parsear_respuesta(await _llamar_llm(prompt, llm_service))
+            datos = _consolidar_datos(datos, datos_bloque)
 
         logger.info(
             "nodo.extraction.completado",
@@ -78,6 +88,21 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
             "error_mensaje": f"Error en extraction: {exc}",
             "nodos_ejecutados": state.nodos_ejecutados + ["extraction"],
         }
+
+
+def _consolidar_datos(
+    acumulado: DatosExtraidosState,
+    nuevo: DatosExtraidosState,
+) -> DatosExtraidosState:
+    """Conserva el primer valor clínico encontrado y combina los hallazgos."""
+    return DatosExtraidosState(
+        paciente=acumulado.paciente or nuevo.paciente,
+        medico_solicitante=acumulado.medico_solicitante or nuevo.medico_solicitante,
+        estudio_realizado=acumulado.estudio_realizado or nuevo.estudio_realizado,
+        diagnostico_principal=acumulado.diagnostico_principal or nuevo.diagnostico_principal,
+        cie10_sugerido=acumulado.cie10_sugerido or nuevo.cie10_sugerido,
+        hallazgos_clave=list(dict.fromkeys(acumulado.hallazgos_clave + nuevo.hallazgos_clave)),
+    )
 
 
 async def _llamar_llm(prompt: str, llm_service) -> str:

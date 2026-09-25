@@ -2,6 +2,15 @@ import pytest
 from app.agent.graph import ejecutar_triage
 from app.services.llm_service import LLMService
 from app.core.config import get_settings
+from app.agent.nodes.extraction import dividir_texto_en_bloques
+
+
+def test_dividir_texto_en_bloques_preserva_el_final_del_documento():
+    texto = "a" * 4_000 + "HALLAZGO_FINAL_CRITICO"
+
+    bloques = dividir_texto_en_bloques(texto, max_chars=4_000)
+
+    assert bloques == ["a" * 4_000, "HALLAZGO_FINAL_CRITICO"]
 
 
 @pytest.mark.asyncio
