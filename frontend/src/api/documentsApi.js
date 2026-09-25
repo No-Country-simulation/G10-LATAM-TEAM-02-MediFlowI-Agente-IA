@@ -140,6 +140,64 @@ const saveStoredDocuments = (docs) => {
   localStorage.setItem("mediflow_documents", JSON.stringify(docs));
 };
 
+const normalizeBackendDocument = (item) => {
+  const clasif = item.clasificacion || {}
+  const datos = item.datos_extraidos || {}
+  const decision = item.decision_enrutamiento || {}
+
+  const scoreConf =
+    clasif.score_confianza_clasificacion !== undefined
+      ? clasif.score_confianza_clasificacion
+      : clasif.score_confianza !== undefined
+      ? clasif.score_confianza
+      : 0.9
+
+  const rawPrio = (clasif.nivel_prioridad || clasif.prioridad || "RUTINA").toUpperCase()
+  const prio = rawPrio === "RUTINA" ? "NORMAL" : rawPrio === "URGENTE" ? "URGENTE" : rawPrio === "AMBIGUO" ? "PRIORITARIO" : rawPrio
+
+  const rawStatus = (item.status || item.estado || "PROCESADO").toUpperCase()
+  const estadoNorm = rawStatus === "PENDIENTE_AUDITORIA" ? "AUDITORIA" : rawStatus
+
+  const destinoNorm = (decision.destino_principal || decision.destino || "Cola_Rutina")
+    .replace(/_/g, " ")
+    .replace("Cola ", "")
+
+  return {
+    documento_id: item.documento_id,
+    nombre_archivo: item.nombre_archivo || `${item.documento_id}.pdf`,
+    canal_origen: item.canal_origen || "Sistema",
+    fecha_creacion: item.created_at || item.fecha_creacion || new Date().toISOString(),
+    estado: estadoNorm,
+    clasificacion: {
+      tipo_documento: clasif.tipo_documento || "Informe Clínico",
+      especialidad: clasif.especialidad || "Medicina General",
+      prioridad: prio,
+      score_confianza: scoreConf,
+    },
+    datos_extraidos: {
+      paciente: {
+        nombre: datos.paciente?.nombre || "Paciente Clínico",
+        dni: datos.paciente?.dni || "-",
+        edad: datos.paciente?.edad || null,
+      },
+      medico: {
+        nombre: datos.medico_solicitante?.nombre || datos.medico?.nombre || "-",
+        cmp: datos.medico_solicitante?.matricula || datos.medico?.cmp || "-",
+      },
+      diagnostico: datos.diagnostico_principal || datos.diagnostico || "-",
+      cie10: datos.cie10_sugerido || datos.cie10 || "-",
+      medicamentos: datos.medicamentos || [],
+      estudio_solicitado: datos.hallazgos_clave ? datos.hallazgos_clave.join(", ") : null,
+    },
+    texto_ocr: item.texto_ocr || "Documento procesado por Agente IA MediFlow",
+    decision_enrutamiento: {
+      destino: destinoNorm,
+      requiere_auditoria: decision.requiere_auditoria_humana || decision.requiere_auditoria || false,
+      motivo_auditoria: decision.justificacion_enrutamiento || decision.motivo_auditoria || null,
+    },
+  }
+}
+
 export const documentsApi = {
   // POST /api/documentos/procesar
   procesarDocumento: async (file, canalOrigen) => {
@@ -155,7 +213,6 @@ export const documentsApi = {
     } catch (error) {
       console.warn("Backend real no disponible. Simulando respuesta de procesamiento.", error);
       
-      // Generate a mock response matching the backend format requirement
       const docs = getStoredDocuments();
       const newIdNumber = docs.length + 1;
       const docId = `DOC-${String(newIdNumber).padStart(3, "0")}`;
@@ -218,68 +275,115 @@ export const documentsApi = {
     }
   },
 
-  // GET /api/documentos
+  // GET /api/v1/documents
   obtenerDocumentos: async (filtros = {}) => {
     try {
-      const response = await api.get("/documentos", { params: filtros });
-      return response.data;
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const API_KEY = import.meta.env.VITE_API_KEY || 'mediflow-dev-secret-key-change-in-prod';
+      
+      const res = await fetch(`${API_BASE}/documents`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawItems = data.items || (Array.isArray(data) ? data : []);
+        if (rawItems.length > 0) {
+          let docs = rawItems.map(normalizeBackendDocument);
+
+          if (filtros.estado) {
+            docs = docs.filter(d => d.estado.toUpperCase() === filtros.estado.toUpperCase());
+          }
+          if (filtros.tipo) {
+            docs = docs.filter(d => d.clasificacion.tipo_documento.toLowerCase().includes(filtros.tipo.toLowerCase()));
+          }
+          if (filtros.prioridad) {
+            docs = docs.filter(d => d.clasificacion.prioridad.toUpperCase() === filtros.prioridad.toUpperCase());
+          }
+          if (filtros.paciente) {
+            const p = filtros.paciente.toLowerCase();
+            docs = docs.filter(d => (d.datos_extraidos?.paciente?.nombre || "").toLowerCase().includes(p) || (d.datos_extraidos?.paciente?.dni || "").includes(p));
+          }
+          return docs;
+        }
+      }
     } catch (error) {
-      console.warn("Backend real no disponible. Retornando historial mock.", error);
-      let docs = getStoredDocuments();
-
-      if (filtros.estado) {
-        docs = docs.filter(d => d.estado.toUpperCase() === filtros.estado.toUpperCase());
-      }
-      if (filtros.tipo) {
-        docs = docs.filter(d => d.clasificacion.tipo_documento.toLowerCase().includes(filtros.tipo.toLowerCase()));
-      }
-      if (filtros.prioridad) {
-        docs = docs.filter(d => d.clasificacion.prioridad.toUpperCase() === filtros.prioridad.toUpperCase());
-      }
-      if (filtros.paciente) {
-        const p = filtros.paciente.toLowerCase();
-        docs = docs.filter(d => (d.datos_extraidos?.paciente?.nombre || "").toLowerCase().includes(p) || (d.datos_extraidos?.paciente?.dni || "").includes(p));
-      }
-
-      return docs;
+      console.warn("Backend real no disponible o error al consultar /api/v1/documents:", error);
     }
+
+    let docs = getStoredDocuments();
+    if (filtros.estado) {
+      docs = docs.filter(d => d.estado.toUpperCase() === filtros.estado.toUpperCase());
+    }
+    if (filtros.tipo) {
+      docs = docs.filter(d => d.clasificacion.tipo_documento.toLowerCase().includes(filtros.tipo.toLowerCase()));
+    }
+    if (filtros.prioridad) {
+      docs = docs.filter(d => d.clasificacion.prioridad.toUpperCase() === filtros.prioridad.toUpperCase());
+    }
+    if (filtros.paciente) {
+      const p = filtros.paciente.toLowerCase();
+      docs = docs.filter(d => (d.datos_extraidos?.paciente?.nombre || "").toLowerCase().includes(p) || (d.datos_extraidos?.paciente?.dni || "").includes(p));
+    }
+    return docs;
   },
 
-  // GET /api/documentos/{id}
+  // GET /api/v1/documents/{id}
   obtenerDocumentoPorId: async (id) => {
     try {
-      const response = await api.get(`/documentos/${id}`);
-      return response.data;
-    } catch (error) {
-      console.warn(`Backend real no disponible. Obteniendo documento ${id} desde mock.`, error);
-      const docs = getStoredDocuments();
-      const doc = docs.find(d => d.documento_id === id);
-      if (!doc) {
-        throw new Error(`Documento con ID ${id} no encontrado.`);
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const API_KEY = import.meta.env.VITE_API_KEY || 'mediflow-dev-secret-key-change-in-prod';
+
+      const res = await fetch(`${API_BASE}/documents/${id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY,
+        },
+      });
+
+      if (res.ok) {
+        const item = await res.json();
+        return normalizeBackendDocument(item);
       }
-      return doc;
+    } catch (error) {
+      console.warn(`Error al consultar documento ${id} desde backend real:`, error);
     }
+
+    const docs = getStoredDocuments();
+    const doc = docs.find(d => d.documento_id === id);
+    if (!doc) {
+      throw new Error(`Documento con ID ${id} no encontrado.`);
+    }
+    return doc;
   },
 
-  // GET /api/dashboard/resumen
+  // GET /api/v1/dashboard/resumen
   obtenerResumenDashboard: async () => {
     try {
-      const response = await api.get("/dashboard/resumen");
-      return response.data;
-    } catch (error) {
-      console.warn("Backend real no disponible. Calculando resumen de dashboard desde mock.", error);
-      const docs = getStoredDocuments();
-      
+      const docs = await documentsApi.obtenerDocumentos();
       const procesados = docs.filter(d => d.estado === "PROCESADO").length;
       const urgentes = docs.filter(d => d.clasificacion?.prioridad === "URGENTE").length;
       const auditoria = docs.filter(d => d.estado === "AUDITORIA" || d.decision_enrutamiento?.requiere_auditoria).length;
       const errores = docs.filter(d => d.estado === "ERROR" || d.estado === "RECHAZADO").length;
 
       return {
-        procesados: procesados || 120,
-        urgentes: urgentes || 8,
-        auditoria: auditoria || 12,
-        errores: errores || 2,
+        procesados: procesados || docs.length,
+        urgentes: urgentes,
+        auditoria: auditoria,
+        errores: errores,
+        recientes: docs.slice(0, 5)
+      };
+    } catch (error) {
+      console.warn("Error al calcular resumen de dashboard:", error);
+      const docs = getStoredDocuments();
+      return {
+        procesados: docs.filter(d => d.estado === "PROCESADO").length,
+        urgentes: docs.filter(d => d.clasificacion?.prioridad === "URGENTE").length,
+        auditoria: docs.filter(d => d.estado === "AUDITORIA").length,
+        errores: docs.filter(d => d.estado === "ERROR").length,
         recientes: docs.slice(0, 5)
       };
     }

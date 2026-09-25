@@ -21,6 +21,7 @@ Este documento es el **índice maestro** de los registros de cambios del proyect
 | **25/09/2026** | `CAMBIO9` | Erick Pariona | Independización de Menús de Navegación, Rutas Dedicadas y Sincronización de Autenticación | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO9.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO9.md) |
 | **25/09/2026** | `CAMBIO10` | Erick Pariona | Modal de Usuarios, Estilizado de Combos y Menú de Documentación de Usuarios y Roles (RBAC) | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO10.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO10.md) |
 | **25/09/2026** | `CAMBIO11` | Erick Pariona | Rediseño visual de modales con sistema de diseño unificado, selector interactivo de rol, 2 campos de contraseña y gestión independiente de contraseña por tabla | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO11.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO11.md) |
+| **25/09/2026** | `CAMBIO12` | Erick Pariona | Módulo 2 Pacientes (RF-06 a RF-09) y Módulo 3 Recepción (RF-10) con Migración Alembic, API REST y Buscador Search Select | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO12.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO12.md) |
 
 ---
 

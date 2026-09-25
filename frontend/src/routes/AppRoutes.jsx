@@ -13,6 +13,7 @@ import TriageConsoleView from "../pages/TriageConsoleView";
 import UsersManagementView from "../pages/UsersManagementView";
 import StorageSettingsView from "../pages/StorageSettingsView";
 import DocumentationView from "../pages/DocumentationView";
+import PatientsManagementView from "../pages/PatientsManagementView";
 
 const AppRoutes = () => {
   return (
@@ -30,6 +31,8 @@ const AppRoutes = () => {
       >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/pacientes" element={<PatientsManagementView />} />
+        <Route path="/pacientes-gestion" element={<PatientsManagementView />} />
         <Route path="/documentos" element={<Documents />} />
         <Route path="/documentos/nuevo" element={<NewDocument />} />
         <Route path="/documentos/:id" element={<DocumentDetail />} />

@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   FaTachometerAlt,
   FaStethoscope,
+  FaUserInjured,
   FaFileUpload,
   FaUserCog,
   FaCog,
@@ -18,6 +19,11 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       path: "/dashboard",
       label: "Dashboard",
       icon: <FaTachometerAlt className="me-2 fs-5" />
+    },
+    {
+      path: "/pacientes",
+      label: "Pacientes",
+      icon: <FaUserInjured className="me-2 fs-5" />
     },
     {
       path: "/triaje",
