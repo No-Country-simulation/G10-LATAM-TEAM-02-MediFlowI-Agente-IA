@@ -471,41 +471,58 @@ export default function TriageConsoleView() {
         </div>
       )}
 
-      {/* ── NAVEGACIÓN NAV TABS RESTRINGIDAS POR ROL (RF-05) ───────────────── */}
-      {currentUser && (
-        <nav className="nav-tabs">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
-            onClick={() => setActiveTab('triage')}
-          >
-            Triaje Clínico
-          </button>
+      {/* ── MENÚ VERTICAL Y CONTENIDO PRINCIPAL (RF-05) ───────────────── */}
+      <div className="console-layout-wrapper">
+        {currentUser && (
+          <aside className="vertical-console-menu">
+            <div className="menu-header">
+              <span className="menu-title">Menú de Consola</span>
+            </div>
+            <nav className="vertical-nav-list">
+              <button
+                type="button"
+                className={`vertical-nav-item ${activeTab === 'triage' ? 'active' : ''}`}
+                onClick={() => setActiveTab('triage')}
+              >
+                <span className="nav-icon">🩺</span>
+                <div className="nav-text">
+                  <strong>Triaje Clínico</strong>
+                  <small>Carga & Diagnóstico IA</small>
+                </div>
+              </button>
 
-          {canManageUsers && (
-            <button
-              type="button"
-              className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveTab('users')}
-            >
-              Gestión de Usuarios
-            </button>
-          )}
+              {canManageUsers && (
+                <button
+                  type="button"
+                  className={`vertical-nav-item ${activeTab === 'users' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('users')}
+                >
+                  <span className="nav-icon">👥</span>
+                  <div className="nav-text">
+                    <strong>Gestión de Usuarios</strong>
+                    <small>Control de Acceso RBAC</small>
+                  </div>
+                </button>
+              )}
 
-          {canManageSettings && (
-            <button
-              type="button"
-              className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('settings')}
-            >
-              Configuración
-            </button>
-          )}
-        </nav>
-      )}
+              {canManageSettings && (
+                <button
+                  type="button"
+                  className={`vertical-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('settings')}
+                >
+                  <span className="nav-icon">⚙️</span>
+                  <div className="nav-text">
+                    <strong>Configuración</strong>
+                    <small>Almacenamiento Local/OCI</small>
+                  </div>
+                </button>
+              )}
+            </nav>
+          </aside>
+        )}
 
-      {/* ── CONTENIDO PRINCIPAL DE LA APLICACIÓN ─────────────────────────── */}
-      <main className="main-content">
+        <main className="console-content-area">
         {/* ─────────────────────────────────────────────────────────────────── */}
         {/* VISTA 1: TRIAJE CLÍNICO (CARGA & EVALUACIÓN MULTIMODAL)              */}
         {/* ─────────────────────────────────────────────────────────────────── */}
@@ -1181,6 +1198,7 @@ export default function TriageConsoleView() {
           </div>
         )}
       </main>
+      </div>
     </div>
   )
 }

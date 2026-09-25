@@ -1915,3 +1915,117 @@
   }
 }
 
+/* ── VERTICAL CONSOLE MENU STYLING ─────────────────────────────────── */
+.console-layout-wrapper {
+  display: flex !important;
+  gap: 24px !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+@media (max-width: 880px) {
+  .console-layout-wrapper {
+    flex-direction: column !important;
+  }
+}
+
+.vertical-console-menu {
+  width: 240px !important;
+  flex-shrink: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 16px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  position: sticky !important;
+  top: 80px !important;
+}
+
+@media (max-width: 880px) {
+  .vertical-console-menu {
+    width: 100% !important;
+    position: static !important;
+  }
+}
+
+.menu-header {
+  padding-bottom: 10px !important;
+  margin-bottom: 12px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.menu-title {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  color: #64748b !important;
+  letter-spacing: 0.5px !important;
+}
+
+.vertical-nav-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.vertical-nav-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid transparent !important;
+  background: #f8fafc !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease-in-out !important;
+  text-align: left !important;
+  width: 100% !important;
+}
+
+.vertical-nav-item:hover {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+
+.vertical-nav-item.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25) !important;
+}
+
+.vertical-nav-item.active .nav-text strong,
+.vertical-nav-item.active .nav-text small {
+  color: #ffffff !important;
+}
+
+.nav-icon {
+  font-size: 18px !important;
+}
+
+.nav-text {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.nav-text strong {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  line-height: 1.2 !important;
+}
+
+.nav-text small {
+  font-size: 11px !important;
+  color: #64748b !important;
+  margin-top: 2px !important;
+}
+
+.console-content-area {
+  flex: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
