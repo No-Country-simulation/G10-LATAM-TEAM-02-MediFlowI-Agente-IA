@@ -34,6 +34,7 @@ const AppRoutes = () => {
         <Route path="/auditoria/:id" element={<AuditDetail />} />
         <Route path="/admin-triaje" element={<TriageConsoleView />} />
         <Route path="/triaje" element={<TriageConsoleView />} />
+        <Route path="/configuracion" element={<TriageConsoleView initialTab="settings" />} />
       </Route>
 
       {/* Catch-all fallback */}

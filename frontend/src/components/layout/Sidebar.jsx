@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FaTachometerAlt, FaFileUpload, FaClipboardCheck, FaHistory, FaUserCog } from "react-icons/fa";
+import { FaTachometerAlt, FaFileUpload, FaClipboardCheck, FaHistory, FaUserCog, FaCog } from "react-icons/fa";
 
 const Sidebar = ({ isOpen, closeSidebar }) => {
   const navItems = [
@@ -11,8 +11,13 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     },
     {
       path: "/documentos/nuevo",
-      label: "Nuevo documento",
+      label: "Subir Archivo",
       icon: <FaFileUpload className="me-2 fs-5" />
+    },
+    {
+      path: "/configuracion",
+      label: "Configuración",
+      icon: <FaCog className="me-2 fs-5" />
     },
     {
       path: "/auditoria",
