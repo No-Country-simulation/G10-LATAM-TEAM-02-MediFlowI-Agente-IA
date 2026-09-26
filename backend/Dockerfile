@@ -1,31 +1,50 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-# Instalar dependencias del sistema para PyMuPDF y OCI
-RUN apt-get update && apt-get install -y \
-    libmupdf-dev \
+# Dependencias nativas: OCR real en español, health check y manejo de señales.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    ca-certificates \
     curl \
+    tini \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar pip actualizado
-RUN pip install --upgrade pip
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    APP_ENV=production \
+    LOG_LEVEL=INFO \
+    TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
-# Copiar definición de paquete y código fuente
-COPY pyproject.toml README.md ./
-COPY app/ ./app/
+COPY pyproject.toml README.md alembic.ini ./
+COPY app ./app
+COPY alembic ./alembic
 
-# Instalar paquete en modo editable con dependencias de desarrollo
-RUN pip install -e ".[dev]"
+# Producción instala solo librerías de ejecución; desarrollo puede incluir pytest,
+# Ruff, mypy y las herramientas de contrato con --build-arg INSTALL_DEV=true.
+ARG INSTALL_DEV=false
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    if [ "$INSTALL_DEV" = "true" ]; then \
+      python -m pip install ".[dev]"; \
+    else \
+      python -m pip install .; \
+    fi
 
-# Variables de entorno por defecto
-ENV APP_ENV=production
-ENV LOG_LEVEL=INFO
+RUN addgroup --system mediflow && \
+    adduser --system --ingroup mediflow --home /app mediflow && \
+    mkdir -p /app/storage && \
+    chown -R mediflow:mediflow /app
+
+USER mediflow
 
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl --fail --silent --show-error http://localhost:8000/health >/dev/null || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]

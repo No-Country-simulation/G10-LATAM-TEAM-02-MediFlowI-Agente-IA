@@ -40,3 +40,10 @@ responses:
       application/json:
         schema:
           $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
+
+  ServiceUnavailable:
+    description: PostgreSQL no está disponible temporalmente
+    content:
+      application/json:
+        schema:
+          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"

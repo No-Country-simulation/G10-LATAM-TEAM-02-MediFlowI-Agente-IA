@@ -5,7 +5,11 @@ Output: ClasificacionState con tipo_documento, especialidad, nivel_prioridad.
 """
 
 import json
+
 import structlog
+
+from app.agent.clinical_catalog import CATALOGO_PARA_PROMPT, normalizar_tipo_documento
+from app.agent.nodes.extraction import dividir_texto_en_bloques
 from app.agent.state import AgentState, ClasificacionState
 
 logger = structlog.get_logger(__name__)
@@ -16,7 +20,7 @@ Analiza el siguiente texto extraído de un documento clínico.
 
 Devuelve SOLO un JSON válido con esta estructura (sin texto adicional):
 {{
-  "tipo_documento": "Informe de Estudio por Imagenes | Analítica de Laboratorio | Receta Médica | Informe Quirúrgico | Orden de Procedimiento | Otro",
+  "tipo_documento": "{catalogo}",
   "especialidad": "especialidad médica o null",
   "nivel_prioridad": "Urgente | Rutina | Ambiguo",
   "razon_prioridad": "breve justificación de la prioridad asignada"
@@ -36,6 +40,25 @@ Datos ya extraídos:
 - Diagnóstico principal: {diagnostico}
 - Hallazgos clave: {hallazgos}
 """
+
+
+def consolidar_clasificaciones(bloques: list[ClasificacionState]) -> ClasificacionState:
+    """Da prioridad clínica a urgencias y deriva inconsistencias a Ambiguo."""
+    if not bloques:
+        return ClasificacionState(tipo_documento="Desconocido", nivel_prioridad="Ambiguo")
+
+    urgentes = [bloque for bloque in bloques if bloque.nivel_prioridad == "Urgente"]
+    if urgentes:
+        return urgentes[0]
+
+    prioridades = {bloque.nivel_prioridad for bloque in bloques}
+    if "Ambiguo" in prioridades or len(prioridades) > 1:
+        return next(
+            (bloque for bloque in bloques if bloque.nivel_prioridad == "Ambiguo"),
+            ClasificacionState(tipo_documento="Desconocido", nivel_prioridad="Ambiguo"),
+        )
+
+    return bloques[0]
 
 
 async def node_classification(state: AgentState, llm_service=None) -> dict:
@@ -58,13 +81,16 @@ async def node_classification(state: AgentState, llm_service=None) -> dict:
         }
 
     try:
-        prompt = _CLASSIFICATION_PROMPT.format(
-            texto=texto[:3000],
-            diagnostico=diagnostico,
-            hallazgos=hallazgos,
-        )
-        respuesta_raw = await _llamar_llm(prompt, llm_service)
-        clasificacion = _parsear_respuesta(respuesta_raw)
+        clasificaciones = []
+        for bloque in dividir_texto_en_bloques(texto):
+            prompt = _CLASSIFICATION_PROMPT.format(
+                texto=bloque,
+                diagnostico=diagnostico,
+                hallazgos=hallazgos,
+                catalogo=CATALOGO_PARA_PROMPT,
+            )
+            clasificaciones.append(_parsear_respuesta(await _llamar_llm(prompt, llm_service)))
+        clasificacion = consolidar_clasificaciones(clasificaciones)
 
         logger.info(
             "nodo.classification.completado",
@@ -91,11 +117,11 @@ async def node_classification(state: AgentState, llm_service=None) -> dict:
 
 
 async def _llamar_llm(prompt: str, llm_service) -> str:
-    if llm_service is not None:
-        return await llm_service.completar(prompt)
-    from app.services.llm_service import LLMService
-    from app.core.config import get_settings
-    return LLMService(get_settings())._respuesta_mock(prompt)
+    if llm_service is None:
+        from app.services.llm_service import LLMUnavailableError
+
+        raise LLMUnavailableError("El nodo de clasificación requiere un servicio LLM.")
+    return await llm_service.completar(prompt)
 
 
 def _parsear_respuesta(raw: str) -> ClasificacionState:
@@ -112,7 +138,7 @@ def _parsear_respuesta(raw: str) -> ClasificacionState:
     score_base = {"Urgente": 0.85, "Rutina": 0.80, "Ambiguo": 0.30}.get(nivel, 0.5)
 
     return ClasificacionState(
-        tipo_documento=data.get("tipo_documento", "Desconocido"),
+        tipo_documento=normalizar_tipo_documento(data.get("tipo_documento")),
         especialidad=data.get("especialidad"),
         nivel_prioridad=nivel,
         score_confianza_clasificacion=score_base,

@@ -1,10 +1,26 @@
-version: "3.9"
-
 networks:
   mediflow-net:
     driver: bridge
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mediflow-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mediflow_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-mediflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mediflow_dev_pass}
+    volumes:
+      - mediflow-postgres-data:/var/lib/postgresql/data
+    networks:
+      - mediflow-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   # ── Backend: FastAPI + LangGraph ──────────────────────────────────────────
   backend:
     build:
@@ -12,17 +28,26 @@ services:
       dockerfile: Dockerfile
     container_name: mediflow-backend
     env_file:
-      - ../../backend/.env
+      - path: ../../backend/.env
+        required: false
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-mediflow}:${POSTGRES_PASSWORD:-mediflow_dev_pass}@postgres:5432/${POSTGRES_DB:-mediflow_dev}
     ports:
       - "8000:8000"
     networks:
       - mediflow-net
+    volumes:
+      - mediflow-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
     restart: unless-stopped
 
   # ── Frontend: React + Vite (build estático servido por nginx) ─────────────
@@ -31,6 +56,8 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile
     container_name: mediflow-frontend
+    ports:
+      - "${MEDIFLOW_HTTP_PORT:-80}:80"
     networks:
       - mediflow-net
     depends_on:
@@ -38,17 +65,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── Nginx: Reverse Proxy ──────────────────────────────────────────────────
-  nginx:
-    image: nginx:alpine
-    container_name: mediflow-nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ../nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - mediflow-net
-    depends_on:
-      - backend
-      - frontend
-    restart: unless-stopped
+volumes:
+  mediflow-postgres-data:
+  mediflow-storage:

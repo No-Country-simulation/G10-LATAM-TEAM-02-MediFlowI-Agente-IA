@@ -5,6 +5,7 @@ Combina señales de extracción + clasificación para producir un score 0.0-1.0.
 """
 
 import structlog
+
 from app.agent.state import AgentState, ClasificacionState
 
 logger = structlog.get_logger(__name__)

@@ -6,14 +6,18 @@ en los endpoints y servicios via FastAPI Depends().
 """
 
 from functools import lru_cache
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends
 
 from app.core.config import Settings, get_settings
 
+if TYPE_CHECKING:
+    from app.repositories.oci_storage import OCIStorageRepository
+
 
 # ── LLM Client ───────────────────────────────────────────────────────────────
+
 
 @lru_cache
 def get_llm_client(settings: Settings = Depends(get_settings)):
@@ -29,12 +33,14 @@ def get_llm_client(settings: Settings = Depends(get_settings)):
 
 # ── OCI Storage Client ───────────────────────────────────────────────────────
 
+
 def get_oci_storage(settings: Settings = Depends(get_settings)):
     """
     Retorna el cliente de OCI Object Storage.
-    Si OCI no está configurado (dev sin credenciales), retorna mock.
+    El proveedor efectivo se resuelve usando la selección manual de PostgreSQL.
     """
     from app.repositories.oci_storage import OCIStorageRepository
+
     return OCIStorageRepository(settings=settings)
 
 

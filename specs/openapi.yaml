@@ -34,6 +34,14 @@ tags:
     description: Gestión y consulta de documentos procesados
   - name: health
     description: Estado del servicio
+  - name: auth
+    description: Autenticación y sesión
+  - name: users
+    description: Gestión de usuarios y roles
+  - name: patients
+    description: Registro e historial de pacientes
+  - name: settings
+    description: Configuración manual del sistema
 
 paths:
   /health:
@@ -42,11 +50,40 @@ paths:
   /triage:
     $ref: "./paths/triage.yaml#/triage"
 
+  /triage/upload:
+    $ref: "./paths/triage.yaml#/triageUpload"
+
   /documents:
     $ref: "./paths/documents.yaml#/documents"
 
   /documents/{documento_id}:
     $ref: "./paths/documents.yaml#/documentById"
+
+  /documents/{documento_id}/historial:
+    $ref: "./paths/documents.yaml#/documentHistory"
+
+  /auth/login:
+    $ref: "./paths/auth.yaml#/login"
+  /auth/logout:
+    $ref: "./paths/auth.yaml#/logout"
+  /auth/me:
+    $ref: "./paths/auth.yaml#/me"
+  /users:
+    $ref: "./paths/users.yaml#/users"
+  /users/{user_id}:
+    $ref: "./paths/users.yaml#/userById"
+  /patients:
+    $ref: "./paths/patients.yaml#/patients"
+  /patients/unlinked-documents:
+    $ref: "./paths/patients.yaml#/unlinkedDocuments"
+  /patients/{id}:
+    $ref: "./paths/patients.yaml#/patientById"
+  /patients/{id}/documents:
+    $ref: "./paths/patients.yaml#/patientDocuments"
+  /patients/{id}/documents/{documento_id}/associate:
+    $ref: "./paths/patients.yaml#/associateDocument"
+  /settings:
+    $ref: "./paths/settings.yaml#/settings"
 
 components:
   schemas:
@@ -74,6 +111,16 @@ components:
       $ref: "./components/schemas.yaml#/schemas/ErrorResponse"
     HealthResponse:
       $ref: "./components/schemas.yaml#/schemas/HealthResponse"
+    Usuario:
+      $ref: "./components/schemas.yaml#/schemas/Usuario"
+    UsuarioCrear:
+      $ref: "./components/schemas.yaml#/schemas/UsuarioCrear"
+    ConfiguracionSistema:
+      $ref: "./components/schemas.yaml#/schemas/ConfiguracionSistema"
+    PacienteRegistrar:
+      $ref: "./components/schemas.yaml#/schemas/PacienteRegistrar"
+    PacienteRegistrado:
+      $ref: "./components/schemas.yaml#/schemas/PacienteRegistrado"
 
   responses:
     TriageSuccess:
@@ -90,10 +137,10 @@ components:
       $ref: "./components/responses.yaml#/responses/InternalError"
 
   securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-session-token
 
 security:
-  - ApiKeyAuth: []
+  - BearerAuth: []

@@ -1,0 +1,61 @@
+login:
+  post:
+    tags: [auth]
+    summary: Iniciar sesión
+    operationId: iniciarSesion
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [documento_identidad, password]
+            properties:
+              documento_identidad:
+                type: string
+                pattern: '^\d{8}$'
+              password:
+                type: string
+                format: password
+    responses:
+      "200":
+        description: Sesión iniciada
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [access_token, token_type, user, mensaje]
+              properties:
+                access_token: { type: string }
+                token_type: { type: string, example: Bearer }
+                user: { $ref: "../components/schemas.yaml#/schemas/Usuario" }
+                mensaje: { type: string }
+      "401":
+        $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "403": { description: Usuario inactivo }
+      "503": { description: PostgreSQL no disponible para crear la sesión }
+
+logout:
+  post:
+    tags: [auth]
+    summary: Cerrar sesión
+    operationId: cerrarSesion
+    responses:
+      "200": { description: Sesión invalidada }
+      "503": { description: PostgreSQL no disponible para revocar la sesión }
+
+me:
+  get:
+    tags: [auth]
+    summary: Consultar usuario autenticado
+    operationId: consultarSesion
+    responses:
+      "200":
+        description: Usuario de la sesión
+        content:
+          application/json:
+            schema: { $ref: "../components/schemas.yaml#/schemas/Usuario" }
+      "401":
+        $ref: "../components/responses.yaml#/responses/Unauthorized"
+      "503": { description: PostgreSQL no disponible para validar la sesión }

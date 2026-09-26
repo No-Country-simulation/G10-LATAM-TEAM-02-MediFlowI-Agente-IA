@@ -10,38 +10,40 @@ NOTA: Este archivo es MANUAL. No está en _generated/.
 El grafo refleja el flujo definido en ARQUITECTURA-SDD.md.
 """
 
-import time
 import functools
+import time
 from typing import Any
 
 import structlog
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 
-from app.agent.state import AgentState
-from app.agent.nodes.ingestion import node_ingestion
-from app.agent.nodes.extraction import node_extraction
+from app.agent.edges.conditional import decidir_post_confidence
 from app.agent.nodes.classification import node_classification
 from app.agent.nodes.confidence import node_confidence
+from app.agent.nodes.extraction import node_extraction
+from app.agent.nodes.ingestion import node_ingestion
 from app.agent.nodes.routing import node_routing
-from app.agent.edges.conditional import decidir_post_confidence
+from app.agent.state import AgentState
 
 logger = structlog.get_logger(__name__)
 
 
 def _wrap_with_llm(node_fn, llm_service):
     """Wrappea nodos que requieren llm_service via functools.partial."""
+
     @functools.wraps(node_fn)
     async def wrapper(state: AgentState) -> dict:
         return await node_fn(state, llm_service=llm_service)
+
     return wrapper
 
 
-def build_graph(llm_service=None) -> StateGraph:
+def build_graph(llm_service=None) -> Any:
     """
     Construye y compila el grafo LangGraph de MediFlow.
 
     Args:
-        llm_service: Instancia del servicio LLM. Si es None, usa mocks (dev/test).
+        llm_service: Instancia obligatoria para los nodos clínicos con IA.
 
     Returns:
         Grafo compilado listo para invocar.
@@ -58,6 +60,7 @@ def build_graph(llm_service=None) -> StateGraph:
     # Nodo terminal para auditoría forzada (error crítico)
     async def nodo_forzar_auditoria(state: AgentState) -> dict:
         from app.agent.state import DecisionEnrutamientoState
+
         return {
             "decision_enrutamiento": DecisionEnrutamientoState(
                 destino_principal="Cola_Auditoria_Humana",

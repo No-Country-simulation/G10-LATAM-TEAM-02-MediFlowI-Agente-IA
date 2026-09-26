@@ -30,7 +30,7 @@ def decidir_post_routing(state: AgentState) -> str:
 
     if destino == "Cola_Emergencia_Medica":
         return "fin_emergencia"
-    elif destino == "Cola_Auditoria_Humana":
+    elif destino in {"Cola_Auditoria_Humana", "Cola_Revision_Ambigua"}:
         return "fin_auditoria"
     else:
         return "fin_rutina"

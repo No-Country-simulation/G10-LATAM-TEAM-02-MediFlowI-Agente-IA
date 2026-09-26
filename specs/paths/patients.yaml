@@ -1,0 +1,114 @@
+patients:
+  get:
+    tags: [patients]
+    summary: Buscar y listar pacientes
+    operationId: listarPacientes
+    parameters:
+      - name: search
+        in: query
+        required: false
+        schema: { type: string }
+    responses:
+      "200":
+        description: Pacientes encontrados
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total: { type: integer }
+                items:
+                  type: array
+                  items: { $ref: "../components/schemas.yaml#/schemas/PacienteRegistrado" }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+  post:
+    tags: [patients]
+    summary: Registrar paciente
+    operationId: registrarPaciente
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "../components/schemas.yaml#/schemas/PacienteRegistrar" }
+    responses:
+      "201": { description: Paciente registrado }
+      "400": { description: Documento o historia clínica duplicados }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+
+unlinkedDocuments:
+  get:
+    tags: [patients]
+    summary: Listar documentos sin paciente asociado
+    operationId: listarDocumentosSinPaciente
+    responses:
+      "200": { description: Documentos disponibles }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+
+patientById:
+  get:
+    tags: [patients]
+    summary: Obtener paciente
+    operationId: obtenerPaciente
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    responses:
+      "200":
+        description: Paciente encontrado
+        content:
+          application/json:
+            schema: { $ref: "../components/schemas.yaml#/schemas/PacienteRegistrado" }
+      "404": { description: Paciente no encontrado }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+  put:
+    tags: [patients]
+    summary: Actualizar paciente
+    operationId: actualizarPaciente
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    responses:
+      "200": { description: Paciente actualizado }
+      "404": { description: Paciente no encontrado }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+
+patientDocuments:
+  get:
+    tags: [patients]
+    summary: Consultar historial documental del paciente
+    operationId: listarDocumentosPaciente
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    responses:
+      "200": { description: Historial clínico documental }
+      "404": { description: Paciente no encontrado }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+
+associateDocument:
+  post:
+    tags: [patients]
+    summary: Asociar un documento a un paciente
+    operationId: asociarDocumentoPaciente
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+      - name: documento_id
+        in: path
+        required: true
+        schema: { type: string }
+    responses:
+      "200": { description: Documento asociado }
+      "404": { description: Paciente o documento no encontrado }
+      "503": { $ref: "../components/responses.yaml#/responses/ServiceUnavailable" }
+
+components:
+  parameters:
+    PatientId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }

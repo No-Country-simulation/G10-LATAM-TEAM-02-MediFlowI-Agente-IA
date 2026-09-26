@@ -5,8 +5,9 @@ Todas las variables de entorno se leen aquí con pydantic-settings.
 NUNCA hardcodear valores sensibles en el código.
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -29,6 +30,7 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     gemini_model: str = "gemini-1.5-flash"
     openai_api_key: str = ""
+    allow_mock_llm: bool = False
 
     # ── OCI Object Storage ───────────────────────────────────────────────────
     oci_user_ocid: str = ""
@@ -53,7 +55,10 @@ class Settings(BaseSettings):
 
     @property
     def llm_configured(self) -> bool:
-        return bool(self.google_api_key or self.openai_api_key)
+        return any(
+            key and not key.startswith("your-")
+            for key in (self.google_api_key, self.openai_api_key)
+        )
 
 
 @lru_cache

@@ -5,8 +5,10 @@ Output: DatosExtraidosState con paciente, médico, diagnóstico, CIE-10, hallazg
 """
 
 import json
+
 import structlog
-from app.agent.state import AgentState, DatosExtraidosState, PacienteState, MedicoSolicitanteState
+
+from app.agent.state import AgentState, DatosExtraidosState, MedicoSolicitanteState, PacienteState
 
 logger = structlog.get_logger(__name__)
 
@@ -17,10 +19,12 @@ Si un campo no está en el texto, devuelve null para ese campo.
 
 Devuelve SOLO un JSON válido con esta estructura (sin texto adicional):
 {{
-  "paciente": {{
+    "paciente": {{
     "nombre": null,
     "edad": null,
-    "id_paciente": null
+    "id_paciente": null,
+    "documento_identidad": null,
+    "historia_clinica": null
   }},
   "medico_solicitante": {{
     "nombre": null,
@@ -37,6 +41,13 @@ Documento a analizar:
 {texto}
 ---
 """
+
+
+def dividir_texto_en_bloques(texto: str, max_chars: int = 4_000) -> list[str]:
+    """Divide texto largo sin descartar ningún carácter del documento."""
+    if max_chars <= 0:
+        raise ValueError("max_chars debe ser mayor que cero")
+    return [texto[indice : indice + max_chars] for indice in range(0, len(texto), max_chars)]
 
 
 async def node_extraction(state: AgentState, llm_service=None) -> dict:
@@ -56,9 +67,12 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
         }
 
     try:
-        prompt = _EXTRACTION_PROMPT.format(texto=texto[:4000])  # límite de contexto
-        respuesta_raw = await _llamar_llm(prompt, llm_service)
-        datos = _parsear_respuesta(respuesta_raw)
+        bloques = dividir_texto_en_bloques(texto)
+        datos = DatosExtraidosState()
+        for bloque in bloques:
+            prompt = _EXTRACTION_PROMPT.format(texto=bloque)
+            datos_bloque = _parsear_respuesta(await _llamar_llm(prompt, llm_service))
+            datos = _consolidar_datos(datos, datos_bloque)
 
         logger.info(
             "nodo.extraction.completado",
@@ -80,13 +94,28 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
         }
 
 
+def _consolidar_datos(
+    acumulado: DatosExtraidosState,
+    nuevo: DatosExtraidosState,
+) -> DatosExtraidosState:
+    """Conserva el primer valor clínico encontrado y combina los hallazgos."""
+    return DatosExtraidosState(
+        paciente=acumulado.paciente or nuevo.paciente,
+        medico_solicitante=acumulado.medico_solicitante or nuevo.medico_solicitante,
+        estudio_realizado=acumulado.estudio_realizado or nuevo.estudio_realizado,
+        diagnostico_principal=acumulado.diagnostico_principal or nuevo.diagnostico_principal,
+        cie10_sugerido=acumulado.cie10_sugerido or nuevo.cie10_sugerido,
+        hallazgos_clave=list(dict.fromkeys(acumulado.hallazgos_clave + nuevo.hallazgos_clave)),
+    )
+
+
 async def _llamar_llm(prompt: str, llm_service) -> str:
     """Llama al LLM y retorna el texto de la respuesta."""
-    if llm_service is not None:
-        return await llm_service.completar(prompt)
-    from app.services.llm_service import LLMService
-    from app.core.config import get_settings
-    return LLMService(get_settings())._respuesta_mock(prompt)
+    if llm_service is None:
+        from app.services.llm_service import LLMUnavailableError
+
+        raise LLMUnavailableError("El nodo de extracción requiere un servicio LLM.")
+    return await llm_service.completar(prompt)
 
 
 def _parsear_respuesta(raw: str) -> DatosExtraidosState:

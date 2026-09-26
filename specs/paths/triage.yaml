@@ -42,17 +42,6 @@ triage:
                 tipo_archivo: "TEXTO"
                 documento_texto: "... texto ilegible ... px ... 45 ... mgr ??? firma ilegible"
                 canal_origen: "Admision"
-        multipart/form-data:
-          schema:
-            type: object
-            properties:
-              documento_id:
-                type: string
-              canal_origen:
-                type: string
-              archivo:
-                type: string
-                format: binary
     responses:
       "200":
         description: Documento procesado correctamente
@@ -74,3 +63,48 @@ triage:
         description: Datos de solicitud incompletos o inválidos
       "500":
         $ref: "../components/responses.yaml#/responses/InternalError"
+      "503":
+        description: PostgreSQL no está disponible para confirmar la persistencia
+
+triageUpload:
+  post:
+    tags: [triage]
+    summary: Cargar y procesar un archivo clínico
+    operationId: subirDocumentoClinico
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [documento_id, archivo]
+            properties:
+              documento_id:
+                type: string
+              canal_origen:
+                type: string
+              archivo:
+                type: string
+                format: binary
+                description: PDF, JPG o PNG de hasta 10 MB; se valida la firma binaria.
+    responses:
+      "200":
+        description: Archivo procesado y persistido
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "207":
+        description: Archivo procesado y derivado a auditoría
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
+      "400":
+        $ref: "../components/responses.yaml#/responses/BadRequest"
+      "413":
+        description: El archivo supera los 10 MB
+      "415":
+        description: MIME, firma o formato no permitido
+      "503":
+        description: PostgreSQL no está disponible

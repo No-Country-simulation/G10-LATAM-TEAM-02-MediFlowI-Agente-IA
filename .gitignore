@@ -2,16 +2,24 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*$py.class
+*.so
 .Python
 *.egg-info/
 .eggs/
 dist/
+dist-ssr/
 build/
 .venv/
 venv/
 env/
+ENV/
 *.env
 !.env.example
+
+# ── Local Storage / Temp Files ─────────────────────────────────────────────
+backend/storage/
+storage/
 
 # ── Pytest / Coverage ────────────────────────────────────────────────────────
 .pytest_cache/
@@ -23,21 +31,27 @@ htmlcov/
 
 # ── Node / Frontend ──────────────────────────────────────────────────────────
 node_modules/
+package-lock.json
 frontend/dist/
 frontend/.env
 !frontend/.env.example
 
-# ── Docker ───────────────────────────────────────────────────────────────────
+# ── Logs & Debug ─────────────────────────────────────────────────────────────
+logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
 # ── IDE ───────────────────────────────────────────────────────────────────────
-.vscode/settings.json
+.vscode/
 .idea/
 *.swp
+*.swo
 
 # ── OCI ──────────────────────────────────────────────────────────────────────
 oci_private_key.pem
@@ -47,3 +61,5 @@ oci_private_key.pem
 backend/.env
 frontend/.env
 .env
+.env.local
+.env.*.local
