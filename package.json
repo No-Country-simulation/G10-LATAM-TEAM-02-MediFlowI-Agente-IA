@@ -1,0 +1,12 @@
+{
+  "name": "mediflow-contract",
+  "private": true,
+  "description": "Herramientas del contrato OpenAPI de MediFlow",
+  "engines": { "node": ">=22" },
+  "devDependencies": {
+    "@redocly/openapi-core": "1.34.20",
+    "@stoplight/spectral-cli": "6.15.0",
+    "openapi-typescript": "7.10.1",
+    "typescript": "5.9.3"
+  }
+}

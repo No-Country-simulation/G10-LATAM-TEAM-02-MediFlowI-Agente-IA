@@ -1,45 +1,69 @@
 users:
   get:
-    tags: [users]
+    tags:
+    - users
     summary: Listar usuarios
     operationId: listarUsuarios
     responses:
-      "200":
+      '200':
         description: Usuarios registrados
         content:
           application/json:
             schema:
               type: array
-              items: { $ref: "../components/schemas.yaml#/schemas/Usuario" }
-      "403": { description: Requiere rol ADMINISTRADOR }
+              items:
+                $ref: ../components/schemas.yaml#/schemas/Usuario
+      '403':
+        description: Requiere rol ADMINISTRADOR
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+    description: Listar usuarios.
   post:
-    tags: [users]
+    tags:
+    - users
     summary: Registrar usuario
     operationId: registrarUsuario
     requestBody:
       required: true
       content:
         application/json:
-          schema: { $ref: "../components/schemas.yaml#/schemas/UsuarioCrear" }
+          schema:
+            $ref: ../components/schemas.yaml#/schemas/UsuarioCrear
     responses:
-      "201":
+      '201':
         description: Usuario registrado
         content:
           application/json:
-            schema: { $ref: "../components/schemas.yaml#/schemas/Usuario" }
-      "400": { description: Usuario duplicado o datos inválidos }
-      "403": { description: Requiere rol ADMINISTRADOR }
-
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/Usuario
+      '400':
+        description: Usuario duplicado o datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+      '403':
+        description: Requiere rol ADMINISTRADOR
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+    description: Registrar usuario.
 userById:
   put:
-    tags: [users]
+    tags:
+    - users
     summary: Actualizar usuario, rol o estado
     operationId: actualizarUsuario
     parameters:
-      - name: user_id
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     requestBody:
       required: true
       content:
@@ -47,17 +71,45 @@ userById:
           schema:
             type: object
             properties:
-              nombres: { type: string }
-              apellidos: { type: string }
-              correo: { type: string, nullable: true }
-              telefono: { type: string, nullable: true }
-              rol: { type: string, enum: [ADMINISTRADOR, OPERADOR, AUDITOR, SUPERVISOR] }
-              estado: { type: string, enum: [ACTIVO, INACTIVO] }
-              password: { type: string, format: password, minLength: 12 }
+              nombres:
+                type: string
+              apellidos:
+                type: string
+              correo:
+                type:
+                - string
+                - 'null'
+              telefono:
+                type:
+                - string
+                - 'null'
+              rol:
+                type: string
+                enum:
+                - ADMINISTRADOR
+                - OPERADOR
+                - AUDITOR
+                - SUPERVISOR
+              estado:
+                type: string
+                enum:
+                - ACTIVO
+                - INACTIVO
+              password:
+                type: string
+                format: password
+                minLength: 12
     responses:
-      "200":
+      '200':
         description: Usuario actualizado
         content:
           application/json:
-            schema: { $ref: "../components/schemas.yaml#/schemas/Usuario" }
-      "404": { description: Usuario no encontrado }
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/Usuario
+      '404':
+        description: Usuario no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+    description: Actualizar usuario, rol o estado.

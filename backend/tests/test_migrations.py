@@ -1,10 +1,15 @@
 """Verificaciones de la salida SQL de las migraciones Alembic."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+OFFLINE_ENV = {
+    **os.environ,
+    "DATABASE_URL": "postgresql+asyncpg://test:test@localhost/mediflow_test",
+}
 
 
 def test_upgrade_sql_creates_document_traceability_schema():
@@ -12,6 +17,7 @@ def test_upgrade_sql_creates_document_traceability_schema():
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head", "--sql"],
         cwd=BACKEND_DIR,
+        env=OFFLINE_ENV,
         text=True,
         capture_output=True,
         check=True,
@@ -29,6 +35,7 @@ def test_upgrade_sql_commits_new_enum_values_before_using_them():
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head", "--sql"],
         cwd=BACKEND_DIR,
+        env=OFFLINE_ENV,
         text=True,
         capture_output=True,
         check=True,
@@ -43,6 +50,7 @@ def test_upgrade_rotates_only_unchanged_seed_credentials_and_revokes_sessions():
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head", "--sql"],
         cwd=BACKEND_DIR,
+        env=OFFLINE_ENV,
         text=True,
         capture_output=True,
         check=True,

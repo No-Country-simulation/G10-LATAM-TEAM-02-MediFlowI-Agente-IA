@@ -4,46 +4,46 @@ responses:
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-
+          $ref: ../components/schemas.yaml#/schemas/ResultadoTriaje
   TriagePendingAudit:
     description: Documento derivado a auditoría humana
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-
+          $ref: ../components/schemas.yaml#/schemas/ResultadoTriaje
   BadRequest:
     description: Solicitud inválida o documento malformado
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
-
+          $ref: ../components/schemas.yaml#/schemas/ErrorResponse
   Unauthorized:
-    description: API Key inválida o ausente
+    description: Token Bearer ausente, inválido o expirado
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
-
+          $ref: ../components/schemas.yaml#/schemas/ErrorResponse
   NotFound:
     description: Documento no encontrado
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
-
+          $ref: ../components/schemas.yaml#/schemas/ErrorResponse
   InternalError:
     description: Error interno del servidor / agente
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
-
+          $ref: ../components/schemas.yaml#/schemas/ErrorResponse
   ServiceUnavailable:
-    description: PostgreSQL no está disponible temporalmente
+    description: Dependencia requerida no disponible (PostgreSQL, almacenamiento o proveedor LLM)
     content:
       application/json:
         schema:
-          $ref: "../components/schemas.yaml#/schemas/ErrorResponse"
+          $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+  ValidationError:
+    description: Datos de solicitud incompletos o inválidos
+    content:
+      application/json:
+        schema:
+          $ref: ./schemas.yaml#/schemas/HTTPValidationError

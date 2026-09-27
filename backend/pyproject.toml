@@ -37,6 +37,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+sdd = [
+  "datamodel-code-generator==0.35.0",
+  "black==26.5.1",
+  "isort==6.1.0",
+  "PyYAML==6.0.2",
+  "jsonschema==4.25.1",
+]
 dev = [
   "pytest>=8.0.0",
   "pytest-asyncio>=0.23.0",

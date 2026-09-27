@@ -3,6 +3,8 @@
 
 .PHONY: help validate generate dev dev-docker docker-up docker-down test test-backend test-contract docs build clean
 
+PYTHON ?= $(if $(wildcard .venv/Scripts/python.exe),.venv/Scripts/python.exe,$(if $(wildcard .venv/bin/python),.venv/bin/python,python))
+
 # ── Default ──────────────────────────────────────────────────────────────────
 help:
 	@echo ""
@@ -12,6 +14,7 @@ help:
 	@echo "  SDD (Spec-Driven Development):"
 	@echo "    make validate     Valida specs/openapi.yaml con Spectral"
 	@echo "    make generate     Genera _generated/ desde el spec"
+	@echo "    make generate-check Comprueba que los tipos no estén desactualizados"
 	@echo ""
 	@echo "  Desarrollo:"
 	@echo "    make dev          Levanta backend + frontend sin Docker"
@@ -33,11 +36,11 @@ help:
 # ── SDD ───────────────────────────────────────────────────────────────────────
 validate:
 	@echo "🔍 Validando specs/openapi.yaml..."
-	python infrastructure/scripts/validate_spec.py
+	$(PYTHON) infrastructure/scripts/validate_spec.py
 
 generate:
 	@echo "⚙️  Generando código desde specs/openapi.yaml..."
-	python infrastructure/scripts/generate.py
+	$(PYTHON) infrastructure/scripts/generate.py
 
 # ── Desarrollo local (sin Docker) ────────────────────────────────────────────
 dev:
@@ -96,3 +99,7 @@ clean:
 	@echo "🧹 Limpiando contenedores y volúmenes..."
 	docker compose -f infrastructure/docker/docker-compose.dev.yml down -v
 	docker compose -f infrastructure/docker/docker-compose.yml down -v
+
+.PHONY: generate-check
+generate-check:
+	$(PYTHON) infrastructure/scripts/generate.py --check

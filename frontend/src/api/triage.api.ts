@@ -4,48 +4,11 @@
  * lógica de negocio (headers, error handling, etc.)
  */
 
-import type { ClinicalDocumentType } from '../constants/clinicalDocumentTypes'
+import type { DocumentoClinico, ResultadoTriaje, ConfiguracionSistema } from '../_generated/api'
 import { apiRequest } from './httpClient'
 
-export interface DocumentoClinicoPayload {
-  documento_id: string
-  tipo_archivo: 'PDF' | 'IMAGEN' | 'TEXTO' | 'JSON'
-  documento_texto?: string
-  documento_base64?: string
-  canal_origen?: string
-  metadata?: Record<string, unknown>
-}
-
-export interface ResultadoTriaje {
-  status: 'procesado' | 'error' | 'pendiente_auditoria'
-  documento_id: string
-  clasificacion: {
-    tipo_documento: ClinicalDocumentType
-    especialidad?: string
-    nivel_prioridad: 'Urgente' | 'Rutina' | 'Ambiguo'
-    score_confianza_clasificacion: number
-  }
-  datos_extraidos: {
-    paciente?: { nombre?: string; edad?: number; documento_identidad?: string; historia_clinica?: string }
-    medico_solicitante?: { nombre?: string; matricula?: string }
-    diagnostico_principal?: string
-    cie10_sugerido?: string
-    hallazgos_clave?: string[]
-  }
-  decision_enrutamiento: {
-    destino_principal: 'Cola_Emergencia_Medica' | 'Cola_Rutina' | 'Cola_Auditoria_Humana' | 'Cola_Revision_Ambigua'
-    requiere_auditoria_humana: boolean
-    justificacion_enrutamiento: string
-    notificacion_generada?: { canal: string; mensaje: string }
-  }
-  almacenamiento_oci?: {
-    bucket: string
-    ruta_objeto: string
-    status_backup: 'exito' | 'error' | 'pendiente'
-  }
-  tiempo_procesamiento_ms?: number
-  created_at?: string
-}
+export type { ResultadoTriaje, ConfiguracionSistema } from '../_generated/api'
+export type DocumentoClinicoPayload = DocumentoClinico
 
 /** Envía un documento al agente para triaje */
 export async function procesarDocumento(
@@ -99,14 +62,6 @@ export async function registrarAuditoria(
     method: 'PATCH',
     body: JSON.stringify({ decision, comentario }),
   })
-}
-
-export interface ConfiguracionSistema {
-  storage_mode: 'LOCAL' | 'OCI'
-  oci_configured: boolean
-  llm_provider: string
-  llm_configured: boolean
-  database_url_configured: boolean
 }
 
 /** Obtiene la configuración actual del sistema */

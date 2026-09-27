@@ -9,8 +9,8 @@ import base64
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
-from pydantic import BaseModel, Field
 
+from app._generated.models import DocumentoClinico as DocumentoClinicoRequest
 from app.core.config import Settings, get_settings
 from app.core.security import require_current_user
 from app.repositories.oci_storage import OCIStorageRepository, StoragePersistenceError
@@ -33,18 +33,6 @@ def _detectar_tipo_archivo(contenido: bytes) -> str | None:
     if contenido.startswith(b"\xff\xd8\xff"):
         return "IMAGEN"
     return None
-
-
-# ── Modelos de Request/Response (manuales, complementan _generated/) ─────────
-
-
-class DocumentoClinicoRequest(BaseModel):
-    documento_id: str = Field(..., examples=["DOC-CLIN-2026-8942"])
-    tipo_archivo: str = Field(..., pattern="^(PDF|IMAGEN|TEXTO|JSON)$")
-    documento_texto: str | None = None
-    documento_base64: str | None = None
-    canal_origen: str = Field(default="", examples=["Guardia_Emergencias"])
-    metadata: dict | None = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
