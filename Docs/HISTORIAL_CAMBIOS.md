@@ -29,6 +29,7 @@ Este documento es el **índice maestro** de los registros de cambios del proyect
 | **27/09/2026** | `CAMBIO1` | Krystopher | Arranque Docker y verificación de PostgreSQL y Alembic real; pendiente de US-01 resuelto | [HISTORIAL_CAMBIOS_2026-09-27_CAMBIO1.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-27_CAMBIO1.md) |
 | **27/09/2026** | `CAMBIO2` | Krystopher | US-01 — Compatibilidad de documentos históricos y verificación final del PR1 | [HISTORIAL_CAMBIOS_2026-09-27_CAMBIO2.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-27_CAMBIO2.md) |
 | **28/09/2026** | `CAMBIO1` | Wilmer Gulcochia | US-03 — Estabilización de Entorno Local Docker Compose, Hot-Reload y Comandos Multiplataforma | [HISTORIAL_CAMBIOS_2026-09-28_CAMBIO1.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-28_CAMBIO1.md) |
+| **28/09/2026** | `CAMBIO2` | DamaBeth | US-02 — Sistema de Diseño Clínico, Tokens Visuales y Prototipo Figma | [HISTORIAL_CAMBIOS_2026-09-28_CAMBIO2.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-28_CAMBIO2.md) |
 
 ---
 
