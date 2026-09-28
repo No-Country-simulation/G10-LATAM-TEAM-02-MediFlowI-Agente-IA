@@ -1,5 +1,4 @@
-openapi: "3.0.3"
-
+openapi: 3.1.0
 info:
   title: MediFlow — API de Triaje Clínico Autónomo
   description: |
@@ -14,133 +13,141 @@ info:
     - **Triaje estándar**: documento de rutina → cola de rutina
     - **Urgencia médica**: informe crítico → cola de emergencia + alerta
     - **Caso ambiguo**: documento ilegible → cola de auditoría humana (HITL)
-  version: "1.0.0"
+  version: 1.0.0
   contact:
     name: Grupo 10 — Hackathon ONE G10
     url: https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA
   license:
     name: MIT
-
+    identifier: MIT
 servers:
-  - url: http://localhost:8000/api/v1
-    description: Desarrollo local
-  - url: https://mediflow.oci.example.com/api/v1
-    description: Producción OCI
-
+- url: http://localhost:8000/api/v1
+  description: Desarrollo local
+- url: https://mediflow.oci.example.com/api/v1
+  description: Producción OCI
 tags:
-  - name: triage
-    description: Procesamiento y clasificación de documentos clínicos
-  - name: documents
-    description: Gestión y consulta de documentos procesados
-  - name: health
-    description: Estado del servicio
-  - name: auth
-    description: Autenticación y sesión
-  - name: users
-    description: Gestión de usuarios y roles
-  - name: patients
-    description: Registro e historial de pacientes
-  - name: settings
-    description: Configuración manual del sistema
-
+- name: triage
+  description: Procesamiento y clasificación de documentos clínicos
+- name: documents
+  description: Gestión y consulta de documentos procesados
+- name: health
+  description: Estado del servicio
+- name: auth
+  description: Autenticación y sesión
+- name: users
+  description: Gestión de usuarios y roles
+- name: patients
+  description: Registro e historial de pacientes
+- name: settings
+  description: Configuración manual del sistema
 paths:
   /health:
-    $ref: "./paths/health.yaml#/health"
-
+    $ref: ./paths/health.yaml#/health
   /triage:
-    $ref: "./paths/triage.yaml#/triage"
-
+    $ref: ./paths/triage.yaml#/triage
   /triage/upload:
-    $ref: "./paths/triage.yaml#/triageUpload"
-
+    $ref: ./paths/triage.yaml#/triageUpload
   /documents:
-    $ref: "./paths/documents.yaml#/documents"
-
+    $ref: ./paths/documents.yaml#/documents
   /documents/{documento_id}:
-    $ref: "./paths/documents.yaml#/documentById"
-
+    $ref: ./paths/documents.yaml#/documentById
   /documents/{documento_id}/historial:
-    $ref: "./paths/documents.yaml#/documentHistory"
-
+    $ref: ./paths/documents.yaml#/documentHistory
   /auth/login:
-    $ref: "./paths/auth.yaml#/login"
+    $ref: ./paths/auth.yaml#/login
   /auth/logout:
-    $ref: "./paths/auth.yaml#/logout"
+    $ref: ./paths/auth.yaml#/logout
   /auth/me:
-    $ref: "./paths/auth.yaml#/me"
+    $ref: ./paths/auth.yaml#/me
   /users:
-    $ref: "./paths/users.yaml#/users"
+    $ref: ./paths/users.yaml#/users
   /users/{user_id}:
-    $ref: "./paths/users.yaml#/userById"
+    $ref: ./paths/users.yaml#/userById
   /patients:
-    $ref: "./paths/patients.yaml#/patients"
+    $ref: ./paths/patients.yaml#/patients
   /patients/unlinked-documents:
-    $ref: "./paths/patients.yaml#/unlinkedDocuments"
+    $ref: ./paths/patients.yaml#/unlinkedDocuments
   /patients/{id}:
-    $ref: "./paths/patients.yaml#/patientById"
+    $ref: ./paths/patients.yaml#/patientById
   /patients/{id}/documents:
-    $ref: "./paths/patients.yaml#/patientDocuments"
+    $ref: ./paths/patients.yaml#/patientDocuments
   /patients/{id}/documents/{documento_id}/associate:
-    $ref: "./paths/patients.yaml#/associateDocument"
+    $ref: ./paths/patients.yaml#/associateDocument
   /settings:
-    $ref: "./paths/settings.yaml#/settings"
-
+    $ref: ./paths/settings.yaml#/settings
 components:
   schemas:
     DocumentoClinico:
-      $ref: "./components/schemas.yaml#/schemas/DocumentoClinico"
+      $ref: ./components/schemas.yaml#/schemas/DocumentoClinico
     Clasificacion:
-      $ref: "./components/schemas.yaml#/schemas/Clasificacion"
+      $ref: ./components/schemas.yaml#/schemas/Clasificacion
     Paciente:
-      $ref: "./components/schemas.yaml#/schemas/Paciente"
+      $ref: ./components/schemas.yaml#/schemas/Paciente
     MedicoSolicitante:
-      $ref: "./components/schemas.yaml#/schemas/MedicoSolicitante"
+      $ref: ./components/schemas.yaml#/schemas/MedicoSolicitante
     DatosExtraidos:
-      $ref: "./components/schemas.yaml#/schemas/DatosExtraidos"
+      $ref: ./components/schemas.yaml#/schemas/DatosExtraidos
     Notificacion:
-      $ref: "./components/schemas.yaml#/schemas/Notificacion"
+      $ref: ./components/schemas.yaml#/schemas/Notificacion
     DecisionEnrutamiento:
-      $ref: "./components/schemas.yaml#/schemas/DecisionEnrutamiento"
+      $ref: ./components/schemas.yaml#/schemas/DecisionEnrutamiento
     AlmacenamientoOCI:
-      $ref: "./components/schemas.yaml#/schemas/AlmacenamientoOCI"
+      $ref: ./components/schemas.yaml#/schemas/AlmacenamientoOCI
     ResultadoTriaje:
-      $ref: "./components/schemas.yaml#/schemas/ResultadoTriaje"
+      $ref: ./components/schemas.yaml#/schemas/ResultadoTriaje
     DecisionAuditoria:
-      $ref: "./components/schemas.yaml#/schemas/DecisionAuditoria"
+      $ref: ./components/schemas.yaml#/schemas/DecisionAuditoria
+    EntidadesMedicas:
+      $ref: ./components/schemas.yaml#/schemas/EntidadesMedicas
+    PrioridadTriaje:
+      $ref: ./components/schemas.yaml#/schemas/PrioridadTriaje
     ErrorResponse:
-      $ref: "./components/schemas.yaml#/schemas/ErrorResponse"
+      $ref: ./components/schemas.yaml#/schemas/ErrorResponse
     HealthResponse:
-      $ref: "./components/schemas.yaml#/schemas/HealthResponse"
+      $ref: ./components/schemas.yaml#/schemas/HealthResponse
     Usuario:
-      $ref: "./components/schemas.yaml#/schemas/Usuario"
+      $ref: ./components/schemas.yaml#/schemas/Usuario
     UsuarioCrear:
-      $ref: "./components/schemas.yaml#/schemas/UsuarioCrear"
+      $ref: ./components/schemas.yaml#/schemas/UsuarioCrear
     ConfiguracionSistema:
-      $ref: "./components/schemas.yaml#/schemas/ConfiguracionSistema"
+      $ref: ./components/schemas.yaml#/schemas/ConfiguracionSistema
     PacienteRegistrar:
-      $ref: "./components/schemas.yaml#/schemas/PacienteRegistrar"
+      $ref: ./components/schemas.yaml#/schemas/PacienteRegistrar
     PacienteRegistrado:
-      $ref: "./components/schemas.yaml#/schemas/PacienteRegistrado"
-
+      $ref: ./components/schemas.yaml#/schemas/PacienteRegistrado
+    DiagnosticoEntidad:
+      $ref: ./components/schemas.yaml#/schemas/DiagnosticoEntidad
+    ProcedimientoEntidad:
+      $ref: ./components/schemas.yaml#/schemas/ProcedimientoEntidad
+    MedicamentoEntidad:
+      $ref: ./components/schemas.yaml#/schemas/MedicamentoEntidad
+    ListaDocumentosResponse:
+      $ref: ./components/schemas.yaml#/schemas/ListaDocumentosResponse
+    DetalleError:
+      $ref: ./components/schemas.yaml#/schemas/DetalleError
+    ValidationError:
+      $ref: ./components/schemas.yaml#/schemas/ValidationError
+    HTTPValidationError:
+      $ref: ./components/schemas.yaml#/schemas/HTTPValidationError
   responses:
     TriageSuccess:
-      $ref: "./components/responses.yaml#/responses/TriageSuccess"
+      $ref: ./components/responses.yaml#/responses/TriageSuccess
     TriagePendingAudit:
-      $ref: "./components/responses.yaml#/responses/TriagePendingAudit"
+      $ref: ./components/responses.yaml#/responses/TriagePendingAudit
     BadRequest:
-      $ref: "./components/responses.yaml#/responses/BadRequest"
+      $ref: ./components/responses.yaml#/responses/BadRequest
     Unauthorized:
-      $ref: "./components/responses.yaml#/responses/Unauthorized"
+      $ref: ./components/responses.yaml#/responses/Unauthorized
     NotFound:
-      $ref: "./components/responses.yaml#/responses/NotFound"
+      $ref: ./components/responses.yaml#/responses/NotFound
     InternalError:
-      $ref: "./components/responses.yaml#/responses/InternalError"
-
+      $ref: ./components/responses.yaml#/responses/InternalError
+    ServiceUnavailable:
+      $ref: ./components/responses.yaml#/responses/ServiceUnavailable
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: opaque-session-token
-
 security:
-  - BearerAuth: []
+- BearerAuth: []

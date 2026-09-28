@@ -10,6 +10,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
+from app.agent.clinical_catalog import normalizar_tipo_documento
 from app.core.config import Settings, get_settings
 from app.core.security import require_current_user, require_roles
 from app.repositories.postgres_storage import PostgresStorageRepository
@@ -47,10 +48,24 @@ def _serialize_temporal(value) -> str | None:
     return str(isoformat()) if callable(isoformat) else str(value)
 
 
+def _tipo_documento_publico(value: object) -> str:
+    """Adapta nombres históricos al catálogo sin perder los estados de compatibilidad."""
+    if not value:
+        return "Documento Clínico"
+    if value in ("Desconocido", "Error", "Documento Clínico"):
+        return value
+    return normalizar_tipo_documento(value)
+
+
 def _format_document_row(row: dict) -> dict:
     """Convierte una fila canónica de PostgreSQL al contrato público de triaje."""
     if isinstance(row.get("clasificacion"), dict):
-        return dict(row)
+        doc = dict(row)
+        doc["clasificacion"] = dict(row["clasificacion"])
+        doc["clasificacion"]["tipo_documento"] = _tipo_documento_publico(
+            row["clasificacion"].get("tipo_documento")
+        )
+        return doc
 
     created_at = _serialize_temporal(row.get("created_at"))
 
@@ -62,7 +77,7 @@ def _format_document_row(row: dict) -> dict:
         "texto_extraido": row.get("texto_extraido") or "",
         "nombre_archivo": row.get("nombre_original"),
         "clasificacion": {
-            "tipo_documento": row.get("tipo_documento") or "Documento Clínico",
+            "tipo_documento": _tipo_documento_publico(row.get("tipo_documento")),
             "especialidad": row.get("especialidad") or "General",
             "nivel_prioridad": row.get("nivel_prioridad") or "Rutina",
             "score_confianza_clasificacion": row.get("score_confianza") or 0,

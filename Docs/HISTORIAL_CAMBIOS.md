@@ -24,6 +24,10 @@ Este documento es el **índice maestro** de los registros de cambios del proyect
 | **25/09/2026** | `CAMBIO12` | Erick Pariona | Módulo 2 Pacientes (RF-06 a RF-09) y Módulo 3 Recepción (RF-10) con Migración Alembic, API REST y Buscador Search Select | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO12.md](file:///c:/proyectos_git_institutos/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/Docs/historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO12.md) |
 | **25/09/2026** | `CAMBIO13` | Erick Pariona | Integridad documental: trazabilidad, OCR, clasificación incremental y asociación segura de pacientes | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO13.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO13.md) |
 | **25/09/2026** | `CAMBIO14` | Erick Pariona | Cierre integral: UX clínica, persistencia obligatoria, Docker, TypeScript y seguridad operativa | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO14.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO14.md) |
+| **26/09/2026** | `CAMBIO1` | Krystopher | US-01 — Contrato OpenAPI 3.1.0, Modelos Pydantic v2 y Tipos TypeScript (SDD) | [HISTORIAL_CAMBIOS_2026-09-26_CAMBIO1.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-26_CAMBIO1.md) |
+| **26/09/2026** | `CAMBIO2` | Krystopher | US-01 — Revisión de aceptación y preparación documental del PR; verificación de Alembic real pendiente | [HISTORIAL_CAMBIOS_2026-09-26_CAMBIO2.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-26_CAMBIO2.md) |
+| **27/09/2026** | `CAMBIO1` | Krystopher | Arranque Docker y verificación de PostgreSQL y Alembic real; pendiente de US-01 resuelto | [HISTORIAL_CAMBIOS_2026-09-27_CAMBIO1.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-27_CAMBIO1.md) |
+| **27/09/2026** | `CAMBIO2` | Krystopher | US-01 — Compatibilidad de documentos históricos y verificación final del PR1 | [HISTORIAL_CAMBIOS_2026-09-27_CAMBIO2.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-27_CAMBIO2.md) |
 
 ---
 

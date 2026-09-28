@@ -1,138 +1,155 @@
 documents:
   get:
     tags:
-      - documents
+    - documents
     summary: Listar documentos procesados
     description: Retorna la lista de documentos procesados, filtrables por estado y prioridad.
     operationId: listarDocumentos
     parameters:
-      - name: estado
-        in: query
-        schema:
-          type: string
-          enum: [procesado, pendiente_auditoria, error]
-        required: false
-      - name: nivel_prioridad
-        in: query
-        schema:
-          type: string
-          enum: [Urgente, Rutina, Ambiguo]
-        required: false
-      - name: limit
-        in: query
-        schema:
-          type: integer
-          default: 20
-          maximum: 100
-        required: false
+    - name: estado
+      in: query
+      schema:
+        type: string
+        enum:
+        - procesado
+        - pendiente_auditoria
+        - error
+      required: false
+    - name: nivel_prioridad
+      in: query
+      schema:
+        $ref: ../components/schemas.yaml#/schemas/PrioridadTriaje
+      required: false
+    - name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+      required: false
     responses:
-      "200":
+      '200':
         description: Lista de resultados de triaje
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                total:
-                  type: integer
-                items:
-                  type: array
-                  items:
-                    $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "401":
-        $ref: "../components/responses.yaml#/responses/Unauthorized"
-      "403":
+              $ref: ../components/schemas.yaml#/schemas/ListaDocumentosResponse
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '403':
         description: Rol sin permisos de auditoría
-      "503":
-        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
-
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable
+      '422':
+        $ref: ../components/responses.yaml#/responses/ValidationError
 documentById:
   get:
     tags:
-      - documents
+    - documents
     summary: Obtener documento procesado por ID
     description: Retorna el resultado de triaje de un documento específico según su identificador único.
     operationId: obtenerDocumentoPorId
     parameters:
-      - name: documento_id
-        in: path
-        required: true
-        schema:
-          type: string
-        example: "DOC-CLIN-2026-8942"
+    - name: documento_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: DOC-CLIN-2026-8942
     responses:
-      "200":
+      '200':
         description: Resultado de triaje del documento
         content:
           application/json:
             schema:
-              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "404":
-        $ref: "../components/responses.yaml#/responses/NotFound"
-      "401":
-        $ref: "../components/responses.yaml#/responses/Unauthorized"
-      "503":
-        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
-
+              $ref: ../components/schemas.yaml#/schemas/ResultadoTriaje
+      '404':
+        $ref: ../components/responses.yaml#/responses/NotFound
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable
+      '422':
+        $ref: ../components/responses.yaml#/responses/ValidationError
   patch:
     tags:
-      - documents
+    - documents
     summary: Registrar decisión de auditoría humana (HITL)
     description: |
       Permite a un auditor clínico aprobar, rechazar o reclasificar
       un documento derivado a auditoría humana.
     operationId: registrarDecisionAuditoria
     parameters:
-      - name: documento_id
-        in: path
-        required: true
-        schema:
-          type: string
+    - name: documento_id
+      in: path
+      required: true
+      schema:
+        type: string
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            $ref: "../components/schemas.yaml#/schemas/DecisionAuditoria"
+            $ref: ../components/schemas.yaml#/schemas/DecisionAuditoria
     responses:
-      "200":
+      '200':
         description: Decisión de auditoría registrada correctamente
         content:
           application/json:
             schema:
-              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "400":
-        $ref: "../components/responses.yaml#/responses/BadRequest"
-      "404":
-        $ref: "../components/responses.yaml#/responses/NotFound"
-      "409":
+              $ref: ../components/schemas.yaml#/schemas/ResultadoTriaje
+      '400':
+        $ref: ../components/responses.yaml#/responses/BadRequest
+      '404':
+        $ref: ../components/responses.yaml#/responses/NotFound
+      '409':
         description: El documento ya no está pendiente de auditoría humana
-      "401":
-        $ref: "../components/responses.yaml#/responses/Unauthorized"
-      "422":
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '422':
         description: Datos de auditoría inválidos
-      "503":
-        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
-
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/HTTPValidationError
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable
+      '403':
+        description: Rol sin permisos de auditoría
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
 documentHistory:
   get:
-    tags: [documents]
+    tags:
+    - documents
     summary: Consultar trazabilidad funcional del documento
     operationId: obtenerHistorialDocumento
     parameters:
-      - name: documento_id
-        in: path
-        required: true
-        schema:
-          type: string
+    - name: documento_id
+      in: path
+      required: true
+      schema:
+        type: string
     responses:
-      "200":
+      '200':
         description: Secuencia cronológica de eventos del documento
         content:
           application/json:
             schema:
               type: object
-              required: [documento_id, items]
+              required:
+              - documento_id
+              - items
               properties:
                 documento_id:
                   type: string
@@ -141,5 +158,10 @@ documentHistory:
                   items:
                     type: object
                     additionalProperties: true
-      "503":
-        $ref: "../components/responses.yaml#/responses/ServiceUnavailable"
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '422':
+        $ref: ../components/responses.yaml#/responses/ValidationError
+    description: Consultar trazabilidad funcional del documento.

@@ -1,7 +1,7 @@
 triage:
   post:
     tags:
-      - triage
+    - triage
     summary: Procesar y clasificar documento clínico
     description: |
       Endpoint principal del agente. Recibe un documento clínico en cualquier
@@ -19,56 +19,51 @@ triage:
       content:
         application/json:
           schema:
-            $ref: "../components/schemas.yaml#/schemas/DocumentoClinico"
+            $ref: ../components/schemas.yaml#/schemas/DocumentoClinico
           examples:
             urgente_tep:
-              summary: "Caso 2 — Urgencia TEP Agudo"
+              summary: Caso 2 — Urgencia TEP Agudo
               value:
-                documento_id: "DOC-CLIN-2026-8942"
-                tipo_archivo: "TEXTO"
-                documento_texto: "HOSPITAL SANTA LUCIA - INFORME RADIOLOGICO. Paciente: Carlos Eduardo Mendes, 52 años. Estudio: Tomografia de Torax. Hallazgos: Defecto de llenado en arteria pulmonar compatible con TEP agudo. CONCLUSION: Tromboembolismo Pulmonar Agudo. Se sugiere correlacion clinica urgente."
-                canal_origen: "Guardia_Emergencias"
+                documento_id: DOC-CLIN-2026-8942
+                tipo_archivo: TEXTO
+                documento_texto: 'HOSPITAL SANTA LUCIA - INFORME RADIOLOGICO. Paciente: Carlos Eduardo Mendes, 52
+                  años. Estudio: Tomografia de Torax. Hallazgos: Defecto de llenado en arteria pulmonar compatible
+                  con TEP agudo. CONCLUSION: Tromboembolismo Pulmonar Agudo. Se sugiere correlacion clinica urgente.'
+                canal_origen: Guardia_Emergencias
             rutina_analitica:
-              summary: "Caso 1 — Rutina (analítica normal)"
+              summary: Caso 1 — Rutina (analítica normal)
               value:
-                documento_id: "DOC-CLIN-2026-0001"
-                tipo_archivo: "TEXTO"
-                documento_texto: "LABORATORIO CENTRAL. Paciente: Ana García, 35 años. Hemograma completo. Resultados dentro de rangos normales. Sin observaciones."
-                canal_origen: "Consulta_Externa"
+                documento_id: DOC-CLIN-2026-0001
+                tipo_archivo: TEXTO
+                documento_texto: 'LABORATORIO CENTRAL. Paciente: Ana García, 35 años. Hemograma completo. Resultados
+                  dentro de rangos normales. Sin observaciones.'
+                canal_origen: Consulta_Externa
             ambiguo_ilegible:
-              summary: "Caso 3 — Ambiguo / ilegible"
+              summary: Caso 3 — Ambiguo / ilegible
               value:
-                documento_id: "DOC-CLIN-2026-9999"
-                tipo_archivo: "TEXTO"
-                documento_texto: "... texto ilegible ... px ... 45 ... mgr ??? firma ilegible"
-                canal_origen: "Admision"
+                documento_id: DOC-CLIN-2026-9999
+                tipo_archivo: TEXTO
+                documento_texto: '... texto ilegible ... px ... 45 ... mgr ??? firma ilegible'
+                canal_origen: Admision
     responses:
-      "200":
-        description: Documento procesado correctamente
-        content:
-          application/json:
-            schema:
-              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "207":
-        description: Procesado pero derivado a auditoría humana
-        content:
-          application/json:
-            schema:
-              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "400":
-        $ref: "../components/responses.yaml#/responses/BadRequest"
-      "401":
-        $ref: "../components/responses.yaml#/responses/Unauthorized"
-      "422":
-        description: Datos de solicitud incompletos o inválidos
-      "500":
-        $ref: "../components/responses.yaml#/responses/InternalError"
-      "503":
-        description: PostgreSQL no está disponible para confirmar la persistencia
-
+      '200':
+        $ref: ../components/responses.yaml#/responses/TriageSuccess
+      '207':
+        $ref: ../components/responses.yaml#/responses/TriagePendingAudit
+      '400':
+        $ref: ../components/responses.yaml#/responses/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '422':
+        $ref: ../components/responses.yaml#/responses/ValidationError
+      '500':
+        $ref: ../components/responses.yaml#/responses/InternalError
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable
 triageUpload:
   post:
-    tags: [triage]
+    tags:
+    - triage
     summary: Cargar y procesar un archivo clínico
     operationId: subirDocumentoClinico
     requestBody:
@@ -77,7 +72,9 @@ triageUpload:
         multipart/form-data:
           schema:
             type: object
-            required: [documento_id, archivo]
+            required:
+            - documento_id
+            - archivo
             properties:
               documento_id:
                 type: string
@@ -88,23 +85,30 @@ triageUpload:
                 format: binary
                 description: PDF, JPG o PNG de hasta 10 MB; se valida la firma binaria.
     responses:
-      "200":
-        description: Archivo procesado y persistido
-        content:
-          application/json:
-            schema:
-              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "207":
-        description: Archivo procesado y derivado a auditoría
-        content:
-          application/json:
-            schema:
-              $ref: "../components/schemas.yaml#/schemas/ResultadoTriaje"
-      "400":
-        $ref: "../components/responses.yaml#/responses/BadRequest"
-      "413":
+      '200':
+        $ref: ../components/responses.yaml#/responses/TriageSuccess
+      '207':
+        $ref: ../components/responses.yaml#/responses/TriagePendingAudit
+      '400':
+        $ref: ../components/responses.yaml#/responses/BadRequest
+      '413':
         description: El archivo supera los 10 MB
-      "415":
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+      '415':
         description: MIME, firma o formato no permitido
-      "503":
-        description: PostgreSQL no está disponible
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '422':
+        $ref: ../components/responses.yaml#/responses/ValidationError
+      '500':
+        $ref: ../components/responses.yaml#/responses/InternalError
+    description: Cargar y procesar un archivo clínico.
