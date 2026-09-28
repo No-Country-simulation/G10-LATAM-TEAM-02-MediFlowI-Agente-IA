@@ -28,7 +28,7 @@ COPY alembic ./alembic
 ARG INSTALL_DEV=false
 RUN python -m pip install --upgrade pip setuptools wheel && \
     if [ "$INSTALL_DEV" = "true" ]; then \
-      python -m pip install ".[dev]"; \
+      python -m pip install ".[dev,sdd]"; \
     else \
       python -m pip install .; \
     fi

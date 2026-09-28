@@ -1,9 +1,22 @@
 # MediFlow — Makefile
 # Comandos unificados para desarrollo, generación SDD, testing y despliegue.
 
-.PHONY: help validate generate dev dev-docker docker-up docker-down test test-backend test-contract docs build clean
+.PHONY: help validate generate generate-check dev dev-docker dev-docker-d dev-docker-down docker-up docker-down db db-down migrate test test-backend test-contract docs build clean
 
 PYTHON ?= $(if $(wildcard .venv/Scripts/python.exe),.venv/Scripts/python.exe,$(if $(wildcard .venv/bin/python),.venv/bin/python,python))
+
+ifeq ($(OS),Windows_NT)
+  OPEN := start
+else
+  UNAME_S := $(shell uname -s)
+  ifeq ($(UNAME_S),Linux)
+    OPEN := xdg-open
+  endif
+  ifeq ($(UNAME_S),Darwin)
+    OPEN := open
+  endif
+endif
+OPEN ?= echo
 
 # ── Default ──────────────────────────────────────────────────────────────────
 help:
@@ -57,6 +70,10 @@ db:
 	@echo "🐘 Levantando PostgreSQL 17 + pgAdmin..."
 	docker compose -f infrastructure/docker/docker-compose.db.yml up -d
 
+db-down:
+	@echo "🛑 Deteniendo PostgreSQL 17 + pgAdmin..."
+	docker compose -f infrastructure/docker/docker-compose.db.yml down
+
 migrate:
 	@echo "🔄 Aplicando migraciones de Alembic..."
 	cd backend && alembic upgrade head
@@ -66,10 +83,18 @@ dev-docker:
 	@echo "🐳 Levantando con Docker Compose (dev)..."
 	docker compose -f infrastructure/docker/docker-compose.dev.yml up --build
 
+dev-docker-d:
+	@echo "🐳 Levantando con Docker Compose en segundo plano (dev)..."
+	docker compose -f infrastructure/docker/docker-compose.dev.yml up --build -d
+
+dev-docker-down:
+	@echo "🛑 Deteniendo Docker Compose (dev)..."
+	docker compose -f infrastructure/docker/docker-compose.dev.yml down
+
 # ── Abrir Swagger UI ─────────────────────────────────────────────────────────
 docs:
-	@echo "📚 Abriendo Swagger UI..."
-	start http://localhost:8000/docs
+	@echo "📚 Abriendo Swagger UI (http://localhost:8000/docs)..."
+	@$(OPEN) http://localhost:8000/docs 2>/dev/null || true
 
 # ── Testing ───────────────────────────────────────────────────────────────────
 test: test-backend test-contract

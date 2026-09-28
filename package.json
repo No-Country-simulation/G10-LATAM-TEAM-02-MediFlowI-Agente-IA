@@ -3,6 +3,10 @@
   "private": true,
   "description": "Herramientas del contrato OpenAPI de MediFlow",
   "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build"
+  },
   "devDependencies": {
     "@redocly/openapi-core": "1.34.20",
     "@stoplight/spectral-cli": "6.15.0",
