@@ -26,6 +26,7 @@ Este documento es el **índice maestro** de los registros de Pull Requests del p
 | **25/09/2026** | `PR14` | Erick Pariona | PR #14 — Cierre integral de plataforma clínica, persistencia, UX y seguridad | [PULL_REQUEST_2026-09-25_PR14.md](pull_requests/PULL_REQUEST_2026-09-25_PR14.md) | [HISTORIAL_CAMBIOS_2026-09-25_CAMBIO14.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-25_CAMBIO14.md) |
 | **26/09/2026** | `PR1` | Krystopher | feat(US-01): definición de contrato openapi 3.1 y generación de tipos sdd (documento local; compatibilidad y 108 pruebas verificadas el 27/09) | [PULL_REQUEST_2026-09-26_PR1.md](pull_requests/PULL_REQUEST_2026-09-26_PR1.md) | [Revisión del 26/09](historial_cambios/HISTORIAL_CAMBIOS_2026-09-26_CAMBIO2.md) y [verificación Docker del 27/09](historial_cambios/HISTORIAL_CAMBIOS_2026-09-27_CAMBIO1.md) y [cierre de compatibilidad](historial_cambios/HISTORIAL_CAMBIOS_2026-09-27_CAMBIO2.md) |
 | **28/09/2026** | `PR1` | Wilmer Gulcochia | feat(US-03): estabilización del entorno de desarrollo docker compose y comandos multiplataforma | [PULL_REQUEST_2026-09-28_PR1.md](pull_requests/PULL_REQUEST_2026-09-28_PR1.md) | [HISTORIAL_CAMBIOS_2026-09-28_CAMBIO1.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-28_CAMBIO1.md) |
+| **28/09/2026** | `PR2` | DamaBeth | docs(US-02): documentar sistema de diseño clínico y prototipo Figma | [PULL_REQUEST_2026-09-28_PR2.md](pull_requests/PULL_REQUEST_2026-09-28_PR2.md) | [HISTORIAL_CAMBIOS_2026-09-28_CAMBIO2.md](historial_cambios/HISTORIAL_CAMBIOS_2026-09-28_CAMBIO2.md) |
 
 ---
 
