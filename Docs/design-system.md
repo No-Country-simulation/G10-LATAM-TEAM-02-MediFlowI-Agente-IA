@@ -44,6 +44,8 @@ Tokens de interfaz para la navegación, superficies, formularios e interactivida
 
 ## 3. Jerarquía Tipográfica
 
+Fuentes: **Quicksand y Montserrat**
+
 Estructura de fuentes y tamaños para optimizar la legibilidad en pantallas de administración y triaje:
 
 * **H1 / Display:** Título de bienvenida o pantalla principal (`"Solicitudes de acceso"`, `"Bienvenido a MediFlow"`). Peso: Bold / SemiBold.
