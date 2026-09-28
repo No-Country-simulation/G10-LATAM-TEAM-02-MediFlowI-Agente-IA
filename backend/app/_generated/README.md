@@ -1,7 +1,7 @@
-# Este directorio contiene código AUTO-GENERADO por infrastructure/scripts/generate.py
-# a partir de specs/openapi.yaml.
-#
-# ⚠️  NO EDITAR MANUALMENTE — Los cambios serán sobreescritos en el próximo `make generate`
-#
-# Para modificar los modelos o stubs, edita specs/openapi.yaml y vuelve a correr:
-#   make generate
+# Modelos generados
+
+No editar `models.py` manualmente. Modifica `specs/` y ejecuta `make generate` desde la raíz.
+
+`DocumentoClinico` es el DTO de entrada. El estado interno `AgentState` se importa desde `app.agent.state`, no desde este módulo.
+
+Consulta [la guía SDD](../../../Docs/GUIA_SDD_US01.md) para instalar herramientas, generar y verificar las salidas.

@@ -1,1 +1,48 @@
-extends: spectral:oas
+# make validate reúne las referencias y aplica estas reglas al contrato completo.
+extends:
+  - spectral:oas
+rules:
+  operation-operationId: error
+  operation-tags: error
+  mediflow-documento-id-type:
+    description: documento_id siempre es texto.
+    given: "$..properties.documento_id"
+    severity: error
+    then:
+      field: type
+      function: enumeration
+      functionOptions:
+        values: [string]
+  mediflow-score-bounds:
+    description: Las puntuaciones clínicas están acotadas entre cero y uno.
+    given: "$..properties['score_confianza_clasificacion','score_ner']"
+    severity: error
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: [minimum, maximum]
+          properties:
+            minimum: {const: 0}
+            maximum: {const: 1}
+  mediflow-security-default:
+    description: BearerAuth se hereda globalmente; los endpoints públicos declaran security vacío.
+    given: "$"
+    severity: error
+    then:
+      field: security
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [BearerAuth]
+  mediflow-no-nullable:
+    description: OpenAPI 3.1 declara null mediante type o anyOf, no nullable.
+    given: "$..nullable"
+    severity: error
+    then:
+      function: falsy

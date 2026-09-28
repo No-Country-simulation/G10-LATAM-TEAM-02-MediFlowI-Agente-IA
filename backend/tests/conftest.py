@@ -9,6 +9,9 @@ from fastapi.testclient import TestClient
 os.environ["GOOGLE_API_KEY"] = "your-test-placeholder"
 os.environ["OPENAI_API_KEY"] = "your-test-placeholder"
 os.environ["ALLOW_MOCK_LLM"] = "true"
+# Impide conexiones a mediflow_dev aun si el desarrollador tiene un .env real.
+# Las pruebas de SQL offline proporcionan su propia URL sin conectarse.
+os.environ["DATABASE_URL"] = ""
 
 from app.core.config import get_settings
 from app.main import app
@@ -22,6 +25,12 @@ TEST_SESSIONS = {
 
 async def _fake_active_session(token: str):
     return TEST_SESSIONS.get(token)
+
+
+@pytest.fixture(autouse=True)
+def isolated_local_storage(tmp_path, monkeypatch):
+    """Los documentos sintéticos de pytest nunca se mezclan con archivos del usuario."""
+    monkeypatch.setattr("app.repositories.oci_storage.LOCAL_STORAGE_DIR", tmp_path / "storage")
 
 
 @pytest.fixture(scope="session")

@@ -1,289 +1,388 @@
 schemas:
-  # ──────────────────────────────────────────────
-  # INPUT
-  # ──────────────────────────────────────────────
   DocumentoClinico:
     type: object
     required:
-      - documento_id
-      - tipo_archivo
-      - canal_origen
+    - documento_id
+    - tipo_archivo
     properties:
       documento_id:
         type: string
-        example: "DOC-CLIN-2026-8942"
+        example: DOC-CLIN-2026-8942
         description: Identificador único del documento
       tipo_archivo:
         type: string
-        enum: [PDF, IMAGEN, TEXTO, JSON]
-        example: "PDF"
+        enum:
+        - PDF
+        - IMAGEN
+        - TEXTO
+        - JSON
+        example: PDF
       documento_texto:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
         description: Contenido en texto plano (si ya está extraído)
-        example: "HOSPITAL SANTA LUCIA - INFORME DE ESTUDIO RADIOLOGICO..."
+        example: HOSPITAL SANTA LUCIA - INFORME DE ESTUDIO RADIOLOGICO...
       documento_base64:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
         description: Contenido del archivo en base64 (para PDF/imagen)
       canal_origen:
         type: string
-        example: "Guardia_Emergencias"
+        example: Guardia_Emergencias
         description: Sistema o canal que originó el documento
+        default: ''
       metadata:
-        type: object
-        nullable: true
+        type:
+        - object
+        - 'null'
         additionalProperties: true
         description: Metadatos adicionales del documento
-
-  # ──────────────────────────────────────────────
-  # OUTPUT — Componentes del resultado
-  # ──────────────────────────────────────────────
+    description: Documento de entrada al triaje. canal_origen conserva el valor vacío por defecto de la API.
   Clasificacion:
     type: object
     required:
-      - tipo_documento
-      - nivel_prioridad
-      - score_confianza_clasificacion
+    - tipo_documento
+    - nivel_prioridad
+    - score_confianza_clasificacion
     properties:
       tipo_documento:
         type: string
         enum:
-          - Informe Clínico
-          - Evolución Clínica
-          - Epicrisis
-          - Receta Médica
-          - Orden Médica
-          - Orden de Procedimiento
-          - Solicitud de Interconsulta
-          - Informe de Laboratorio
-          - Informe de Estudio por Imágenes
-          - Informe Quirúrgico
-          - Consentimiento Informado
-          - Certificado Médico
-          - Referencia y Contrarreferencia
-          - Registro de Vacunación
-          - Otro
-        example: "Informe de Estudio por Imágenes"
+        - Informe Clínico
+        - Evolución Clínica
+        - Epicrisis
+        - Receta Médica
+        - Orden Médica
+        - Orden de Procedimiento
+        - Solicitud de Interconsulta
+        - Informe de Laboratorio
+        - Informe de Estudio por Imágenes
+        - Informe Quirúrgico
+        - Consentimiento Informado
+        - Certificado Médico
+        - Referencia y Contrarreferencia
+        - Registro de Vacunación
+        - Otro
+        - Desconocido
+        - Error
+        - Documento Clínico
+        example: Informe de Estudio por Imágenes
+        description: 'Catálogo clínico más los valores de compatibilidad que devuelve actualmente la API: Desconocido
+          (sin texto), Error (fallo de clasificación) y Documento Clínico (registro histórico sin tipo). No admite
+          texto arbitrario.'
       especialidad:
-        type: string
-        nullable: true
-        example: "Radiologia / Neumonologia"
+        type:
+        - string
+        - 'null'
+        example: Radiologia / Neumonologia
       nivel_prioridad:
-        type: string
-        enum: [Urgente, Rutina, Ambiguo]
-        example: "Urgente"
+        $ref: '#/schemas/PrioridadTriaje'
       score_confianza_clasificacion:
         type: number
         format: float
         minimum: 0.0
         maximum: 1.0
         example: 0.99
-
+    description: Tipo de documento, prioridad y confianza de la clasificación.
   Paciente:
     type: object
     properties:
       nombre:
-        type: string
-        nullable: true
-        example: "Carlos Eduardo Mendes"
+        type:
+        - string
+        - 'null'
+        example: Carlos Eduardo Mendes
       edad:
-        type: integer
-        nullable: true
+        type:
+        - integer
+        - 'null'
         example: 52
       id_paciente:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
       documento_identidad:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
       historia_clinica:
-        type: string
-        nullable: true
-
+        type:
+        - string
+        - 'null'
+    description: Identificación del paciente extraída del documento.
   MedicoSolicitante:
     type: object
     properties:
       nombre:
-        type: string
-        nullable: true
-        example: "Dra. Renata Silveira"
+        type:
+        - string
+        - 'null'
+        example: Dra. Renata Silveira
       matricula:
-        type: string
-        nullable: true
-        example: "145892"
-
+        type:
+        - string
+        - 'null'
+        example: '145892'
+    description: Identificación del médico que solicita la atención.
   DatosExtraidos:
     type: object
     properties:
       paciente:
-        allOf:
-          - $ref: "#/schemas/Paciente"
-        nullable: true
+        anyOf:
+        - allOf:
+          - $ref: '#/schemas/Paciente'
+        - type: 'null'
       medico_solicitante:
-        allOf:
-          - $ref: "#/schemas/MedicoSolicitante"
-        nullable: true
+        anyOf:
+        - allOf:
+          - $ref: '#/schemas/MedicoSolicitante'
+        - type: 'null'
       estudio_realizado:
-        type: string
-        nullable: true
-        example: "Tomografia de Torax con contraste"
+        type:
+        - string
+        - 'null'
+        example: Tomografia de Torax con contraste
       diagnostico_principal:
-        type: string
-        nullable: true
-        example: "Tromboembolismo Pulmonar Agudo (TEP)"
+        type:
+        - string
+        - 'null'
+        example: Tromboembolismo Pulmonar Agudo (TEP)
       cie10_sugerido:
-        type: string
-        nullable: true
-        example: "I26.9"
+        type:
+        - string
+        - 'null'
+        example: I26.9
       hallazgos_clave:
-        type: array
+        type:
+        - array
+        - 'null'
         items:
           type: string
-        nullable: true
-
+    description: Datos clínicos que actualmente extrae el agente.
   Notificacion:
     type: object
     properties:
       canal:
         type: string
-        example: "Alerta_Guardia_Medica"
+        example: Alerta_Guardia_Medica
       mensaje:
         type: string
-        example: "ALERTA URGENTE: Informe crítico de TEP Agudo..."
-
+        example: 'ALERTA URGENTE: Informe crítico de TEP Agudo...'
+    required:
+    - canal
+    - mensaje
+    description: Mensaje emitido para comunicar una urgencia.
   DecisionEnrutamiento:
     type: object
     required:
-      - destino_principal
-      - requiere_auditoria_humana
-      - justificacion_enrutamiento
+    - destino_principal
+    - requiere_auditoria_humana
+    - justificacion_enrutamiento
     properties:
       destino_principal:
         type: string
-        enum: [Cola_Emergencia_Medica, Cola_Rutina, Cola_Auditoria_Humana, Cola_Revision_Ambigua]
-        example: "Cola_Emergencia_Medica"
+        enum:
+        - Cola_Emergencia_Medica
+        - Cola_Rutina
+        - Cola_Auditoria_Humana
+        - Cola_Revision_Ambigua
+        example: Cola_Emergencia_Medica
       requiere_auditoria_humana:
         type: boolean
         example: false
       justificacion_enrutamiento:
         type: string
-        example: "Hallazgo crítico de alta gravedad detectado."
+        example: Hallazgo crítico de alta gravedad detectado.
       notificacion_generada:
-        $ref: "#/schemas/Notificacion"
-        nullable: true
-
+        anyOf:
+        - $ref: '#/schemas/Notificacion'
+        - type: 'null'
+    description: Destino del documento y justificación de la revisión humana.
   AlmacenamientoOCI:
     type: object
     properties:
       bucket:
-        type: string
-        nullable: true
-        example: "mediflow-documentos-clinicos"
+        type:
+        - string
+        - 'null'
+        example: mediflow-documentos-clinicos
       ruta_objeto:
-        type: string
-        nullable: true
-        example: "urgentes/DOC-CLIN-2026-8942/resultado.json"
+        type:
+        - string
+        - 'null'
+        example: urgentes/DOC-CLIN-2026-8942/resultado.json
       archivo_original:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
       resultado_json:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
       nombre_original:
-        type: string
-        nullable: true
+        type:
+        - string
+        - 'null'
       status_backup:
         type: string
-        enum: [exito, error, pendiente]
-        example: "exito"
-
+        enum:
+        - exito
+        - error
+        - pendiente
+        example: exito
+    description: Rutas del archivo y resultado, tanto en almacenamiento local como OCI.
   ResultadoTriaje:
     type: object
     required:
-      - status
-      - documento_id
-      - clasificacion
-      - datos_extraidos
-      - decision_enrutamiento
+    - status
+    - documento_id
+    - clasificacion
+    - datos_extraidos
+    - decision_enrutamiento
     properties:
       status:
         type: string
-        enum: [recibido, procesando, procesado, pendiente_auditoria, rechazado, no_soportado, error]
-        example: "procesado"
+        enum:
+        - recibido
+        - procesando
+        - procesado
+        - pendiente_auditoria
+        - rechazado
+        - no_soportado
+        - error
+        example: procesado
       documento_id:
         type: string
-        example: "DOC-CLIN-2026-8942"
+        example: DOC-CLIN-2026-8942
       clasificacion:
-        $ref: "#/schemas/Clasificacion"
+        $ref: '#/schemas/Clasificacion'
       datos_extraidos:
-        $ref: "#/schemas/DatosExtraidos"
+        $ref: '#/schemas/DatosExtraidos'
       decision_enrutamiento:
-        $ref: "#/schemas/DecisionEnrutamiento"
+        $ref: '#/schemas/DecisionEnrutamiento'
       almacenamiento_oci:
-        $ref: "#/schemas/AlmacenamientoOCI"
-        nullable: true
+        anyOf:
+        - $ref: '#/schemas/AlmacenamientoOCI'
+        - type: 'null'
       tiempo_procesamiento_ms:
-        type: integer
-        nullable: true
+        type:
+        - integer
+        - 'null'
         example: 1240
-
-  # ──────────────────────────────────────────────
-  # AUDIT — Human-in-the-Loop
-  # ──────────────────────────────────────────────
+      created_at:
+        type:
+        - string
+        - 'null'
+        description: Fecha de registro disponible al consultar documentos persistidos.
+    description: Resultado del procesamiento clínico y su decisión de enrutamiento.
+  EntidadesMedicas:
+    type: object
+    description: Modelo de entidades clínicas estructuradas reservado para consumidores del contrato. El flujo actual
+      devuelve DatosExtraidos; no implica nuevas capacidades del agente.
+    properties:
+      diagnosticos:
+        type:
+        - array
+        - 'null'
+        description: Lista de diagnósticos identificados en el documento
+        items:
+          $ref: '#/schemas/DiagnosticoEntidad'
+      procedimientos:
+        type:
+        - array
+        - 'null'
+        description: Procedimientos o estudios médicos mencionados
+        items:
+          $ref: '#/schemas/ProcedimientoEntidad'
+      medicamentos:
+        type:
+        - array
+        - 'null'
+        description: Medicamentos mencionados con dosis y frecuencia cuando están disponibles
+        items:
+          $ref: '#/schemas/MedicamentoEntidad'
+      hallazgos_criticos:
+        type:
+        - array
+        - 'null'
+        description: Hallazgos marcados como críticos o urgentes por el agente
+        items:
+          type: string
+      score_ner:
+        type:
+        - number
+        - 'null'
+        format: float
+        minimum: 0.0
+        maximum: 1.0
+        description: Puntuación de confianza del proceso de extracción de entidades
+        example: 0.87
+  PrioridadTriaje:
+    type: string
+    description: |
+      Nivel de prioridad clínica asignado por el agente de triaje.
+      - **Urgente**: requiere atención inmediata o enrutamiento a emergencias.
+      - **Rutina**: flujo normal de procesamiento médico.
+      - **Ambiguo**: documento ilegible o con baja confianza; deriva a auditoría humana (HITL).
+    enum:
+    - Urgente
+    - Rutina
+    - Ambiguo
+    example: Urgente
   DecisionAuditoria:
     type: object
     required:
-      - decision
+    - decision
     properties:
       decision:
         type: string
-        enum: [aprobar, rechazar, reclasificar]
+        enum:
+        - aprobar
+        - rechazar
+        - reclasificar
       nueva_clasificacion:
-        type: object
+        type:
+        - object
+        - 'null'
         additionalProperties: true
-        nullable: true
       datos_corregidos:
-        type: object
+        type:
+        - object
+        - 'null'
         additionalProperties: true
-        nullable: true
       comentario:
-        type: string
-        nullable: true
-
-  # ──────────────────────────────────────────────
-  # ERROR
-  # ──────────────────────────────────────────────
+        type:
+        - string
+        - 'null'
+    description: Decisión humana y correcciones sobre un documento auditado.
   ErrorResponse:
     type: object
+    description: Error HTTP vigente de FastAPI. detail puede ser texto o el detalle estructurado de MediFlow.
     required:
-      - error
-      - mensaje
+    - detail
     properties:
-      error:
-        type: string
-        example: "DOCUMENTO_INVALIDO"
-      mensaje:
-        type: string
-        example: "El documento no pudo ser procesado."
-      detalle:
-        type: string
-        nullable: true
-
+      detail:
+        anyOf:
+        - type: string
+        - $ref: '#/schemas/DetalleError'
   HealthResponse:
     type: object
     required:
-      - status
-      - version
-      - postgres_disponible
+    - status
+    - version
+    - postgres_disponible
     properties:
       status:
         type: string
-        enum: [ok, unavailable]
-        example: "ok"
+        enum:
+        - ok
+        - unavailable
+        example: ok
       version:
         type: string
-        example: "1.0.0"
+        example: 1.0.0
       postgres_disponible:
         type: boolean
         example: true
@@ -293,64 +392,287 @@ schemas:
       oci_disponible:
         type: boolean
         example: true
-
+    description: Disponibilidad del servicio y de sus dependencias.
   Usuario:
     type: object
-    required: [id, documento_identidad, nombres, apellidos, rol, estado]
+    required:
+    - id
+    - documento_identidad
+    - nombres
+    - apellidos
+    - rol
+    - estado
     properties:
-      id: { type: string, format: uuid }
-      documento_identidad: { type: string, pattern: '^\d{8}$' }
-      nombres: { type: string }
-      apellidos: { type: string }
-      correo: { type: string, nullable: true }
-      telefono: { type: string, nullable: true }
-      rol: { type: string, enum: [ADMINISTRADOR, OPERADOR, AUDITOR, SUPERVISOR] }
-      estado: { type: string, enum: [ACTIVO, INACTIVO] }
-      created_at: { type: string, nullable: true }
-
+      id:
+        type: string
+        format: uuid
+      documento_identidad:
+        type: string
+        pattern: ^\d{8}$
+      nombres:
+        type: string
+      apellidos:
+        type: string
+      correo:
+        type:
+        - string
+        - 'null'
+      telefono:
+        type:
+        - string
+        - 'null'
+      rol:
+        type: string
+        enum:
+        - ADMINISTRADOR
+        - OPERADOR
+        - AUDITOR
+        - SUPERVISOR
+      estado:
+        type: string
+        enum:
+        - ACTIVO
+        - INACTIVO
+      created_at:
+        type:
+        - string
+        - 'null'
+    description: Datos públicos de un usuario del sistema.
   UsuarioCrear:
     type: object
-    required: [documento_identidad, password, nombres, apellidos]
+    required:
+    - documento_identidad
+    - password
+    - nombres
+    - apellidos
     properties:
-      documento_identidad: { type: string, pattern: '^\d{8}$' }
-      password: { type: string, format: password, minLength: 12 }
-      nombres: { type: string }
-      apellidos: { type: string }
-      correo: { type: string, nullable: true }
-      telefono: { type: string, nullable: true }
-      rol: { type: string, enum: [ADMINISTRADOR, OPERADOR, AUDITOR, SUPERVISOR], default: OPERADOR }
-      estado: { type: string, enum: [ACTIVO, INACTIVO], default: ACTIVO }
-
+      documento_identidad:
+        type: string
+        pattern: ^\d{8}$
+      password:
+        type: string
+        format: password
+        minLength: 12
+      nombres:
+        type: string
+      apellidos:
+        type: string
+      correo:
+        type:
+        - string
+        - 'null'
+      telefono:
+        type:
+        - string
+        - 'null'
+      rol:
+        type: string
+        enum:
+        - ADMINISTRADOR
+        - OPERADOR
+        - AUDITOR
+        - SUPERVISOR
+        default: OPERADOR
+      estado:
+        type: string
+        enum:
+        - ACTIVO
+        - INACTIVO
+        default: ACTIVO
+    description: Datos necesarios para registrar un usuario.
   ConfiguracionSistema:
     type: object
-    required: [storage_mode, oci_configured, llm_provider, llm_configured, database_url_configured]
+    required:
+    - storage_mode
+    - oci_configured
+    - llm_provider
+    - llm_configured
+    - database_url_configured
     properties:
-      storage_mode: { type: string, enum: [LOCAL, OCI] }
-      oci_configured: { type: boolean }
-      llm_provider: { type: string }
-      llm_configured: { type: boolean }
-      database_url_configured: { type: boolean }
-
+      storage_mode:
+        type: string
+        enum:
+        - LOCAL
+        - OCI
+      oci_configured:
+        type: boolean
+      llm_provider:
+        type: string
+      llm_configured:
+        type: boolean
+      database_url_configured:
+        type: boolean
+    description: Configuración vigente; el modo de almacenamiento se cambia manualmente.
   PacienteRegistrar:
     type: object
-    required: [tipo_documento, numero_documento, nombres, apellidos]
+    required:
+    - tipo_documento
+    - numero_documento
+    - nombres
+    - apellidos
     properties:
-      tipo_documento: { type: string, enum: [DNI, CE, PASAPORTE] }
-      numero_documento: { type: string }
-      historia_clinica: { type: string, nullable: true }
-      nombres: { type: string }
-      apellidos: { type: string }
-      fecha_nacimiento: { type: string, format: date, nullable: true }
-      sexo: { type: string, enum: [M, F, OTRO], nullable: true }
-      telefono: { type: string, nullable: true }
-      correo: { type: string, nullable: true }
-
+      tipo_documento:
+        type: string
+        enum:
+        - DNI
+        - CE
+        - PASAPORTE
+      numero_documento:
+        type: string
+      historia_clinica:
+        type:
+        - string
+        - 'null'
+      nombres:
+        type: string
+      apellidos:
+        type: string
+      fecha_nacimiento:
+        type:
+        - string
+        - 'null'
+        format: date
+      sexo:
+        type:
+        - string
+        - 'null'
+        enum:
+        - M
+        - F
+        - OTRO
+        - null
+      telefono:
+        type:
+        - string
+        - 'null'
+      correo:
+        type:
+        - string
+        - 'null'
+    description: Datos de registro de un paciente.
   PacienteRegistrado:
     allOf:
-      - $ref: "#/schemas/PacienteRegistrar"
-      - type: object
-        required: [id, nombre_completo]
-        properties:
-          id: { type: string, format: uuid }
-          nombre_completo: { type: string }
-          created_at: { type: string, nullable: true }
+    - $ref: '#/schemas/PacienteRegistrar'
+    - type: object
+      required:
+      - id
+      - nombre_completo
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre_completo:
+          type: string
+        created_at:
+          type:
+          - string
+          - 'null'
+    description: Paciente registrado con su identificador.
+  DiagnosticoEntidad:
+    type: object
+    properties:
+      texto:
+        type: string
+        example: Tromboembolismo Pulmonar Agudo
+      cie10:
+        type:
+        - string
+        - 'null'
+        example: I26.9
+      es_principal:
+        type: boolean
+        default: false
+    required:
+    - texto
+    description: Diagnóstico identificado y código CIE-10 sugerido.
+  ProcedimientoEntidad:
+    type: object
+    properties:
+      texto:
+        type: string
+        example: Tomografía de Tórax con contraste
+      codigo:
+        type:
+        - string
+        - 'null'
+    required:
+    - texto
+    description: Procedimiento médico mencionado en un documento.
+  MedicamentoEntidad:
+    type: object
+    properties:
+      nombre:
+        type: string
+        example: Heparina
+      dosis:
+        type:
+        - string
+        - 'null'
+        example: 80 UI/kg
+      frecuencia:
+        type:
+        - string
+        - 'null'
+        example: Infusión IV continua
+    required:
+    - nombre
+    description: Medicamento mencionado, dosis y frecuencia disponibles.
+  ListaDocumentosResponse:
+    type: object
+    required:
+    - total
+    - items
+    properties:
+      total:
+        type: integer
+      items:
+        type: array
+        items:
+          $ref: '#/schemas/ResultadoTriaje'
+    description: Cantidad e items retornados por la consulta de documentos.
+  DetalleError:
+    type: object
+    required:
+    - error
+    properties:
+      error:
+        type: string
+      mensaje:
+        type: string
+      detalle:
+        type:
+        - string
+        - 'null'
+    description: Código y descripción opcional de un error de MediFlow.
+  ValidationError:
+    type: object
+    required:
+    - loc
+    - msg
+    - type
+    properties:
+      loc:
+        type: array
+        items:
+          anyOf:
+          - type: string
+          - type: integer
+      msg:
+        type: string
+      type:
+        type: string
+      input: {}
+      ctx:
+        type: object
+        additionalProperties: true
+    description: Ubicación y causa de un error de validación de FastAPI.
+  HTTPValidationError:
+    type: object
+    description: Respuesta 422 para campos inválidos o ausentes.
+    required:
+    - detail
+    properties:
+      detail:
+        type: array
+        items:
+          $ref: '#/schemas/ValidationError'

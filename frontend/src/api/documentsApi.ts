@@ -21,11 +21,9 @@ export interface DashboardSummary {
 type BackendDocument = ResultadoTriaje & {
   nombre_archivo?: string
   canal_origen?: string
-  created_at?: string
   fecha_creacion?: string
   texto_extraido?: string
   texto_ocr?: string
-  almacenamiento_oci?: ResultadoTriaje['almacenamiento_oci'] & { nombre_original?: string }
 }
 
 export function normalizeBackendDocument(item: BackendDocument): ClinicalDocument {
