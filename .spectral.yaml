@@ -2,6 +2,7 @@
 extends:
   - spectral:oas
 rules:
+  oas3-unused-component: "off"
   operation-operationId: error
   operation-tags: error
   mediflow-documento-id-type:

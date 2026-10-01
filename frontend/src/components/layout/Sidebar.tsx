@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import {
   FaTachometerAlt,
   FaStethoscope,
@@ -14,8 +15,17 @@ import {
 
 interface SidebarProps { isOpen: boolean; closeSidebar: () => void }
 
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+  allowedRoles?: string[];
+}
+
 const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
-  const navItems = [
+  const { user } = useAuth();
+
+  const allNavItems: NavItem[] = [
     {
       path: "/dashboard",
       label: "Dashboard",
@@ -34,22 +44,26 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
     {
       path: "/documentos/nuevo",
       label: "Subir Archivo",
-      icon: <FaFileUpload className="me-2 fs-5" />
+      icon: <FaFileUpload className="me-2 fs-5" />,
+      allowedRoles: ["ADMINISTRADOR", "OPERADOR"]
     },
     {
       path: "/usuarios",
       label: "Gestión de Usuarios",
-      icon: <FaUserCog className="me-2 fs-5" />
+      icon: <FaUserCog className="me-2 fs-5" />,
+      allowedRoles: ["ADMINISTRADOR"]
     },
     {
       path: "/configuracion",
       label: "Configuración",
-      icon: <FaCog className="me-2 fs-5" />
+      icon: <FaCog className="me-2 fs-5" />,
+      allowedRoles: ["ADMINISTRADOR"]
     },
     {
       path: "/auditoria",
-      label: "Auditoría",
-      icon: <FaClipboardCheck className="me-2 fs-5" />
+      label: "Auditoría (HITL)",
+      icon: <FaClipboardCheck className="me-2 fs-5" />,
+      allowedRoles: ["ADMINISTRADOR", "COORDINADOR", "AUDITOR", "SUPERVISOR"]
     },
     {
       path: "/documentos",
@@ -62,6 +76,12 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       icon: <FaBook className="me-2 fs-5" />
     }
   ];
+
+  const userRole = user?.rol?.toUpperCase();
+  const navItems = allNavItems.filter((item) => {
+    if (!item.allowedRoles) return true;
+    return userRole ? item.allowedRoles.includes(userRole) : false;
+  });
 
   return (
     <>

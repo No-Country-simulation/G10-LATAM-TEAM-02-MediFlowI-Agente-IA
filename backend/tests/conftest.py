@@ -20,6 +20,16 @@ TEST_SESSIONS = {
     "test-operator-token": {"id": "11111111-2222-3333-4444-555555555555", "rol": "OPERADOR"},
     "test-auditor-token": {"id": "22222222-2222-3333-4444-555555555555", "rol": "AUDITOR"},
     "test-admin-token": {"id": "33333333-2222-3333-4444-555555555555", "rol": "ADMINISTRADOR"},
+    "test-coordinador-token": {
+        "id": "44444444-2222-3333-4444-555555555555",
+        "rol": "COORDINADOR",
+        "especialidad_medica": "Medicina de Urgencias",
+    },
+    "test-medico-token": {
+        "id": "55555555-2222-3333-4444-555555555555",
+        "rol": "MEDICO",
+        "especialidad_medica": "Medicina Interna",
+    },
 }
 
 
@@ -119,3 +129,14 @@ def auditor_bearer_headers():
 @pytest.fixture
 def admin_bearer_headers():
     return {"Authorization": "Bearer test-admin-token", "Content-Type": "application/json"}
+
+
+@pytest.fixture
+def coordinador_bearer_headers():
+    return {"Authorization": "Bearer test-coordinador-token", "Content-Type": "application/json"}
+
+
+@pytest.fixture
+def medico_bearer_headers():
+    return {"Authorization": "Bearer test-medico-token", "Content-Type": "application/json"}
+

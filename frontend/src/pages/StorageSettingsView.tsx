@@ -25,18 +25,19 @@ export default function StorageSettingsView() {
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
 
-  const canManageSettings =
-    !currentUser ||
-    currentUser.rol === 'ADMINISTRADOR' ||
-    currentUser.documento_identidad === 'admin'
+  const canManageSettings = Boolean(currentUser && currentUser.rol === 'ADMINISTRADOR')
 
   const loadSettings = useCallback(async () => {
     try {
       const cfg = await obtenerConfiguracion()
       setConfigSys(cfg)
       setSelectedStorageMode(cfg.storage_mode)
-    } catch {
-      // Fallback
+    } catch (err) {
+      setSettingsError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo conectar con el servicio de configuración.'
+      )
     }
   }, [])
 

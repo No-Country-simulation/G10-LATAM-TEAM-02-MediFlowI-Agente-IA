@@ -6,7 +6,6 @@ Revises: l5m505299hi1
 
 from alembic import op
 
-
 revision = "m6n606300ij2"
 down_revision = "l5m505299hi1"
 branch_labels = None

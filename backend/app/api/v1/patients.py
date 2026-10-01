@@ -34,8 +34,10 @@ class PatientCreateRequest(BaseModel):
     fecha_nacimiento: str | None = Field(
         None, description="Fecha de nacimiento en formato YYYY-MM-DD"
     )
-    sexo: str | None = Field(None, description="Sexo (M, F, OTRO; opcional)")
-    telefono: str | None = Field(None, description="Teléfono de contacto")
+    genero: str | None = Field(None, description="Género (FEMENINO, MASCULINO)")
+    sexo: str | None = Field(None, description="Sexo/Género legado (M, F, FEMENINO, MASCULINO)")
+    numero_telefono: str | None = Field(None, description="Número de teléfono de contacto")
+    telefono: str | None = Field(None, description="Teléfono legado de contacto")
     correo: str | None = Field(None, description="Correo electrónico")
 
     @field_validator("numero_documento")
@@ -54,6 +56,20 @@ class PatientCreateRequest(BaseModel):
             raise ValueError("Tipo de documento no válido. Permitidos: DNI, CE, PASAPORTE.")
         return v_upper
 
+    @field_validator("genero", "sexo")
+    @classmethod
+    def validate_genero(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v_upper = v.upper().strip()
+        if v_upper in {"F", "FEMENINO"}:
+            return "FEMENINO"
+        if v_upper in {"M", "MASCULINO"}:
+            return "MASCULINO"
+        if v_upper in {"OTRO"}:
+            return "OTRO"
+        raise ValueError("Género inválido. Opciones recomendadas: FEMENINO, MASCULINO.")
+
 
 class PatientUpdateRequest(BaseModel):
     tipo_documento: str | None = None
@@ -62,9 +78,25 @@ class PatientUpdateRequest(BaseModel):
     nombres: str | None = None
     apellidos: str | None = None
     fecha_nacimiento: str | None = None
+    genero: str | None = None
     sexo: str | None = None
+    numero_telefono: str | None = None
     telefono: str | None = None
     correo: str | None = None
+
+    @field_validator("genero", "sexo")
+    @classmethod
+    def validate_genero(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v_upper = v.upper().strip()
+        if v_upper in {"F", "FEMENINO"}:
+            return "FEMENINO"
+        if v_upper in {"M", "MASCULINO"}:
+            return "MASCULINO"
+        if v_upper in {"OTRO"}:
+            return "OTRO"
+        raise ValueError("Género inválido. Opciones recomendadas: FEMENINO, MASCULINO.")
 
 
 @router.get("", summary="RF-07 — Búsqueda y listado de pacientes")
@@ -74,7 +106,7 @@ async def listar_pacientes(
     ),
     _user: dict = Depends(require_current_user),
 ):
-    """Retorna la lista de pacientes registrados con soporte para búsqueda (RF-07)."""
+    """Retorna la lista de pacientes registrados con soporte para búsqueda (RF-07) y edad dinámica."""
     patients = await patient_repository.list_patients(search=search)
     formatted = []
     for p in patients:
@@ -90,8 +122,11 @@ async def listar_pacientes(
                 "fecha_nacimiento": str(p.get("fecha_nacimiento"))
                 if p.get("fecha_nacimiento")
                 else None,
-                "sexo": p.get("sexo"),
-                "telefono": p.get("telefono"),
+                "edad": p.get("edad"),
+                "genero": p.get("genero") or p.get("sexo"),
+                "sexo": p.get("genero") or p.get("sexo"),
+                "numero_telefono": p.get("numero_telefono") or p.get("telefono"),
+                "telefono": p.get("numero_telefono") or p.get("telefono"),
                 "correo": p.get("correo"),
                 "created_at": _serialize_temporal(p.get("created_at")),
             }
@@ -149,6 +184,9 @@ async def registrar_paciente(
             detail="Formato de fecha_nacimiento inválido. Utilice AAAA-MM-DD.",
         ) from None
 
+    gen = payload.genero or payload.sexo
+    tel = payload.numero_telefono or payload.telefono
+
     created = await patient_repository.create_patient(
         {
             "tipo_documento": payload.tipo_documento,
@@ -157,8 +195,10 @@ async def registrar_paciente(
             "nombres": payload.nombres,
             "apellidos": payload.apellidos,
             "fecha_nacimiento": f_nac,
-            "sexo": payload.sexo,
-            "telefono": payload.telefono,
+            "genero": gen,
+            "sexo": gen,
+            "numero_telefono": tel,
+            "telefono": tel,
             "correo": payload.correo,
         }
     )
@@ -172,18 +212,21 @@ async def registrar_paciente(
     return {
         "message": "Paciente registrado exitosamente.",
         "paciente": {
-            "id": str(created["id"]),
-            "tipo_documento": created["tipo_documento"],
-            "numero_documento": created["numero_documento"],
+            "id": str(created.get("id")),
+            "tipo_documento": created.get("tipo_documento", "DNI"),
+            "numero_documento": created.get("numero_documento", ""),
             "historia_clinica": created.get("historia_clinica"),
-            "nombres": created["nombres"],
-            "apellidos": created["apellidos"],
-            "nombre_completo": f"{created['nombres']} {created['apellidos']}",
+            "nombres": created.get("nombres", ""),
+            "apellidos": created.get("apellidos", ""),
+            "nombre_completo": f"{created.get('nombres', '')} {created.get('apellidos', '')}".strip(),
             "fecha_nacimiento": str(created.get("fecha_nacimiento"))
             if created.get("fecha_nacimiento")
             else None,
-            "sexo": created.get("sexo"),
-            "telefono": created.get("telefono"),
+            "edad": created.get("edad"),
+            "genero": created.get("genero") or created.get("sexo"),
+            "sexo": created.get("genero") or created.get("sexo"),
+            "numero_telefono": created.get("numero_telefono") or created.get("telefono"),
+            "telefono": created.get("numero_telefono") or created.get("telefono"),
             "correo": created.get("correo"),
             "created_at": _serialize_temporal(created.get("created_at")),
         },
@@ -195,7 +238,7 @@ async def obtener_paciente(
     id: str,
     _user: dict = Depends(require_current_user),
 ):
-    """Consulta los datos detallados de un paciente por su ID."""
+    """Consulta los datos detallados de un paciente por su ID con cálculo dinámico de edad."""
     patient = await patient_repository.get_patient_by_id(id)
     if not patient:
         raise HTTPException(
@@ -213,8 +256,11 @@ async def obtener_paciente(
         "fecha_nacimiento": str(patient.get("fecha_nacimiento"))
         if patient.get("fecha_nacimiento")
         else None,
-        "sexo": patient.get("sexo"),
-        "telefono": patient.get("telefono"),
+        "edad": patient.get("edad"),
+        "genero": patient.get("genero") or patient.get("sexo"),
+        "sexo": patient.get("genero") or patient.get("sexo"),
+        "numero_telefono": patient.get("numero_telefono") or patient.get("telefono"),
+        "telefono": patient.get("numero_telefono") or patient.get("telefono"),
         "correo": patient.get("correo"),
         "created_at": _serialize_temporal(patient.get("created_at")),
     }
@@ -243,6 +289,11 @@ async def actualizar_paciente(
                 detail="Formato de fecha_nacimiento inválido. Use AAAA-MM-DD.",
             ) from None
 
+    if "genero" in data and data["genero"]:
+        data["sexo"] = data["genero"]
+    if "numero_telefono" in data and data["numero_telefono"]:
+        data["telefono"] = data["numero_telefono"]
+
     updated = await patient_repository.update_patient(id, data)
     if not updated:
         raise HTTPException(
@@ -262,11 +313,15 @@ async def actualizar_paciente(
             "fecha_nacimiento": str(updated.get("fecha_nacimiento"))
             if updated.get("fecha_nacimiento")
             else None,
-            "sexo": updated.get("sexo"),
-            "telefono": updated.get("telefono"),
+            "edad": updated.get("edad"),
+            "genero": updated.get("genero") or updated.get("sexo"),
+            "sexo": updated.get("genero") or updated.get("sexo"),
+            "numero_telefono": updated.get("numero_telefono") or updated.get("telefono"),
+            "telefono": updated.get("numero_telefono") or updated.get("telefono"),
             "correo": updated.get("correo"),
         },
     }
+
 
 
 @router.get("/{id}/documents", summary="RF-08 & RF-09 — Historial de documentos del paciente")

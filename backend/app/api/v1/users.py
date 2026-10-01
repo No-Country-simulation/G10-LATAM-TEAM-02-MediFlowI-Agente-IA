@@ -11,10 +11,10 @@ o desactivar usuarios y asignar los roles:
 
 import re
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
-from app.core.security import hash_password, verify_access_token
+from app.core.security import hash_password, require_roles
 from app.repositories.user_repository import (
     create_user,
     get_user_by_document,
@@ -25,7 +25,7 @@ from app.repositories.user_repository import (
 
 router = APIRouter(prefix="/users", tags=["Gestión de Usuarios"])
 
-VALID_ROLES = {"ADMINISTRADOR", "OPERADOR", "AUDITOR", "SUPERVISOR"}
+VALID_ROLES = {"ADMINISTRADOR", "COORDINADOR", "OPERADOR", "AUDITOR", "SUPERVISOR"}
 VALID_ESTADOS = {"ACTIVO", "INACTIVO"}
 
 
@@ -61,6 +61,7 @@ class UserCreateRequest(BaseModel):
     correo: str | None = Field(None, json_schema_extra={"example": "maria.gomez@clinica.com"})
     telefono: str | None = Field(None, json_schema_extra={"example": "987654321"})
     rol: str = Field("OPERADOR", json_schema_extra={"example": "OPERADOR"})
+    especialidad_medica: str | None = Field(None, json_schema_extra={"example": "Medicina General"})
     estado: str = Field("ACTIVO", json_schema_extra={"example": "ACTIVO"})
 
     @field_validator("documento_identidad")
@@ -101,6 +102,7 @@ class UserUpdateRequest(BaseModel):
     correo: str | None = None
     telefono: str | None = None
     rol: str | None = None
+    especialidad_medica: str | None = None
     estado: str | None = None
     password: str | None = None
 
@@ -138,34 +140,12 @@ class UserResponse(BaseModel):
     correo: str | None = None
     telefono: str | None = None
     rol: str
+    especialidad_medica: str | None = None
     estado: str
     created_at: str | None = None
 
 
-async def require_admin(authorization: str | None = Header(None)) -> dict:
-    """Verifica que la petición provenga de una sesión activa con rol ADMINISTRADOR."""
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticación requerida."
-        )
-    token = authorization.replace("Bearer ", "").strip()
-    try:
-        user = await verify_access_token(token)
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="El servicio de autenticación no está disponible temporalmente.",
-        ) from exc
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Sesión inválida o expirada."
-        )
-    if user.get("rol") != "ADMINISTRADOR":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso restringido. Requiere rol ADMINISTRADOR.",
-        )
-    return user
+require_admin = require_roles("ADMINISTRADOR")
 
 
 @router.get("", response_model=list[UserResponse], summary="RF-03 — Consultar Usuarios Registrados")
@@ -208,6 +188,7 @@ async def create_new_user(req: UserCreateRequest, admin: dict = Depends(require_
         correo=req.correo,
         telefono=req.telefono,
         rol=req.rol,
+        especialidad_medica=req.especialidad_medica,
         estado=req.estado,
     )
 
@@ -254,6 +235,7 @@ async def update_user_details(
         correo=req.correo,
         telefono=req.telefono,
         rol=req.rol,
+        especialidad_medica=req.especialidad_medica,
         estado=req.estado,
         password_hash=pwd_hash,
         salt=salt,
@@ -265,3 +247,4 @@ async def update_user_details(
     u_dict = dict(updated)
     u_dict["id"] = str(u_dict["id"])
     return UserResponse(**u_dict)
+
