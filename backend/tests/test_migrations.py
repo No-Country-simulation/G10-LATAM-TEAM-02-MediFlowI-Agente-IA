@@ -61,3 +61,24 @@ def test_upgrade_rotates_only_unchanged_seed_credentials_and_revokes_sessions():
     assert "usuario.password_hash = credencial.hash_anterior" in sql
     assert "UPDATE sesiones_usuario" in sql
     assert "SET revoked_at = NOW()" in sql
+
+
+def test_upgrade_sql_creates_unified_proposal_tables():
+    """La migración unificada crea episodios_clinicos, auditorias_coordinacion y campos solicitados."""
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head", "--sql"],
+        cwd=BACKEND_DIR,
+        env=OFFLINE_ENV,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    sql = result.stdout
+    assert "CREATE TABLE IF NOT EXISTS episodios_clinicos" in sql
+    assert "CREATE TABLE IF NOT EXISTS auditorias_coordinacion" in sql
+    assert "CREATE TABLE IF NOT EXISTS trazabilidad_eventos" in sql
+    assert "especialidad_medica VARCHAR(100)" in sql
+    assert "COORDINADOR" in sql
+    assert "Farmacia_Hospitalaria" in sql
+

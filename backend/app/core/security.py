@@ -64,20 +64,19 @@ async def invalidate_access_token(token: str) -> bool:
 
 
 async def require_api_key(
-    x_api_key: str | None = Header(None, alias="X-API-Key"), api_key_query: str | None = None
+    x_api_key: str | None = Header(None, alias="X-API-Key"),
 ) -> str:
-    """Verifica que la petición incluya una API key válida."""
+    """Verifica que la petición incluya una API key válida en la cabecera X-API-Key."""
     from app.core.config import get_settings
 
     settings = get_settings()
 
-    key = x_api_key or api_key_query
-    if not key or key != settings.api_key:
+    if not x_api_key or x_api_key != settings.api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="API Key inválida o no proporcionada en la cabecera X-API-Key.",
         )
-    return key
+    return x_api_key
 
 
 async def require_current_user(

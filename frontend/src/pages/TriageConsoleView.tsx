@@ -174,11 +174,18 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
 
 
   // ── RENDERING RESTRICCIONES POR ROL (RF-05) ──────────────────────────
-  const canUploadDocs = !currentUser || currentUser.rol === 'ADMINISTRADOR' || currentUser.rol === 'OPERADOR'
-  const canAuditHITL = !currentUser || currentUser.rol === 'ADMINISTRADOR' || currentUser.rol === 'AUDITOR' || currentUser.rol === 'SUPERVISOR'
+  const canUploadDocs = Boolean(
+    currentUser && (currentUser.rol === 'ADMINISTRADOR' || currentUser.rol === 'OPERADOR')
+  )
+  const canAuditHITL = Boolean(
+    currentUser &&
+      (currentUser.rol === 'ADMINISTRADOR' ||
+        currentUser.rol === 'AUDITOR' ||
+        currentUser.rol === 'SUPERVISOR')
+  )
   const isSupervisorReadOnly = currentUser?.rol === 'SUPERVISOR'
-  const canManageUsers = currentUser?.rol === 'ADMINISTRADOR'
-  const canManageSettings = currentUser?.rol === 'ADMINISTRADOR'
+  const canManageUsers = Boolean(currentUser?.rol === 'ADMINISTRADOR')
+  const canManageSettings = Boolean(currentUser?.rol === 'ADMINISTRADOR')
 
   return (
     <div className="app-container">

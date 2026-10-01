@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.api.v1 import auth, documents, health, patients, triage, users
 from app.api.v1 import settings as settings_router
@@ -50,6 +50,29 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
+
+    @app.get("/scalar", include_in_schema=False)
+    async def scalar_docs() -> HTMLResponse:
+        """Documentación interactiva de la API con Scalar."""
+        return HTMLResponse(
+            """<!doctype html>
+<html>
+  <head>
+    <title>MediFlow — API Reference (Scalar)</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="https://scalar.com/favicon.svg" />
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/openapi.json"
+      data-configuration='{"theme": "purple"}'>
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>"""
+        )
 
     @app.exception_handler(DatabaseUnavailableError)
     async def database_unavailable_handler(

@@ -211,7 +211,7 @@ async def obtener_documento(
 async def registrar_decision_auditoria(
     documento_id: str,
     payload: DecisionAuditoriaRequest,
-    current_user: dict = Depends(require_roles("AUDITOR", "ADMINISTRADOR")),
+    current_user: dict = Depends(require_roles("COORDINADOR", "ADMINISTRADOR", "AUDITOR")),
     settings: Settings = Depends(get_settings),
 ):
     """

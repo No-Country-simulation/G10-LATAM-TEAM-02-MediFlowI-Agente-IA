@@ -10,8 +10,17 @@ logger = structlog.get_logger(__name__)
 
 PATIENT_COLUMNS = """
     id, tipo_documento, numero_documento, historia_clinica,
-    nombres, apellidos, fecha_nacimiento, sexo, telefono, correo,
-    created_at, updated_at
+    nombres, apellidos, fecha_nacimiento,
+    CASE 
+        WHEN fecha_nacimiento IS NOT NULL THEN 
+            EXTRACT(YEAR FROM age(CURRENT_DATE, fecha_nacimiento))::INT
+        ELSE NULL 
+    END AS edad,
+    COALESCE(genero, sexo) AS genero,
+    COALESCE(genero, sexo) AS sexo,
+    COALESCE(numero_telefono, telefono) AS numero_telefono,
+    COALESCE(numero_telefono, telefono) AS telefono,
+    correo, created_at, updated_at
 """
 
 
@@ -110,13 +119,16 @@ async def create_patient(data: dict[str, Any]) -> dict[str, Any] | None:
     """Registra un paciente y devuelve la fila persistida."""
     pool = await _require_pool()
     historia_clinica = data.get("historia_clinica")
+    genero_val = data.get("genero") or data.get("sexo")
+    telefono_val = data.get("numero_telefono") or data.get("telefono")
     try:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 f"""INSERT INTO pacientes (
                         tipo_documento, numero_documento, historia_clinica,
-                        nombres, apellidos, fecha_nacimiento, sexo, telefono, correo
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                        nombres, apellidos, fecha_nacimiento, sexo, telefono,
+                        genero, numero_telefono, correo
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                     RETURNING {PATIENT_COLUMNS}""",
                 data.get("tipo_documento", "DNI"),
                 data["numero_documento"].strip(),
@@ -124,8 +136,10 @@ async def create_patient(data: dict[str, Any]) -> dict[str, Any] | None:
                 data["nombres"].strip(),
                 data["apellidos"].strip(),
                 data.get("fecha_nacimiento"),
-                data.get("sexo"),
-                data.get("telefono"),
+                genero_val,
+                telefono_val,
+                genero_val,
+                telefono_val,
                 data.get("correo"),
             )
             return dict(row) if row else None
@@ -147,11 +161,20 @@ async def update_patient(patient_id: str, data: dict[str, Any]) -> dict[str, Any
         "fecha_nacimiento",
         "sexo",
         "telefono",
+        "genero",
+        "numero_telefono",
         "correo",
     ):
         if key in data and data[key] is not None:
             values.append(data[key])
             fields.append(f"{key} = ${len(values)}")
+            # Mantener sincronizados campos legados
+            if key == "genero":
+                values.append(data[key])
+                fields.append(f"sexo = ${len(values)}")
+            elif key == "numero_telefono":
+                values.append(data[key])
+                fields.append(f"telefono = ${len(values)}")
     if not fields:
         return await get_patient_by_id(patient_id)
 
@@ -166,6 +189,7 @@ async def update_patient(patient_id: str, data: dict[str, Any]) -> dict[str, Any
             return dict(row) if row else None
     except Exception as exc:
         raise _database_failure("actualizar el paciente", exc) from exc
+
 
 
 async def get_patient_documents(patient_id: str) -> list[dict[str, Any]]:

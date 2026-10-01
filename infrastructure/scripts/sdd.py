@@ -60,12 +60,20 @@ def validate_bundle(bundle: Path) -> None:
         timeout=120,
         check=False,
     )
-    try:
-        diagnostics = json.loads(result.stdout)
-    except ValueError as exc:
-        raise RuntimeError(
-            f"Spectral no pudo ejecutarse:\n{result.stderr}\n{result.stdout}"
-        ) from exc
+    raw_stdout = result.stdout.strip()
+    if raw_stdout.startswith("[]"):
+        diagnostics = []
+    else:
+        try:
+            diagnostics = json.loads(raw_stdout)
+        except ValueError:
+            end_bracket = raw_stdout.rfind("]")
+            if end_bracket != -1 and raw_stdout.startswith("["):
+                diagnostics = json.loads(raw_stdout[: end_bracket + 1])
+            else:
+                raise RuntimeError(
+                    f"Spectral no pudo ejecutarse:\n{result.stderr}\n{result.stdout}"
+                ) from None
     errors = [item for item in diagnostics if item["severity"] == 0]
     warnings = [item for item in diagnostics if item["severity"] == 1]
     for item in errors + warnings:

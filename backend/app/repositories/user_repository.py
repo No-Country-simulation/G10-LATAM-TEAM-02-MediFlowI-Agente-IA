@@ -24,7 +24,7 @@ async def get_user_by_document(documento_identidad: str) -> dict[str, Any] | Non
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """SELECT id, documento_identidad, password_hash, salt, nombres, apellidos, 
-                      correo, telefono, rol, estado, created_at, updated_at
+                      correo, telefono, rol, especialidad_medica, estado, created_at, updated_at
                FROM usuarios
                WHERE documento_identidad = $1""",
             documento_identidad,
@@ -39,7 +39,7 @@ async def get_user_by_id(user_id: str) -> dict[str, Any] | None:
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """SELECT id, documento_identidad, nombres, apellidos, 
-                      correo, telefono, rol, estado, created_at, updated_at
+                      correo, telefono, rol, especialidad_medica, estado, created_at, updated_at
                FROM usuarios
                WHERE id = $1::uuid""",
             user_id,
@@ -54,7 +54,7 @@ async def list_all_users() -> list[dict[str, Any]]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """SELECT id, documento_identidad, nombres, apellidos, 
-                      correo, telefono, rol, estado, created_at, updated_at
+                      correo, telefono, rol, especialidad_medica, estado, created_at, updated_at
                FROM usuarios
                ORDER BY created_at DESC"""
         )
@@ -71,6 +71,7 @@ async def create_user(
     telefono: str | None,
     rol: str,
     estado: str = "ACTIVO",
+    especialidad_medica: str | None = None,
 ) -> dict[str, Any] | None:
     """Registra un nuevo usuario en la base de datos."""
     pool = await _require_pool()
@@ -78,9 +79,9 @@ async def create_user(
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """INSERT INTO usuarios 
-               (documento_identidad, password_hash, salt, nombres, apellidos, correo, telefono, rol, estado)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8::rol_enum, $9::estado_usuario_enum)
-               RETURNING id, documento_identidad, nombres, apellidos, correo, telefono, rol, estado, created_at""",
+               (documento_identidad, password_hash, salt, nombres, apellidos, correo, telefono, rol, especialidad_medica, estado)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8::rol_enum, $9, $10::estado_usuario_enum)
+               RETURNING id, documento_identidad, nombres, apellidos, correo, telefono, rol, especialidad_medica, estado, created_at""",
             documento_identidad,
             password_hash,
             salt,
@@ -89,6 +90,7 @@ async def create_user(
             correo,
             telefono,
             rol,
+            especialidad_medica,
             estado,
         )
         return dict(row) if row else None
@@ -104,6 +106,7 @@ async def update_user(
     estado: str | None = None,
     password_hash: str | None = None,
     salt: str | None = None,
+    especialidad_medica: str | None = None,
 ) -> dict[str, Any] | None:
     """Actualiza datos, rol o estado de un usuario existente."""
     pool = await _require_pool()
@@ -139,6 +142,11 @@ async def update_user(
             params.append(rol)
             param_idx += 1
 
+        if especialidad_medica is not None:
+            set_clauses.append(f"especialidad_medica = ${param_idx}")
+            params.append(especialidad_medica)
+            param_idx += 1
+
         if estado is not None:
             set_clauses.append(f"estado = ${param_idx}::estado_usuario_enum")
             params.append(estado)
@@ -155,7 +163,8 @@ async def update_user(
         query = f"""UPDATE usuarios 
                    SET {", ".join(set_clauses)}
                    WHERE id = $1::uuid
-                   RETURNING id, documento_identidad, nombres, apellidos, correo, telefono, rol, estado, updated_at"""
+                   RETURNING id, documento_identidad, nombres, apellidos, correo, telefono, rol, especialidad_medica, estado, updated_at"""
 
         row = await conn.fetchrow(query, *params)
         return dict(row) if row else None
+

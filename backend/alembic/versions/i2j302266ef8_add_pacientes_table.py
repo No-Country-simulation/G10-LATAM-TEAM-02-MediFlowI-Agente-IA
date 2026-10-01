@@ -5,15 +5,14 @@ Revises: h1i202255de7
 Create Date: 2026-09-25 11:00:00
 
 """
-from typing import Sequence, Union
-from alembic import op
-import sqlalchemy as sa
+from collections.abc import Sequence
 
+from alembic import op
 
 revision: str = 'i2j302266ef8'
-down_revision: Union[str, Sequence[str], None] = 'h1i202255de7'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = 'h1i202255de7'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 UPGRADE_STATEMENTS = [

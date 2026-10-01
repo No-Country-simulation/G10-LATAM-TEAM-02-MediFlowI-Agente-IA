@@ -13,7 +13,10 @@ export interface Paciente {
   apellidos: string
   nombre_completo: string
   fecha_nacimiento?: string
-  sexo?: 'M' | 'F' | 'OTRO' | null
+  edad?: number
+  genero?: 'FEMENINO' | 'MASCULINO' | 'M' | 'F' | 'OTRO' | null
+  sexo?: 'FEMENINO' | 'MASCULINO' | 'M' | 'F' | 'OTRO' | null
+  numero_telefono?: string
   telefono?: string
   correo?: string
   created_at?: string
@@ -26,7 +29,9 @@ export interface PacienteCreatePayload {
   nombres: string
   apellidos: string
   fecha_nacimiento?: string
-  sexo?: 'M' | 'F' | 'OTRO' | null
+  genero?: 'FEMENINO' | 'MASCULINO' | 'M' | 'F' | 'OTRO' | null
+  sexo?: 'FEMENINO' | 'MASCULINO' | 'M' | 'F' | 'OTRO' | null
+  numero_telefono?: string
   telefono?: string
   correo?: string
 }
@@ -38,7 +43,9 @@ export interface PacienteUpdatePayload {
   nombres?: string
   apellidos?: string
   fecha_nacimiento?: string
-  sexo?: 'M' | 'F' | 'OTRO' | null
+  genero?: 'FEMENINO' | 'MASCULINO' | 'M' | 'F' | 'OTRO' | null
+  sexo?: 'FEMENINO' | 'MASCULINO' | 'M' | 'F' | 'OTRO' | null
+  numero_telefono?: string
   telefono?: string
   correo?: string
 }

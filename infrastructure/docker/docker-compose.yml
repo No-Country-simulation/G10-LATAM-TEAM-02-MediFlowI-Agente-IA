@@ -26,6 +26,7 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile
+    image: mediflow:latest
     container_name: mediflow-backend
     env_file:
       - path: ../../backend/.env
@@ -55,6 +56,7 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile
+    image: mediflow-frontend:latest
     container_name: mediflow-frontend
     ports:
       - "${MEDIFLOW_HTTP_PORT:-80}:80"

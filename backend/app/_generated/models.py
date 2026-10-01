@@ -74,6 +74,7 @@ class DecisionEnrutamiento(BaseModel):
     destino_principal: Literal[
         'Cola_Emergencia_Medica',
         'Cola_Rutina',
+        'Farmacia_Hospitalaria',
         'Cola_Auditoria_Humana',
         'Cola_Revision_Ambigua',
     ] = Field(..., examples=['Cola_Emergencia_Medica'])

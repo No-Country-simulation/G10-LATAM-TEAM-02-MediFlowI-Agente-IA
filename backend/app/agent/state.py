@@ -44,6 +44,7 @@ class DecisionEnrutamientoState(BaseModel):
         Literal[
             "Cola_Emergencia_Medica",
             "Cola_Rutina",
+            "Farmacia_Hospitalaria",
             "Cola_Auditoria_Humana",
             "Cola_Revision_Ambigua",
         ]

@@ -11,7 +11,8 @@ export interface User {
   apellidos: string
   correo?: string
   telefono?: string
-  rol: 'ADMINISTRADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'
+  rol: 'ADMINISTRADOR' | 'COORDINADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'
+  especialidad_medica?: string
   estado: 'ACTIVO' | 'INACTIVO'
   created_at?: string
 }

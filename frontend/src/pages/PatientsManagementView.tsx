@@ -505,15 +505,15 @@ export default function PatientsManagementView() {
                     </td>
                     <td>
                       <div className="small text-muted">
-                        {p.fecha_nacimiento || 'N/A'} • <span className="fw-semibold text-dark">{p.sexo || 'No especificado'}</span>
+                        {p.fecha_nacimiento || 'N/A'}{p.edad !== undefined && p.edad !== null ? ` (${p.edad} años)` : ''} • <span className="fw-semibold text-dark">{p.genero || p.sexo || 'No especificado'}</span>
                       </div>
                     </td>
                     <td>
                       <div className="small">
-                        {p.telefono && (
+                        {(p.numero_telefono || p.telefono) && (
                           <div className="text-dark">
                             <FaPhone className="me-1 text-muted" size={12} />
-                            {p.telefono}
+                            {p.numero_telefono || p.telefono}
                           </div>
                         )}
                         {p.correo && (
@@ -522,7 +522,7 @@ export default function PatientsManagementView() {
                             {p.correo}
                           </div>
                         )}
-                        {!p.telefono && !p.correo && <span className="text-muted small">No registrado</span>}
+                        {!p.numero_telefono && !p.telefono && !p.correo && <span className="text-muted small">No registrado</span>}
                       </div>
                     </td>
                     <td className="text-end pe-3">
@@ -653,7 +653,7 @@ export default function PatientsManagementView() {
                     </div>
 
                     <div className="col-12 col-md-4">
-                      <label className="form-label fw-medium">Sexo</label>
+                      <label className="form-label fw-medium">Género</label>
                       <select
                         className="form-select"
                         value={formData.sexo ?? ''}
@@ -662,23 +662,28 @@ export default function PatientsManagementView() {
                           sexo: e.target.value
                             ? e.target.value as 'M' | 'F' | 'OTRO'
                             : null,
+                          genero: e.target.value === 'F' ? 'FEMENINO' : e.target.value === 'M' ? 'MASCULINO' : (e.target.value as any),
                         })}
                       >
-                        <option value="">No especificado</option>
-                        <option value="M">Masculino (M)</option>
-                        <option value="F">Femenino (F)</option>
+                        <option value="">Seleccione género...</option>
+                        <option value="F">FEMENINO</option>
+                        <option value="M">MASCULINO</option>
                         <option value="OTRO">Otro</option>
                       </select>
                     </div>
 
                     <div className="col-12 col-md-4">
-                      <label className="form-label fw-medium">Teléfono</label>
+                      <label className="form-label fw-medium">Número de Teléfono</label>
                       <input
                         type="text"
                         className="form-control"
                         placeholder="Ej. 987654321"
                         value={formData.telefono}
-                        onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          telefono: e.target.value,
+                          numero_telefono: e.target.value,
+                        })}
                       />
                     </div>
 
@@ -801,7 +806,7 @@ export default function PatientsManagementView() {
                     </div>
 
                     <div className="col-12 col-md-4">
-                      <label className="form-label fw-medium">Sexo</label>
+                      <label className="form-label fw-medium">Género</label>
                       <select
                         className="form-select"
                         value={formData.sexo ?? ''}
@@ -810,22 +815,27 @@ export default function PatientsManagementView() {
                           sexo: e.target.value
                             ? e.target.value as 'M' | 'F' | 'OTRO'
                             : null,
+                          genero: e.target.value === 'F' ? 'FEMENINO' : e.target.value === 'M' ? 'MASCULINO' : (e.target.value as any),
                         })}
                       >
-                        <option value="">No especificado</option>
-                        <option value="M">Masculino (M)</option>
-                        <option value="F">Femenino (F)</option>
+                        <option value="">Seleccione género...</option>
+                        <option value="F">FEMENINO</option>
+                        <option value="M">MASCULINO</option>
                         <option value="OTRO">Otro</option>
                       </select>
                     </div>
 
                     <div className="col-12 col-md-4">
-                      <label className="form-label fw-medium">Teléfono</label>
+                      <label className="form-label fw-medium">Número de Teléfono</label>
                       <input
                         type="text"
                         className="form-control"
                         value={formData.telefono}
-                        onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          telefono: e.target.value,
+                          numero_telefono: e.target.value,
+                        })}
                       />
                     </div>
 

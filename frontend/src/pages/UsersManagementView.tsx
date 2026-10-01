@@ -57,7 +57,8 @@ export default function UsersManagementView() {
   const [newApellidos, setNewApellidos] = useState('')
   const [newCorreo, setNewCorreo] = useState('')
   const [newTelefono, setNewTelefono] = useState('')
-  const [newRol, setNewRol] = useState<'ADMINISTRADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'>('OPERADOR')
+  const [newEspecialidadMedica, setNewEspecialidadMedica] = useState('')
+  const [newRol, setNewRol] = useState<'ADMINISTRADOR' | 'COORDINADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'>('OPERADOR')
 
   const [userFormError, setUserFormError] = useState<string | null>(null)
   const [userFormSuccess, setUserFormSuccess] = useState<string | null>(null)
@@ -98,6 +99,7 @@ export default function UsersManagementView() {
     setNewApellidos('')
     setNewCorreo('')
     setNewTelefono('')
+    setNewEspecialidadMedica('')
     setNewRol('OPERADOR')
     setUserFormError(null)
     setIsUserModalOpen(true)
@@ -112,6 +114,7 @@ export default function UsersManagementView() {
     setNewApellidos(u.apellidos)
     setNewCorreo(u.correo || '')
     setNewTelefono(u.telefono || '')
+    setNewEspecialidadMedica(u.especialidad_medica || '')
     setNewRol(u.rol)
     setUserFormError(null)
     setIsUserModalOpen(true)
@@ -213,6 +216,7 @@ export default function UsersManagementView() {
           apellidos: newApellidos,
           correo: newCorreo || undefined,
           telefono: newTelefono || undefined,
+          especialidad_medica: newEspecialidadMedica || undefined,
           rol: newRol,
         })
         setUsersList((prev) => prev.map((user) => (user.id === editingUser.id ? updated : user)))
@@ -225,6 +229,7 @@ export default function UsersManagementView() {
           apellidos: newApellidos,
           correo: newCorreo || undefined,
           telefono: newTelefono || undefined,
+          especialidad_medica: newEspecialidadMedica || undefined,
           rol: newRol,
         })
         setUsersList((prev) => [created, ...prev])
@@ -374,6 +379,7 @@ export default function UsersManagementView() {
             >
               <option value="TODOS">Todos los Roles</option>
               <option value="OPERADOR">OPERADOR</option>
+              <option value="COORDINADOR">COORDINADOR</option>
               <option value="AUDITOR">AUDITOR</option>
               <option value="SUPERVISOR">SUPERVISOR</option>
               <option value="ADMINISTRADOR">ADMINISTRADOR</option>
@@ -390,6 +396,7 @@ export default function UsersManagementView() {
                 <tr className="text-secondary small text-uppercase fw-bold">
                   <th className="ps-4">Trabajador</th>
                   <th>DNI (8 cifras)</th>
+                  <th>Especialidad</th>
                   <th>Contacto</th>
                   <th>Rol Asignado</th>
                   <th>Estado</th>
@@ -403,7 +410,8 @@ export default function UsersManagementView() {
                       userSearchTerm === '' ||
                       u.documento_identidad.includes(userSearchTerm) ||
                       `${u.nombres} ${u.apellidos}`.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-                      (u.correo && u.correo.toLowerCase().includes(userSearchTerm.toLowerCase()))
+                      (u.correo && u.correo.toLowerCase().includes(userSearchTerm.toLowerCase())) ||
+                      (u.especialidad_medica && u.especialidad_medica.toLowerCase().includes(userSearchTerm.toLowerCase()))
                     const matchesRole = userRoleFilter === 'TODOS' || u.rol === userRoleFilter
                     return matchesSearch && matchesRole
                   })
@@ -427,6 +435,11 @@ export default function UsersManagementView() {
                         <td>
                           <span className="badge bg-light text-secondary border font-monospace px-2.5 py-1.5 rounded-2 fs-7 fw-semibold">
                             {u.documento_identidad}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="badge bg-primary bg-opacity-10 text-primary fw-medium px-2.5 py-1 rounded-2">
+                            {u.especialidad_medica || 'Medicina General'}
                           </span>
                         </td>
                         <td>
@@ -674,6 +687,25 @@ export default function UsersManagementView() {
                     </div>
                   </div>
 
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="u-esp" className="form-label fw-bold text-dark small mb-1">
+                      Especialidad Médica <span className="text-muted fw-normal">(Opcional)</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0 text-muted">
+                        <FaStethoscope />
+                      </span>
+                      <input
+                        id="u-esp"
+                        type="text"
+                        className="form-control border-start-0"
+                        placeholder="Ej. Medicina General, Cardiología..."
+                        value={newEspecialidadMedica}
+                        onChange={(e) => setNewEspecialidadMedica(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   {/* CAMPOS DE CONTRASEÑA SOLO EN REGISTRO DE USUARIO NUEVO */}
                   {!editingUser && (
                     <>
@@ -732,19 +764,19 @@ export default function UsersManagementView() {
                           icon: FaStethoscope,
                         },
                         {
-                          role: 'AUDITOR',
-                          title: 'AUDITOR',
+                          role: 'COORDINADOR',
+                          title: 'COORDINADOR (HITL)',
                           icon: FaClipboardCheck,
-                        },
-                        {
-                          role: 'SUPERVISOR',
-                          title: 'SUPERVISOR',
-                          icon: FaSlidersH,
                         },
                         {
                           role: 'ADMINISTRADOR',
                           title: 'ADMINISTRADOR',
                           icon: FaUserShield,
+                        },
+                        {
+                          role: 'AUDITOR',
+                          title: 'AUDITOR',
+                          icon: FaSlidersH,
                         },
                       ].map((item) => {
                         const isSelected = newRol === item.role
