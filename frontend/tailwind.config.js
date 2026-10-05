@@ -1,0 +1,41 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./src/**/*.{html,js,ts,jsx,tsx}"],
+  corePlugins: { preflight: false },
+  theme: {
+    extend: {
+      colors: {
+        "mediflow-primary": "#2c5282",
+        "mediflow-dark": "#1f2041",
+        "mediflow-bg": "#f5f7fb",
+        "mediflow-border": "rgba(31, 32, 65, 0.1)",
+        "mediflow-muted": "rgba(31, 32, 65, 0.5)",
+        "dark-50": "var(--dark-50)",
+        "variable-collection-blue": "var(--variable-collection-blue)",
+        "variable-collection-dark-shade-25": "var(--variable-collection-dark-shade-25)",
+        "variable-collection-dark-shade-5": "var(--variable-collection-dark-shade-5)",
+        "variable-collection-dark-shade-50": "var(--variable-collection-dark-shade-50)",
+        "variable-collection-dark-shade-75": "var(--variable-collection-dark-shade-75)",
+        "variable-collection-error": "var(--variable-collection-error)",
+        "variable-collection-green": "var(--variable-collection-green)",
+        "variable-collection-orange": "var(--variable-collection-orange)",
+        "variable-collection-primary": "var(--variable-collection-primary)",
+        "variable-collection-secondary": "var(--variable-collection-secondary)",
+        "variable-collection-tertiary": "var(--variable-collection-tertiary)",
+        "variable-collection-text": "var(--variable-collection-text)",
+      },
+      fontFamily: {
+        quicksand: ["Quicksand", "Helvetica", "sans-serif"],
+        montserrat: ["Montserrat", "Helvetica", "sans-serif"],
+        "custom-body": "var(--custom-body-font-family)",
+        "custom-title-h1": "var(--custom-title-h1-font-family)",
+        "custom-title-h2": "var(--custom-title-h2-font-family)",
+        "custom-title-h3": "var(--custom-title-h3-font-family)",
+        "custom-title-h4": "var(--custom-title-h4-font-family)",
+        "custom-title-h5": "var(--custom-title-h5-font-family)",
+        "custom-title-h6": "var(--custom-title-h6-font-family)",
+      },
+    },
+  },
+  plugins: [],
+};
