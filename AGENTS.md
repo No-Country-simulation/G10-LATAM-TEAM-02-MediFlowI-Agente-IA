@@ -39,12 +39,12 @@ Este archivo define las directrices arquitectónicas, la **Regla de Oro** y las 
 - No alterar firmas de API ni modelos Pydantic sin actualizar la especificación OpenAPI (`specs/openapi.yaml`).
 - Manejar la validación de credenciales OCI en `/api/v1/settings` rechazando solicitudes con HTTP 400 Bad Request si faltan variables en `.env`.
 
-### 🎨 Frontend & UX (React / Vite / TypeScript)
+### 🎨 Frontend & UX (React / Vite / TypeScript / Tailwind)
 - Mantener la interfaz limpia, profesional y accesible, apta para entornos clínicos y médicos.
 - Evitar emojis o íconos amontonados en títulos, botones o selectores.
 - Resaltar dinámicamente el estado activo de plantillas y configuraciones con clases CSS dedicadas (`.active-preset`, `.selected`).
 - Garantizar que los tipos de TypeScript en `triage.api.ts` coincidan exactamente con la respuesta JSON del backend.
-
+-Para el css usar tailwindcss y hacer responsive todos el front.
 ---
 
 ## ⚡ Comandos Spec Kit Disponibles en este Chat

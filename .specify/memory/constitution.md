@@ -1,15 +1,9 @@
 <!--
 Sync Impact Report:
-- Version Change: 1.0.0 → 1.1.0 (MINOR bump: Expansión de parámetros de pruebas completas, estándares de lenguaje y tipado estricto, y blindaje del principio de no asimilación/consulta obligatoria)
+- Version Change: 1.1.0 → 1.2.0 (MINOR bump: Cambio material en la directiva de stack CSS del frontend — Vanilla CSS reemplazado por Tailwind CSS con responsividad obligatoria)
 - Modified Principles:
-  - Principio I: Test-First y Puerta de Calidad Estricta en Verde → Detallados parámetros de ejecución y métricas para backend y frontend.
-  - Principio II: Consulta Obligatoria ante Dudas o Ambigüedades ("Si no sabe, pregunte siempre") → Formalizada la prohibición explícita de asimilar, suponer o inferir requerimientos ambiguos.
-  - Principio III: PostgreSQL como Fuente Única de Verdad Clínica → Incorporadas reglas de convenciones DDL, comentarios y control de almacenamiento.
-  - Principio IV: Seguridad y Control de Acceso por Roles (RBAC Hospitalario) → Integrada validación de especialidad y permisos estrictos.
-  - Principio V: Trazabilidad Médica y Auditoría E2E → Formalizado el registro inmutable de transiciones y estados clínicos.
-- Added Sections:
-  - Estándares de Lenguajes, Tipado y Stack Tecnológico
-  - Parámetros y Protocolos de Pruebas Rigurosas (Test Quality Gates)
+  - Estándares de Lenguajes, Tipado y Stack Tecnológico → Sección Frontend: actualizada de "Vanilla CSS" a "Tailwind CSS", con responsividad obligatoria en todo el frontend.
+- Added Sections: Ninguna.
 - Removed Sections: Ninguna.
 - Deferred Items / TODOs: Ninguno.
 -->
@@ -56,12 +50,14 @@ Sync Impact Report:
 - **Agente IA (LangGraph)**: La lógica autónoma del agente debe mantener su arquitectura desacoplada en los 5 nodos estándar: `ingestion` ➔ `extraction` ➔ `classification` ➔ `confidence` ➔ `routing`.
 - **Manejo de Errores y Validaciones**: Validación robusta de credenciales y parámetros de entorno con respuestas HTTP semánticas (400 para datos faltantes, 401/403 para autenticación/autorización, 422 para fallos de esquema, 409 para conflictos de duplicidad).
 
-### ⚛️ Frontend (React 18+ / TypeScript / Vite / Vanilla CSS)
+### ⚛️ Frontend (React 18+ / TypeScript / Vite / Tailwind CSS)
 - **TypeScript Estricto**: Cero errores de compilación (`tsc --noEmit`). Prohibido el uso de `any` para entidades de dominio (pacientes, triajes, auditorías, configuraciones).
 - **Sincronización de Contratos**: Los tipos definidos en `frontend/src/services/` (ej. `triage.api.ts`) deben coincidir exactamente con los esquemas Pydantic y las respuestas JSON del backend.
 - **Diseño Visual Profesional y Clínico**:
   - Estilo sobrio, limpio, accesible y ergonómico para uso médico hospitalario continuo.
-  - Soporte para paletas claras y oscuras basadas en variables CSS nativas (*Vanilla CSS*), sin sobrecarga de bibliotecas pesadas salvo requerimiento explícito.
+  - **Tailwind CSS obligatorio**: Todo el maquetado y los estilos del frontend MUST implementarse con Tailwind CSS. No se usa Vanilla CSS ni CSS nativo en hojas separadas para el maquetado.
+  - **Responsividad obligatoria**: Todo el frontend MUST ser responsive, adaptándose a escritorio, tablet y móvil sin pérdida de funcionalidad ni legibilidad.
+  - Soporte para paletas claras y oscuras mediante la configuración de Tailwind y variables CSS nativas donde sea necesario.
   - Indicadores visuales claros de estado activo (`.active-preset`, `.selected`).
   - Prohibida la saturación de emojis en botones, encabezados o menús clínicos.
 
@@ -112,4 +108,4 @@ El cumplimiento de los siguientes tres niveles de verificación es condición ne
   - Cada actualización debe incluir un *Sync Impact Report* detallando los principios alterados, añadidos o removidos.
 - **Herramienta de Auditoría y Verificación**: Utilizar las skills oficiales de Spec Kit (`/speckit-analyze`, `/speckit-checklist`, `/speckit-tasks`, `/speckit-implement`) para auditar la conformidad de las features con esta Constitución.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-05
+**Version**: 1.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-05
