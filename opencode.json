@@ -1,0 +1,73 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "skills": {
+    "paths": [
+      ".agents/skills"
+    ]
+  },
+  "command": {
+    "speckit-specify": {
+      "description": "Genera o actualiza la especificación de una feature en specs/ desde lenguaje natural.",
+      "template": "Load the speckit-specify skill and execute it with the following user input as the feature description:\n\n$ARGUMENTS"
+    },
+    "specify": {
+      "description": "Alias para /speckit-specify (Genera o actualiza especificación en specs/)",
+      "template": "Load the speckit-specify skill and execute it with the following user input as the feature description:\n\n$ARGUMENTS"
+    },
+    "speckit-plan": {
+      "description": "Elabora el plan de arquitectura e implementación técnica de la feature.",
+      "template": "Load the speckit-plan skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "plan-spec": {
+      "description": "Alias para /speckit-plan (Plan de arquitectura e implementación técnica)",
+      "template": "Load the speckit-plan skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-tasks": {
+      "description": "Desglosa las tareas de desarrollo con enfoque TDD basándose en spec y plan.",
+      "template": "Load the speckit-tasks skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "tasks": {
+      "description": "Alias para /speckit-tasks (Desglose de tareas TDD)",
+      "template": "Load the speckit-tasks skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-implement": {
+      "description": "Ejecuta la implementación paso a paso procesando todas las tareas de tasks.md.",
+      "template": "Load the speckit-implement skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "implement": {
+      "description": "Alias para /speckit-implement (Implementación paso a paso con tests)",
+      "template": "Load the speckit-implement skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-clarify": {
+      "description": "Cuestionario de clarificación para reducir ambigüedades en la spec (máx 5 preguntas).",
+      "template": "Load the speckit-clarify skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "clarify": {
+      "description": "Alias para /speckit-clarify (Preguntas de clarificación)",
+      "template": "Load the speckit-clarify skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-analyze": {
+      "description": "Analiza la consistencia y calidad entre spec.md, plan.md y tasks.md.",
+      "template": "Load the speckit-analyze skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-checklist": {
+      "description": "Genera un checklist de calidad de requerimientos para la feature actual.",
+      "template": "Load the speckit-checklist skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-constitution": {
+      "description": "Consulta o ajusta la constitución oficial del proyecto MediFlow.",
+      "template": "Load the speckit-constitution skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-converge": {
+      "description": "Evalúa el codebase contra spec/plan/tasks y añade tareas faltantes a tasks.md.",
+      "template": "Load the speckit-converge skill and execute it with the following user input:\n\n$ARGUMENTS"
+    },
+    "speckit-taskstoissues": {
+      "description": "Convierte las tareas de tasks.md en GitHub issues ordenadas por dependencia.",
+      "template": "Load the speckit-taskstoissues skill and execute it with the following user input:\n\n$ARGUMENTS"
+    }
+  }
+}
