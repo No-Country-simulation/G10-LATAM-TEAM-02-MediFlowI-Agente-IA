@@ -1,50 +1,115 @@
-# Constitución del Proyecto MediFlow
-<!-- Versión Oficial del Ecosistema Hospitalario de Agente IA MediFlow -->
+<!--
+Sync Impact Report:
+- Version Change: 1.0.0 → 1.1.0 (MINOR bump: Expansión de parámetros de pruebas completas, estándares de lenguaje y tipado estricto, y blindaje del principio de no asimilación/consulta obligatoria)
+- Modified Principles:
+  - Principio I: Test-First y Puerta de Calidad Estricta en Verde → Detallados parámetros de ejecución y métricas para backend y frontend.
+  - Principio II: Consulta Obligatoria ante Dudas o Ambigüedades ("Si no sabe, pregunte siempre") → Formalizada la prohibición explícita de asimilar, suponer o inferir requerimientos ambiguos.
+  - Principio III: PostgreSQL como Fuente Única de Verdad Clínica → Incorporadas reglas de convenciones DDL, comentarios y control de almacenamiento.
+  - Principio IV: Seguridad y Control de Acceso por Roles (RBAC Hospitalario) → Integrada validación de especialidad y permisos estrictos.
+  - Principio V: Trazabilidad Médica y Auditoría E2E → Formalizado el registro inmutable de transiciones y estados clínicos.
+- Added Sections:
+  - Estándares de Lenguajes, Tipado y Stack Tecnológico
+  - Parámetros y Protocolos de Pruebas Rigurosas (Test Quality Gates)
+- Removed Sections: Ninguna.
+- Deferred Items / TODOs: Ninguno.
+-->
 
-## Principios Fundamentales (Core Principles)
+# Constitución del Proyecto MediFlow
+
+## Core Principles
 
 ### I. Test-First y Puerta de Calidad Estricta en Verde (NON-NEGOTIABLE)
-**El flujo de trabajo exige que antes de dar por implementada cualquier funcionalidad o cambio, TODAS las pruebas deben pasar al 100% en verde.**
-- El ciclo Red-Green-Refactor es obligatorio.
-- Antes de entregar cualquier funcionalidad o corrección, se deben ejecutar y verificar empíricamente tanto las pruebas unitarias como las pruebas End-to-End (E2E) en backend (`pytest`) y frontend (`vitest run` y `npm run build`).
-- Cero tolerancia a regresiones o pruebas salteadas ("skipped" sin justificación formal).
-- Si una prueba falla, el código NO está listo para producción ni para revisión.
+**El flujo de trabajo exige que antes de dar por implementada cualquier funcionalidad, corrección o refactorización, el 100% de las pruebas deben pasar en verde.**
+- **Ciclo TDD Obligatorio**: Red-Green-Refactor. Ningún código de producción se escribe sin su prueba correspondiente previa o en paralelo.
+- **Cero Tolerancia a Regresiones**: Queda prohibido alterar o desactivar pruebas existentes para forzar su aprobación.
+- **Pruebas Libres de Efectos Secundarios**: Los tests automatizados bajo ninguna circunstancia deben mutar o ensuciar la base de datos de desarrollo activa (`mediflow_dev`); deben ejecutarse en transacciones rollback o contra esquemas de prueba aislados.
+- **Criterio de Aceptación Incondicional**: Ninguna tarea se marca como completada si `pytest` o `vitest run` presentan un solo fallo, error o warning no justificado.
 
-### II. Consulta Obligatoria ante Dudas o Ambigüedades ("Si no sabe, pregunte siempre")
-**Queda terminantemente prohibido asumir, inventar o tomar decisiones arbitrarias a ciegas cuando un requisito, regla clínica, parámetro técnico o diseño no esté completamente claro.**
-- Si el agente o desarrollador encuentra un caso de uso no especificado, una discrepancia en la base de datos o cualquier incertidumbre sobre el comportamiento esperado, **DEBE PREGUNTAR SIEMPRE** al usuario antes de proceder.
-- Se debe emplear la herramienta de preguntas directas (`ask_question` o comunicación explícita) exponiendo las opciones consideradas y su impacto.
+### II. Consulta Obligatoria ante Dudas ("Si no sabe, pregunte siempre" / Prohibido Asimilar)
+**Queda estrictamente prohibido asimilar, asumir, inventar o suponer requerimientos, reglas clínicas, parámetros técnicos, esquemas de datos o flujos de usuario no especificados.**
+- Si el agente o desarrollador detecta una ambigüedad, laguna de especificación, conflicto entre documentos o incertidumbre en el comportamiento esperado, **DEBE DETENERSE Y PREGUNTAR SIEMPRE** al usuario antes de proceder.
+- Toda consulta debe formularse de manera estructurada mediante herramientas interactivas (`ask_question`) o preguntas directas en el chat, detallando el contexto, las opciones evaluadas y las consecuencias clínicas o técnicas de cada alternativa.
+- Los supuestos nunca se transforman en código sin aprobación humana explícita (*Human-in-the-Loop*).
 
 ### III. PostgreSQL como Fuente Única de Verdad Clínica
-- Toda la persistencia clínica (pacientes, documentos de triaje, auditorías HITL, trazabilidad de eventos y episodios clínicos) reside en PostgreSQL bajo esquemas relacionales estrictos y versionados mediante migraciones de Alembic.
-- La edad de los pacientes nunca se persiste como columna física estática para evitar desincronizaciones en el tiempo; se calcula dinámicamente en tiempo de ejecución a partir de `fecha_nacimiento`.
-- El control de almacenamiento físico de archivos (LOCAL vs OCI) es 100% manual y se rige por la configuración del sistema.
+- Toda la persistencia de metadatos clínicos, pacientes, documentos de triaje, resultados estructurados de IA, códigos CIE-10, auditorías médicas y trazabilidad de eventos reside obligatoriamente en PostgreSQL (`mediflow_dev`).
+- **Cálculo Dinámico de Edad**: La edad de los pacientes jamás se persiste en columnas físicas estáticas para evitar desincronización temporal; se calcula dinámicamente en tiempo de ejecución a partir de `fecha_nacimiento`.
+- **Control 100% Manual del Almacenamiento Físico (`LOCAL` vs `OCI`)**: La preferencia de almacenamiento de archivos en `configuracion_sistema` solo se modifica manualmente por el usuario desde la interfaz de Configuración. Ningún script ni servicio automatizado debe mutar este valor a `OCI`.
+- **Estructuración Relacional Estricta**: Cada tabla y columna debe contar con comentarios explicativos (`COMMENT ON TABLE`, `COMMENT ON COLUMN`). Los documentos se identifican mediante `documento_id` único y se persisten bajo patrón UPSERT (`ON CONFLICT (documento_id) DO UPDATE`).
 
 ### IV. Seguridad y Control de Acceso por Roles (RBAC Hospitalario)
-- La pantalla y operaciones de Auditoría Médica / Human-in-the-Loop (HITL) son **exclusivas** para usuarios con rol `COORDINADOR` y `ADMINISTRADOR`. Ningún operador, recepcionista o médico no coordinador puede aprobar o alterar auditorías HITL.
-- Todo usuario médico y coordinador debe contar con su campo `especialidad_medica` para la asignación y trazabilidad de responsabilidades clínicas.
+- La gestión, visualización y aprobación de la bandeja de Auditoría Médica / Human-in-the-Loop (HITL) son **exclusivas** para usuarios con rol `COORDINADOR` y `ADMINISTRADOR`.
+- Ningún operador, recepcionista o médico no coordinador puede aprobar o alterar auditorías HITL.
+- Todo usuario con perfil clínico (médico o coordinador) debe registrar obligatoriamente su campo `especialidad_medica` para trazabilidad de responsabilidades hospitalarias.
 
-### V. Trazabilidad Médica y Auditoría E2E
-- Cada evento dentro del ciclo de vida del triaje (ingesta, extracción, clasificación por agente IA, revisión HITL, enrutamiento a destinos como `Farmacia_Hospitalaria` o `Observacion_Urgencias`, y derivación a episodios clínicos) debe quedar registrado de manera inmutable en las tablas de auditoría y trazabilidad.
-
----
-
-## Estándares de Prueba y Verificación
-
-1. **Pruebas Unitarias**:
-   - Cobertura de funciones de cálculo (edad dinámica, formateadores de confianza, mapeo de diagnósticos CIE-10).
-   - Validación de restricciones de entrada (roles válidos, género `FEMENINO` / `MASCULINO`, canales de origen).
-2. **Pruebas de Integración y Contrato**:
-   - Pruebas de endpoints FastAPI asegurando códigos de estado HTTP correctos (200, 201, 400, 403, 404, 409, 422).
-   - Verificación de migraciones offline con Alembic (`alembic upgrade head --sql`).
-3. **Pruebas End-to-End (E2E)**:
-   - Flujo de triaje completo: Registro de Paciente → Ingesta de Documento → Evaluación IA → Retención HITL → Decisión de Coordinador → Generación de Episodio Clínico y Trazabilidad.
+### V. Trazabilidad Médica Inmutable y Auditoría E2E
+- Cada etapa del ciclo de vida del triaje (ingesta ➔ extracción ➔ clasificación ➔ confianza ➔ enrutamiento HITL o a destinos clínicos como `Farmacia_Hospitalaria` u `Observacion_Urgencias`) debe registrarse de manera inmutable en las tablas de auditoría y trazabilidad.
+- Ningún registro clínico procesado puede eliminarse físicamente de la base de datos (eliminación lógica / trazabilidad permanente).
 
 ---
 
-## Gobernanza y Reglas de Desarrollo
+## Estándares de Lenguajes, Tipado y Stack Tecnológico
 
-- Esta Constitución rige para todos los desarrolladores humanos y agentes de Inteligencia Artificial (Antigravity, Claude, Copilot, etc.).
-- Ningún Pull Request o tarea se considerará aprobada sin el cumplimiento estricto del Principio I (100% pruebas en verde) y el Principio II (consulta oportuna ante cualquier duda).
+### 🐍 Backend (Python 3.12+ / FastAPI / LangGraph)
+- **Tipado Estricto con Pydantic v2**: Todos los modelos de entrada y salida de la API deben tiparse exhaustivamente, sincronizándose con la especificación OpenAPI (`specs/openapi.yaml`). Queda prohibido el uso de `Any` no documentado o diccionarios no tipados para datos clínicos.
+- **ORM & Migraciones (SQLAlchemy 2.0 / Alembic)**: Todas las alteraciones de la base de datos deben expresarse en migraciones dentro de `backend/alembic/versions/` y verificarse con `alembic upgrade head --sql`.
+- **Agente IA (LangGraph)**: La lógica autónoma del agente debe mantener su arquitectura desacoplada en los 5 nodos estándar: `ingestion` ➔ `extraction` ➔ `classification` ➔ `confidence` ➔ `routing`.
+- **Manejo de Errores y Validaciones**: Validación robusta de credenciales y parámetros de entorno con respuestas HTTP semánticas (400 para datos faltantes, 401/403 para autenticación/autorización, 422 para fallos de esquema, 409 para conflictos de duplicidad).
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-09-30
+### ⚛️ Frontend (React 18+ / TypeScript / Vite / Vanilla CSS)
+- **TypeScript Estricto**: Cero errores de compilación (`tsc --noEmit`). Prohibido el uso de `any` para entidades de dominio (pacientes, triajes, auditorías, configuraciones).
+- **Sincronización de Contratos**: Los tipos definidos en `frontend/src/services/` (ej. `triage.api.ts`) deben coincidir exactamente con los esquemas Pydantic y las respuestas JSON del backend.
+- **Diseño Visual Profesional y Clínico**:
+  - Estilo sobrio, limpio, accesible y ergonómico para uso médico hospitalario continuo.
+  - Soporte para paletas claras y oscuras basadas en variables CSS nativas (*Vanilla CSS*), sin sobrecarga de bibliotecas pesadas salvo requerimiento explícito.
+  - Indicadores visuales claros de estado activo (`.active-preset`, `.selected`).
+  - Prohibida la saturación de emojis en botones, encabezados o menús clínicos.
+
+---
+
+## Parámetros y Protocolos de Pruebas Rigurosas (Test Quality Gates)
+
+El cumplimiento de los siguientes tres niveles de verificación es condición necesaria y obligatoria para dar por finalizada cualquier tarea o pull request:
+
+```text
+                                 TEST QUALITY GATES
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 1. BACKEND GATE (Pytest)                                                        │
+│    • 100% pruebas unitarias en verde (cálculo de edad, esquemas, RBAC).         │
+│    • 100% pruebas de endpoints FastAPI con códigos HTTP semánticos.             │
+│    • Base de datos 'mediflow_dev' intacta e inmutable durante las suites.        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ 2. FRONTEND GATE (Vitest & Build)                                               │
+│    • 'npm run build': Compilación limpia con 0 errores TypeScript.              │
+│    • 'vitest run': 100% pruebas de componentes y servicios en verde.            │
+│    • Verificación de renderizado accesible y libre de warnings en consola.      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ 3. DATABASE GATE (Alembic)                                                      │
+│    • 'alembic upgrade head --sql' sin errores sintácticos ni inconsistencias.  │
+│    • Comentarios DDL obligatorios presentes en tablas y columnas nuevas.        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Parámetros de Pruebas Unitarias**:
+   - Funciones puras: Cálculo dinámico de edad a partir de fecha de nacimiento.
+   - Normalización de entidades clínicas: Asignación y formato de códigos CIE-10.
+   - Validaciones de formato: DNI/RUT, géneros permitidos (`MASCULINO`, `FEMENINO`), canales de ingesta.
+2. **Parámetros de Pruebas de Integración y Endpoints**:
+   - Verificación de contratos JSON con Pydantic.
+   - Seguridad: Denegación de acceso (403) a no coordinadores en rutas de auditoría HITL.
+   - Almacenamiento: Rechazo (400) ante credenciales OCI inválidas o ausentes en `.env`.
+3. **Parámetros de Pruebas End-to-End (E2E)**:
+   - Flujo integral verificado: Ingesta de documento ➔ Procesamiento por agente IA ➔ Retención HITL si confianza < umbral ➔ Aprobación por Coordinador ➔ Creación de registro de trazabilidad y derivación.
+
+---
+
+## Gobernanza y Flujo de Desarrollo
+
+- **Supremacía Constitucional**: Esta Constitución define los principios rectores inquebrantables del repositorio y tiene prioridad sobre cualquier instrucción contradictoria no formalizada.
+- **Destinatarios**: Aplica con el mismo rigor a desarrolladores humanos y agentes de Inteligencia Artificial (Antigravity, Claude, Cursor, Copilot, etc.).
+- **Procedimiento de Enmienda**:
+  - Toda modificación a esta Constitución debe someterse a revisión formal, documentando la justificación del cambio de versión semántica (MAJOR, MINOR o PATCH).
+  - Cada actualización debe incluir un *Sync Impact Report* detallando los principios alterados, añadidos o removidos.
+- **Herramienta de Auditoría y Verificación**: Utilizar las skills oficiales de Spec Kit (`/speckit-analyze`, `/speckit-checklist`, `/speckit-tasks`, `/speckit-implement`) para auditar la conformidad de las features con esta Constitución.
+
+**Version**: 1.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-05
