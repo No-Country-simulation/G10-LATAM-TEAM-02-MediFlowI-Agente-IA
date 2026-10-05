@@ -1,20 +1,18 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { FaStethoscope, FaUser, FaLock, FaSignInAlt } from "react-icons/fa";
-import type { FormEvent } from 'react'
+import { LoginForm } from "../components/login/LoginForm";
+import { TestimonialSection } from "../components/login/TestimonialSection";
+import logo from "../assets/login/logo.png";
+import "../styles/login.css";
+import type { FormEvent, JSX } from "react";
 
-const DEVELOPMENT_ADMIN_CREDENTIALS = {
-  documentoIdentidad: '12345678',
-  password: 'MediFlow#Admin2026',
-} as const
-
-const Login = () => {
+const Login = (): JSX.Element => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
 
-  const [username, setUsername] = useState("");
+  const [documentoIdentidad, setDocumentoIdentidad] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,10 +22,16 @@ const Login = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    if (!documentoIdentidad.trim() || !password.trim()) {
+      setError("Por favor complete todos los campos.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const result = await login(username, password);
+      const result = await login(documentoIdentidad, password);
       if (result.success) {
         navigate(from, { replace: true });
       } else {
@@ -40,119 +44,56 @@ const Login = () => {
     }
   };
 
+  const handleRegister = () => {
+    navigate("/register");
+  };
+
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light p-3">
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden" style={{ maxWidth: "450px", width: "100%" }}>
-        {/* Header */}
-        <div className="bg-primary text-white text-center p-4">
-          <div className="d-inline-flex p-3 bg-white bg-opacity-20 rounded-circle mb-3">
-            <FaStethoscope size={42} className="text-white" />
-          </div>
-          <h3 className="fw-bold mb-1">MediFlow</h3>
-          <p className="text-light opacity-75 small mb-0">Sistema de Triaje Inteligente de Documentos Clínicos</p>
+    <main className="login-page flex min-h-screen relative bg-[#f5f7fb] overflow-hidden">
+      {/* Sección lateral testimonial con fondo de banner médico */}
+      <TestimonialSection />
+
+      {/* Sección interactiva de login */}
+      <section
+        aria-labelledby="welcome-heading"
+        className="relative w-full md:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-6 sm:px-12 lg:px-20 z-10"
+      >
+        {/* Orbes de ambiente difuminados de fondo */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
+          <div className="login-orb-1" />
+          <div className="login-orb-2" />
+          <div className="login-orb-3" />
         </div>
 
-        {/* Body */}
-        <div className="card-body p-4 p-md-5">
-          <h5 className="fw-bold text-dark text-center mb-4">Iniciar Sesión</h5>
-
-          {error && (
-            <div className="alert alert-danger py-2 px-3 small rounded-3 mb-3" role="alert">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label fw-semibold text-muted small">DNI</label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0 text-muted">
-                  <FaUser />
-                </span>
-                <input
-                  type="text"
-                  className="form-control border-start-0 ps-0"
-                  placeholder="Ingrese su DNI"
-                  inputMode="numeric"
-                  autoComplete="username"
-                  maxLength={8}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="form-label fw-semibold text-muted small">Contraseña</label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0 text-muted">
-                  <FaLock />
-                </span>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  className="form-control border-start-0 ps-0"
-                  placeholder="Ingrese su contraseña"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary w-100 py-2.5 fw-bold shadow-sm rounded-3 d-flex align-items-center justify-content-center"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Ingresando...
-                </>
-              ) : (
-                <>
-                  <FaSignInAlt className="me-2" /> INGRESAR
-                </>
-              )}
-            </button>
-          </form>
-
-          {import.meta.env.DEV && (
-            <aside className="alert alert-info border-0 rounded-3 mt-4 mb-0" role="note">
-              <p className="fw-semibold mb-2">Acceso inicial de desarrollo</p>
-              <dl className="row small mb-3">
-                <dt className="col-4">DNI</dt>
-                <dd className="col-8 mb-1">
-                  <code>{DEVELOPMENT_ADMIN_CREDENTIALS.documentoIdentidad}</code>
-                </dd>
-                <dt className="col-4">Contraseña</dt>
-                <dd className="col-8 mb-0">
-                  <code>{DEVELOPMENT_ADMIN_CREDENTIALS.password}</code>
-                </dd>
-              </dl>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary w-100"
-                onClick={() => {
-                  setUsername(DEVELOPMENT_ADMIN_CREDENTIALS.documentoIdentidad)
-                  setPassword(DEVELOPMENT_ADMIN_CREDENTIALS.password)
-                  setError('')
-                }}
-              >
-                Completar credenciales
-              </button>
-            </aside>
-          )}
+        <div className="inline-flex items-center justify-center px-4 py-1.5 mb-1 text-center">
+          <p
+            className="font-bold text-xs sm:text-sm tracking-[1.2px] uppercase text-[rgba(31,32,65,0.5)]"
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
+          >
+            SISTEMA AUTÓNOMO DE TRIAJE Y ENRUTAMIENTO CLÍNICO
+          </p>
         </div>
 
-        {/* Footer */}
-        <div className="card-footer bg-light text-center py-3 border-0 text-muted small">
-          MediFlow © 2026 - Hackathon IA
+        <div className="my-2.5 flex justify-center items-center">
+          <img
+            className="w-[260px] sm:w-[320px] md:w-[360px] h-auto aspect-[1.08] object-contain drop-shadow-sm select-none"
+            alt="MediFlow"
+            src={logo}
+          />
         </div>
-      </div>
-    </div>
+
+        <LoginForm
+          documentoIdentidad={documentoIdentidad}
+          password={password}
+          onDocumentoChange={setDocumentoIdentidad}
+          onPasswordChange={setPassword}
+          onSubmit={handleSubmit}
+          onRegister={handleRegister}
+          isSubmitting={isSubmitting}
+          error={error}
+        />
+      </section>
+    </main>
   );
 };
 
