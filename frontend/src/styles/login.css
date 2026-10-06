@@ -1,0 +1,82 @@
+:root {
+  --custom-body-font-family: "Quicksand", Helvetica, sans-serif;
+  --custom-body-font-size: 14px;
+  --dark-50: rgba(31, 32, 65, 0.5);
+}
+
+.login-page form label {
+  margin-bottom: 0 !important;
+}
+
+.login-page form input {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  font-size: 0.875rem !important;
+  line-height: normal !important;
+}
+
+.login-page form button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+.login-page form {
+  margin: 0 !important;
+}
+
+.login-page h1,
+.login-page p,
+.login-page blockquote {
+  margin: 0 !important;
+}
+
+/* Ambient glow orbs in the login background */
+.login-orb-1 {
+  position: absolute;
+  top: -80px;
+  left: 5%;
+  width: 480px;
+  height: 480px;
+  background-color: #ffe4ec;
+  border-radius: 9999px;
+  filter: blur(85px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.login-orb-2 {
+  position: absolute;
+  top: -140px;
+  right: 5%;
+  width: 520px;
+  height: 520px;
+  background-color: #e8dcff;
+  border-radius: 9999px;
+  filter: blur(95px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.login-orb-3 {
+  position: absolute;
+  top: 180px;
+  right: 0%;
+  width: 420px;
+  height: 420px;
+  background-color: #d6f5e3;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
