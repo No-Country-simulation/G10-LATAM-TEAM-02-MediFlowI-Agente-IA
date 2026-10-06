@@ -8,6 +8,7 @@ import json
 
 import structlog
 
+from app.agent.clinical_catalog import validar_y_completar_cie10
 from app.agent.state import AgentState, DatosExtraidosState, MedicoSolicitanteState, PacienteState
 
 logger = structlog.get_logger(__name__)
@@ -69,9 +70,17 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
     try:
         bloques = dividir_texto_en_bloques(texto)
         datos = DatosExtraidosState()
+        codigos_invalidos: list[str] = []
         for bloque in bloques:
             prompt = _EXTRACTION_PROMPT.format(texto=bloque)
             datos_bloque = _parsear_respuesta(await _llamar_llm(prompt, llm_service))
+            codigo_original = datos_bloque.cie10_sugerido
+            if codigo_original is not None:
+                validacion = validar_y_completar_cie10(codigo_original)
+                datos_bloque.cie10_sugerido = validacion["codigo"]
+                datos_bloque.cie10_descripcion = validacion["descripcion"]
+                if codigo_original.strip() and not validacion["valido"]:
+                    codigos_invalidos.append(codigo_original)
             datos = _consolidar_datos(datos, datos_bloque)
 
         logger.info(
@@ -82,6 +91,10 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
 
         return {
             "datos_extraidos": datos,
+            "metadata": {
+                **state.metadata,
+                "cie10_codigos_invalidos": list(dict.fromkeys(codigos_invalidos)),
+            },
             "nodos_ejecutados": state.nodos_ejecutados + ["extraction"],
         }
 
@@ -105,6 +118,7 @@ def _consolidar_datos(
         estudio_realizado=acumulado.estudio_realizado or nuevo.estudio_realizado,
         diagnostico_principal=acumulado.diagnostico_principal or nuevo.diagnostico_principal,
         cie10_sugerido=acumulado.cie10_sugerido or nuevo.cie10_sugerido,
+        cie10_descripcion=acumulado.cie10_descripcion or nuevo.cie10_descripcion,
         hallazgos_clave=list(dict.fromkeys(acumulado.hallazgos_clave + nuevo.hallazgos_clave)),
     )
 

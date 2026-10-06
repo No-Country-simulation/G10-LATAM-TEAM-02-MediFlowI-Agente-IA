@@ -1,9 +1,64 @@
-"""Catálogo canónico y normalización de tipos de documentos clínicos."""
+"""Catálogos canónicos de documentos clínicos y códigos CIE-10."""
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
+from collections.abc import Mapping
+from functools import lru_cache
+from pathlib import Path
+from types import MappingProxyType
+from typing import TypedDict
+
+
+class ResultadoValidacionCIE10(TypedDict):
+    valido: bool
+    codigo: str | None
+    descripcion: str | None
+
+
+@lru_cache(maxsize=1)
+def _catalogo_cie10() -> Mapping[str, str]:
+    """Carga una sola vez el catálogo versionado; nunca consulta servicios externos."""
+    path = Path(__file__).with_name("data") / "cie10_catalog.json"
+    catalogo = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(catalogo, dict) or not catalogo:
+        raise ValueError("El catálogo CIE-10 debe contener códigos y descripciones.")
+    for codigo, descripcion in catalogo.items():
+        if (
+            not re.fullmatch(r"[A-Z][0-9]{2}(?:\.[0-9])?", codigo)
+            or not isinstance(descripcion, str)
+            or not descripcion.strip()
+        ):
+            raise ValueError(f"Entrada inválida en el catálogo CIE-10: {codigo!r}")
+    return MappingProxyType(catalogo)
+
+
+def validar_y_completar_cie10(codigo: str) -> ResultadoValidacionCIE10:
+    """Valida pertenencia exacta tras normalizar mayúsculas, bordes y punto decimal.
+
+    Acepta categorías de tres caracteres y subcategorías de cuatro, como I219.
+    No realiza coincidencias aproximadas ni infiere códigos a partir del diagnóstico.
+    Un código ausente, mal formado o inexistente devuelve campos nulos.
+    """
+    invalido: ResultadoValidacionCIE10 = {
+        "valido": False,
+        "codigo": None,
+        "descripcion": None,
+    }
+    if not isinstance(codigo, str):
+        return invalido
+    canonico = codigo.strip().upper()
+    if not re.fullmatch(r"[A-Z][0-9]{2}(?:\.?[0-9])?", canonico):
+        return invalido
+    if len(canonico) == 4:
+        canonico = f"{canonico[:3]}.{canonico[3]}"
+    descripcion = _catalogo_cie10().get(canonico)
+    if descripcion is None:
+        return invalido
+    return {"valido": True, "codigo": canonico, "descripcion": descripcion}
+
 
 TIPOS_DOCUMENTO_CLINICO: tuple[str, ...] = (
     "Informe Clínico",
