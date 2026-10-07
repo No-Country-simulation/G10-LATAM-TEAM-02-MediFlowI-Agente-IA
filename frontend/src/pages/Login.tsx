@@ -45,7 +45,7 @@ const Login = (): JSX.Element => {
   };
 
   const handleRegister = () => {
-    navigate("/register");
+    navigate("/signup");
   };
 
   return (

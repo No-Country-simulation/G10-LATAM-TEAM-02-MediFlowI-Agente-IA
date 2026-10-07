@@ -15,10 +15,13 @@ from app.core.security import (
     invalidate_access_token,
     require_current_user,
     verify_password,
+    hash_password,
 )
-from app.repositories.user_repository import get_user_by_document
+from app.repositories.user_repository import get_user_by_document, create_user, get_user_by_email
+from app.schemas.user import UserCreate
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+
 
 
 class LoginRequest(BaseModel):
@@ -56,6 +59,64 @@ class LoginResponse(BaseModel):
     token_type: str = "Bearer"
     user: UserResponse
     mensaje: str = "Inicio de sesión exitoso"
+
+@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Registro de usuario")
+async def signup(req: UserCreate):
+    """
+    Registra un nuevo usuario en la base de datos.
+    """
+    doc_id = req.documento_identidad
+    if doc_id:
+        user_exists = await get_user_by_document(doc_id)
+        if user_exists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="El documento de identidad ya se encuentra registrado.",
+            )
+    else:
+        import secrets
+        while True:
+            candidate = f"{secrets.randbelow(90000000) + 10000000}"
+            existing = await get_user_by_document(candidate)
+            if not existing:
+                doc_id = candidate
+                break
+        
+    if req.correo:
+        email_exists = await get_user_by_email(req.correo)
+        if email_exists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="El correo electrónico ya se encuentra registrado.",
+            )
+    
+    password_hash, salt = hash_password(req.password)
+    
+    try:
+        new_user = await create_user(
+            documento_identidad=doc_id,
+            password_hash=password_hash,
+            salt=salt,
+            nombres=req.nombres,
+            apellidos=req.apellidos,
+            correo=req.correo,
+            telefono=req.telefono,
+            rol="OPERADOR",
+            estado="INACTIVO"
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al registrar usuario: {str(exc)}"
+        )
+    
+    if not new_user:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al registrar usuario en la base de datos."
+        )
+        
+    return UserResponse(**new_user)
 
 
 @router.post("/login", response_model=LoginResponse, summary="RF-01 — Inicio de Sesión")
