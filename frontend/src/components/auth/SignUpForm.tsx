@@ -1,4 +1,6 @@
 import { useState, type FormEvent, type JSX } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-regular-svg-icons';
 import { signupUser } from '../../api/auth.api';
 import type { User } from '../../api/auth.api';
 
@@ -128,7 +130,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="flex flex-col w-full max-w-[440px] items-center gap-3.5 mt-0.5"
+      className="flex flex-col w-full max-w-[540px] items-center gap-3.5 mt-0.5"
     >
       <div className="flex flex-col items-center gap-1 w-full text-center">
         <h1
@@ -139,7 +141,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
           Crea tu cuenta
         </h1>
         <p
-          className="font-normal text-xs sm:text-sm text-[rgba(31,32,65,0.5)] max-w-[380px] leading-relaxed"
+          className="font-normal text-xs sm:text-sm text-[rgba(31,32,65,0.5)] max-w-[440px] leading-relaxed"
           style={{ fontFamily: "'Montserrat', sans-serif" }}
         >
           Por favor ingrese los siguientes datos para proceder con su solicitud de acceso
@@ -222,9 +224,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
           <div className="flex flex-col w-full">
             <label
               htmlFor="nombres"
-              className={`${fieldCardBase} ${
-                isSubmitting ? fieldCardDisabled : errors.nombres ? fieldCardError : fieldCardEnabled
-              }`}
+              className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.nombres ? fieldCardError : fieldCardEnabled
+                }`}
             >
               <span
                 className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
@@ -241,9 +242,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 value={formData.nombres}
                 onChange={(e) => handleChange('nombres', e.target.value)}
                 disabled={isSubmitting}
-                className={`${inputBase} ${
-                  isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                }`}
+                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                  }`}
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
             </label>
@@ -257,9 +257,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
           <div className="flex flex-col w-full">
             <label
               htmlFor="apellidos"
-              className={`${fieldCardBase} ${
-                isSubmitting ? fieldCardDisabled : errors.apellidos ? fieldCardError : fieldCardEnabled
-              }`}
+              className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.apellidos ? fieldCardError : fieldCardEnabled
+                }`}
             >
               <span
                 className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
@@ -276,9 +275,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 value={formData.apellidos}
                 onChange={(e) => handleChange('apellidos', e.target.value)}
                 disabled={isSubmitting}
-                className={`${inputBase} ${
-                  isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                }`}
+                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                  }`}
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
             </label>
@@ -295,9 +293,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
           <div className="flex flex-col w-full">
             <label
               htmlFor="documento_identidad"
-              className={`${fieldCardBase} ${
-                isSubmitting ? fieldCardDisabled : errors.documento_identidad ? fieldCardError : fieldCardEnabled
-              }`}
+              className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.documento_identidad ? fieldCardError : fieldCardEnabled
+                }`}
             >
               <span
                 className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
@@ -315,9 +312,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 value={formData.documento_identidad}
                 onChange={(e) => handleChange('documento_identidad', e.target.value.replace(/\D/g, ''))}
                 disabled={isSubmitting}
-                className={`${inputBase} ${
-                  isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                }`}
+                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                  }`}
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
             </label>
@@ -348,9 +344,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 value={formData.telefono}
                 onChange={(e) => handleChange('telefono', e.target.value)}
                 disabled={isSubmitting}
-                className={`${inputBase} ${
-                  isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                }`}
+                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                  }`}
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
             </label>
@@ -361,9 +356,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         <div className="flex flex-col w-full">
           <label
             htmlFor="correo"
-            className={`${fieldCardBase} ${
-              isSubmitting ? fieldCardDisabled : errors.correo ? fieldCardError : fieldCardEnabled
-            }`}
+            className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.correo ? fieldCardError : fieldCardEnabled
+              }`}
           >
             <span
               className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
@@ -380,9 +374,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
               value={formData.correo}
               onChange={(e) => handleChange('correo', e.target.value)}
               disabled={isSubmitting}
-              className={`${inputBase} ${
-                isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-              }`}
+              className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                }`}
               style={{ fontFamily: "'Montserrat', sans-serif" }}
             />
           </label>
@@ -396,9 +389,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         {/* Fila 4: CONTRASEÑA */}
         <div className="flex flex-col w-full">
           <div
-            className={`${fieldCardBase} ${
-              isSubmitting ? fieldCardDisabled : errors.password ? fieldCardError : fieldCardEnabled
-            }`}
+            className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.password ? fieldCardError : fieldCardEnabled
+              }`}
           >
             <span
               className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
@@ -416,9 +408,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
                 disabled={isSubmitting}
-                className={`${inputBase} ${
-                  isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                }`}
+                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                  }`}
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
               <button
@@ -429,14 +420,9 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 className="text-slate-400 hover:text-slate-600 focus:outline-none p-1 shrink-0"
               >
                 {showPassword ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <FontAwesomeIcon icon={faEye} />
                 ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                  </svg>
+                  <FontAwesomeIcon icon={faEyeSlash} />
                 )}
               </button>
             </div>
@@ -451,9 +437,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         {/* Fila 5: CONFIRMA TU CONTRASEÑA */}
         <div className="flex flex-col w-full">
           <div
-            className={`${fieldCardBase} ${
-              isSubmitting ? fieldCardDisabled : errors.confirmPassword ? fieldCardError : fieldCardEnabled
-            }`}
+            className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.confirmPassword ? fieldCardError : fieldCardEnabled
+              }`}
           >
             <span
               className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
@@ -471,9 +456,8 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 value={formData.confirmPassword}
                 onChange={(e) => handleChange('confirmPassword', e.target.value)}
                 disabled={isSubmitting}
-                className={`${inputBase} ${
-                  isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                }`}
+                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                  }`}
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
               <button
@@ -484,14 +468,9 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 className="text-slate-400 hover:text-slate-600 focus:outline-none p-1 shrink-0"
               >
                 {showConfirmPassword ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <FontAwesomeIcon icon={faEye} />
                 ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                  </svg>
+                  <FontAwesomeIcon icon={faEyeSlash} />
                 )}
               </button>
             </div>
@@ -509,11 +488,10 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
           type="submit"
           disabled={isSubmitting || !isFormFilled}
           aria-busy={isSubmitting}
-          className={`flex h-[42px] items-center justify-center w-full rounded-lg transition-colors duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-[#204a79] focus-visible:ring-offset-2 ${
-            isSubmitting || !isFormFilled
-              ? 'bg-[#8da4bf] text-white cursor-not-allowed'
-              : 'bg-[#204a79] hover:bg-[#18395d] active:bg-[#122b46] text-white cursor-pointer'
-          }`}
+          className={`flex h-[42px] items-center justify-center w-full rounded-lg transition-colors duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-[#204a79] focus-visible:ring-offset-2 ${isSubmitting || !isFormFilled
+            ? 'bg-[#8da4bf] text-white cursor-not-allowed'
+            : 'bg-[#204a79] hover:bg-[#18395d] active:bg-[#122b46] text-white cursor-pointer'
+            }`}
         >
           {isSubmitting ? (
             <>
