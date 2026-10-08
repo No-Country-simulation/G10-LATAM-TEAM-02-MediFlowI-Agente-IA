@@ -21,14 +21,19 @@ class UserCreate(BaseModel):
             raise ValueError("La contraseña debe tener al menos un carácter especial.")
         return v
 class UserResponse(BaseModel):
-    id: UUID
+    id: UUID | str
     documento_identidad: str
     nombres: str
     apellidos: str
-    correo: EmailStr | None
-    telefono: str | None
+    correo: EmailStr | None = None
+    telefono: str | None = None
     rol: str
     estado: str
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def serialize_id(cls, v) -> str:
+        return str(v) if v is not None else ""
 
     class Config:
         from_attributes = True

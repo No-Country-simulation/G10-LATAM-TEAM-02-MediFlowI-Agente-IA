@@ -43,8 +43,11 @@ class LoginRequest(BaseModel):
         return v_clean
 
 
+from typing import Any
+from uuid import UUID
+
 class UserResponse(BaseModel):
-    id: str
+    id: str | UUID
     documento_identidad: str
     nombres: str
     apellidos: str
@@ -52,6 +55,18 @@ class UserResponse(BaseModel):
     telefono: str | None = None
     rol: str
     estado: str
+    especialidad_medica: str | None = None
+    created_at: str | None = None
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def serialize_id(cls, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def serialize_created_at(cls, v: Any) -> str | None:
+        return str(v) if v is not None else None
 
 
 class LoginResponse(BaseModel):
@@ -116,7 +131,12 @@ async def signup(req: UserCreate):
             detail="Error al registrar usuario en la base de datos."
         )
         
-    return UserResponse(**new_user)
+    user_payload = dict(new_user)
+    user_payload["id"] = str(user_payload["id"])
+    if user_payload.get("created_at"):
+        user_payload["created_at"] = str(user_payload["created_at"])
+
+    return UserResponse(**user_payload)
 
 
 @router.post("/login", response_model=LoginResponse, summary="RF-01 — Inicio de Sesión")
@@ -197,4 +217,8 @@ async def logout(authorization: str | None = Header(None)):
 @router.get("/me", response_model=UserResponse, summary="Consultar usuario autenticado")
 async def get_current_user(current_user: dict = Depends(require_current_user)):
     """Retorna los datos del usuario de la sesión activa."""
-    return UserResponse(**current_user)
+    user_payload = dict(current_user)
+    user_payload["id"] = str(user_payload["id"])
+    if user_payload.get("created_at"):
+        user_payload["created_at"] = str(user_payload["created_at"])
+    return UserResponse(**user_payload)

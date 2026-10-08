@@ -36,7 +36,7 @@ export default function SignUp(): JSX.Element {
 
         <div className="my-1 flex justify-center items-center">
           <img
-            className="w-[220px] sm:w-[260px] md:w-[300px] h-auto aspect-[1.08] object-contain drop-shadow-sm select-none"
+            className="w-[160px] md:w-[220px] h-auto aspect-[1.08] object-contain drop-shadow-sm select-none"
             alt="MediFlow"
             src={logo}
           />

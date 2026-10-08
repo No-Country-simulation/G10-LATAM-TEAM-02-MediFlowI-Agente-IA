@@ -1,17 +1,24 @@
 import { useState, type FormEvent, type JSX } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-regular-svg-icons';
+import { faCheck, faXmark } from '@fortawesome/free-solid-svg-icons';
+import cn from "../../utils/cn";
 import { signupUser } from '../../api/auth.api';
 import type { User } from '../../api/auth.api';
+import Button from "../common/Button";
 
 const fieldCardBase =
   'flex flex-col items-start px-3.5 py-1.5 rounded-lg border transition-all shadow-[0_2px_8px_rgba(31,32,65,0.03)]';
-const fieldCardEnabled =
-  'bg-white border-[rgba(31,32,65,0.12)] focus-within:border-[#2c5282] focus-within:ring-2 focus-within:ring-[#2c5282]/20 cursor-text';
-const fieldCardDisabled =
-  'bg-[#e9ecef] border-[rgba(31,32,65,0.08)] opacity-80 cursor-not-allowed';
-const fieldCardError =
-  'bg-white border-red-500 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20 cursor-text';
+const fieldCardEnabled = cn(
+  "bg-white border-[#2c5282] text-[rgba(31,32,65,0.5)] cursor-text",
+  'hover:border-[#2c5282] focus-within:text-[#2c5282] focus-within:border-[#2c5282] focus-within:ring-2 focus-within:ring-[#2c5282]'
+);
+const fieldCardDisabled = 'bg-[#e9ecef] border-[rgba(31,32,65,0.08)] opacity-80 cursor-not-allowed';
+const fieldCardError = cn(
+  'bg-white border-[#F72C2C] text-[#F72C2C] cursor-text',
+  "hover:border-[#F72C2C]",
+  "focus-within:border-[#F72C2C] focus-within:ring-2 focus-within:ring-[#F72C2C]"
+);
 const inputBase =
   'w-full font-medium text-xs sm:text-sm placeholder:text-[rgba(31,32,65,0.35)] outline-none bg-transparent pt-0.5';
 
@@ -64,7 +71,6 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
     if (!formData.correo.trim() || !emailRegex.test(formData.correo.trim())) {
       newErrors.correo = 'Por favor, introduzca una dirección de correo electrónico válida';
     }
-
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (!passwordRegex.test(formData.password)) {
       newErrors.password =
@@ -157,15 +163,13 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         >
           <div className="flex items-start gap-2.5">
             <div className="w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center shrink-0 mt-0.5">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <FontAwesomeIcon icon={faCheck} size='2xs' color='#FFF' />
             </div>
             <div className="flex flex-col text-left">
               <h3 className="font-bold text-xs sm:text-sm text-[#065f46]" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 ¡Registro exitoso!
               </h3>
-              <p className="text-[11px] sm:text-xs text-[#047857] mt-0.5 leading-snug" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              <p className="text-[11px] sm:text-xs text-[#047857] mt-0.5 leading-snug">
                 Tu solicitud de acceso ha sido enviada al administrador del sistema, por favor, espera a que sea confirmada para comenzar.
               </p>
             </div>
@@ -174,11 +178,9 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
             type="button"
             onClick={() => setSuccessAlert(false)}
             aria-label="Cerrar notificación"
-            className="text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+            className="flex items-center text-slate-400 hover:text-slate-600 transition-colors p-0.5 bg-transparent"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <FontAwesomeIcon icon={faXmark} size='2xs' color='var(--dark-shade-25)' />
           </button>
         </div>
       )}
@@ -188,19 +190,17 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         <div
           role="alert"
           aria-live="polite"
-          className="w-full flex items-start justify-between gap-3 p-3 rounded-xl border border-[#fca5a5] bg-[#fef2f2] transition-all"
+          className="w-full flex items-start justify-between gap-3 p-3 rounded-xl border border-[#F72C2C] bg-[#fef2f2] transition-all"
         >
           <div className="flex items-start gap-2.5">
-            <div className="w-5 h-5 rounded-md bg-[#ef4444] flex items-center justify-center shrink-0 mt-0.5">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <div className="p-1 rounded-md bg-[#F72C2C] flex items-center justify-center">
+              <FontAwesomeIcon icon={faXmark} color='#FFF' size='2xs' />
             </div>
             <div className="flex flex-col text-left">
               <h3 className="font-bold text-xs sm:text-sm text-[#991b1b]" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 Error Interno del Servidor
               </h3>
-              <p className="text-[11px] sm:text-xs text-[#b91c1c] mt-0.5 leading-snug" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              <p className="text-[11px] sm:text-xs text-[#b91c1c] mt-0.5 leading-snug">
                 Ocurrió un error inesperado al procesar la solicitud en el servidor.
               </p>
             </div>
@@ -209,11 +209,9 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
             type="button"
             onClick={() => setServerErrorAlert(false)}
             aria-label="Cerrar notificación de error"
-            className="text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+            className="flex items-center text-slate-400 hover:text-slate-600 transition-colors p-0.5 bg-transparent"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <FontAwesomeIcon icon={faXmark} size='2xs' color='var(--dark-shade-25)' />
           </button>
         </div>
       )}
@@ -228,7 +226,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 }`}
             >
               <span
-                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
+                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 NOMBRE(S)
@@ -244,11 +242,11 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 disabled={isSubmitting}
                 className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
                   }`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
+                style={{ fontFamily: "'Quicksand', sans-serif" }}
               />
             </label>
             {errors.nombres && (
-              <p className="text-red-500 text-xs mt-1 text-left font-normal pl-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              <p className="text-red-500 text-xs mt-1 text-left font-normal pl-1" style={{ fontFamily: "'Quicksand', sans-serif" }}>
                 {errors.nombres}
               </p>
             )}
@@ -261,7 +259,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 }`}
             >
               <span
-                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
+                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 APELLIDOS
@@ -277,7 +275,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 disabled={isSubmitting}
                 className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
                   }`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
+                style={{ fontFamily: "'Quicksand', sans-serif" }}
               />
             </label>
             {errors.apellidos && (
@@ -297,7 +295,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 }`}
             >
               <span
-                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
+                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 NÚMERO DE IDENTIFICACIÓN
@@ -314,7 +312,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 disabled={isSubmitting}
                 className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
                   }`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
+                style={{ fontFamily: "'Quicksand', sans-serif" }}
               />
             </label>
             {errors.documento_identidad && (
@@ -330,7 +328,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
               className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : fieldCardEnabled}`}
             >
               <span
-                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
+                className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 NÚMERO TELEFÓNICO
@@ -346,7 +344,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
                 disabled={isSubmitting}
                 className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
                   }`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
+                style={{ fontFamily: "'Quicksand', sans-serif" }}
               />
             </label>
           </div>
@@ -360,7 +358,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
               }`}
           >
             <span
-              className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
+              className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
               style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
               CORREO
@@ -376,7 +374,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
               disabled={isSubmitting}
               className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
                 }`}
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
+              style={{ fontFamily: "'Quicksand', sans-serif" }}
             />
           </label>
           {errors.correo && (
@@ -387,37 +385,39 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         </div>
 
         {/* Fila 4: CONTRASEÑA */}
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full gap-1">
           <div
             className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.password ? fieldCardError : fieldCardEnabled
               }`}
           >
-            <span
-              className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
-            >
-              CONTRASEÑA
-            </span>
             <div className="flex items-center w-full">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                placeholder="••••••••••••"
-                value={formData.password}
-                onChange={(e) => handleChange('password', e.target.value)}
-                disabled={isSubmitting}
-                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                  }`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              />
+              <div className="flex flex-col w-full">
+                <span
+                  className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  CONTRASEÑA
+                </span>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="••••••••••••"
+                  value={formData.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  disabled={isSubmitting}
+                  className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                    }`}
+                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isSubmitting}
                 aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                className="text-slate-400 hover:text-slate-600 focus:outline-none p-1 shrink-0"
+                className="bg-transparent flex items-center text-slate-400 hover:text-slate-600 focus:outline-none p-1 shrink-0"
               >
                 {showPassword ? (
                   <FontAwesomeIcon icon={faEye} />
@@ -435,37 +435,39 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         </div>
 
         {/* Fila 5: CONFIRMA TU CONTRASEÑA */}
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full gap-1">
           <div
             className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : errors.confirmPassword ? fieldCardError : fieldCardEnabled
               }`}
           >
-            <span
-              className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
-            >
-              CONFIRMA TU CONTRASEÑA
-            </span>
             <div className="flex items-center w-full">
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                placeholder="••••••••••••"
-                value={formData.confirmPassword}
-                onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                disabled={isSubmitting}
-                className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
-                  }`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              />
+              <div className="flex flex-col w-full">
+                <span
+                  className="font-bold text-[10px] sm:text-[11px] tracking-[0.06px] uppercase"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  CONFIRMA TU CONTRASEÑA
+                </span>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="••••••••••••"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                  disabled={isSubmitting}
+                  className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'
+                    }`}
+                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isSubmitting}
                 aria-label={showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Ver confirmación de contraseña'}
-                className="text-slate-400 hover:text-slate-600 focus:outline-none p-1 shrink-0"
+                className="bg-transparent flex items-center text-slate-400 hover:text-slate-600 focus:outline-none p-1 shrink-0"
               >
                 {showConfirmPassword ? (
                   <FontAwesomeIcon icon={faEye} />
@@ -484,33 +486,12 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
       </div>
 
       <div className="flex flex-col gap-3 w-full mt-2">
-        <button
+        <Button
           type="submit"
+          text="Enviar solicitud"
+          loading={isSubmitting}
           disabled={isSubmitting || !isFormFilled}
-          aria-busy={isSubmitting}
-          className={`flex h-[42px] items-center justify-center w-full rounded-lg transition-colors duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-[#204a79] focus-visible:ring-offset-2 ${isSubmitting || !isFormFilled
-            ? 'bg-[#8da4bf] text-white cursor-not-allowed'
-            : 'bg-[#204a79] hover:bg-[#18395d] active:bg-[#122b46] text-white cursor-pointer'
-            }`}
-        >
-          {isSubmitting ? (
-            <>
-              <span
-                data-testid="signup-spinner"
-                aria-hidden="true"
-                className="inline-block h-5 w-5 rounded-full border-2 border-solid border-white/40 border-t-white animate-spin"
-              />
-              <span className="sr-only">Enviando solicitud...</span>
-            </>
-          ) : (
-            <span
-              className="font-bold text-white text-sm tracking-wide"
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
-            >
-              Enviar solicitud
-            </span>
-          )}
-        </button>
+        />
 
         {/* Separador OR */}
         <div className="flex items-center gap-3 w-full my-0.5">
@@ -535,7 +516,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
         <button
           type="button"
           onClick={onNavigateToLogin || (() => { window.location.href = '/login'; })}
-          className="font-bold text-[#204a79] hover:text-[#18395d] hover:underline focus-visible:underline transition-colors cursor-pointer"
+          className="bg-transparent font-bold text-[#204a79] hover:text-[#18395d] hover:underline focus-visible:underline transition-colors cursor-pointer"
           style={{ fontFamily: "'Montserrat', sans-serif" }}
         >
           Inicie sesión
