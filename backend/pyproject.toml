@@ -82,6 +82,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
   "repository_mock: ejercita el repositorio en memoria sin interceptar la persistencia",
+  "postgres_integration: PostgreSQL real en sandbox BD-04; exigido con BD04_REQUIRE_POSTGRES=1",
 ]
 
 [tool.mypy]

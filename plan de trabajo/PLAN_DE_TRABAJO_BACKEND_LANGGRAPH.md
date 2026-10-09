@@ -313,3 +313,9 @@ Abre tu navegador en:
    - Cada nuevo endpoint debe probarse inmediatamente en **`http://localhost:8000/scalar`** con los tokens de prueba.
 3. **Cero Secretos en el Repositorio**:
    - Revisa la [Guía Oficial de Seguridad](../GUIA_SECRETOS_Y_VARIABLES_ENTORNO.md) antes de cada commit.
+
+## Backlog de mejoras futuras
+
+- **BD-04 — Entrega automatizada de credenciales de desarrollo (propuesta diferida, 2026-10-07)**: evaluar generación criptográficamente aleatoria de claves únicamente para médicos nuevos y entrega única mediante un mecanismo privado, fuera del repositorio y sin secretos en logs. Referencia: [backlog BD-04, issue #27](https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/issues/27).
+  - **Pendiente de revisión de seguridad y aprobación explícita**: evaluar gestor de secretos frente a archivo local, permisos/ACL, persistencia en Docker, recuperación/eliminación y consistencia ante fallos; conservar `hash_password`, idempotencia y prohibición de rotar claves existentes. Cualquier excepción sobre contraseñas en claro o archivos requiere revisar previamente los requisitos SDD afectados.
+  - **Sin implementación ni cambio de alcance actual**: BD-04 mantiene las cuatro contraseñas introducidas de forma oculta y el soporte existente de variables de entorno. Esta nota no autoriza TXT, generación automática, cambios de código/spec ni carga en `mediflow_dev`; no constituye aceptación de T036–T039.
