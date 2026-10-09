@@ -19,6 +19,9 @@ async def node_routing(state: AgentState) -> dict:
 
     score = state.clasificacion.score_confianza_clasificacion
     nivel = state.clasificacion.nivel_prioridad
+    discrepancia_identidad = bool(
+        state.metadata.get("discrepancia_identidad_detectada", False)
+    )
 
     destino, justificacion, notificacion, requiere_auditoria = _calcular_destino(
         score=score,
@@ -27,6 +30,7 @@ async def node_routing(state: AgentState) -> dict:
         paciente_nombre=state.datos_extraidos.paciente.nombre
         if state.datos_extraidos.paciente
         else None,
+        discrepancia_identidad=discrepancia_identidad,
     )
 
     decision = DecisionEnrutamientoState(
@@ -61,14 +65,24 @@ def _calcular_destino(
     nivel: str | None,
     diagnostico: str | None,
     paciente_nombre: str | None,
+    discrepancia_identidad: bool = False,
 ) -> tuple:
     """
     Lógica de decisión condicional:
+    - discrepancia_identidad → Cola_Revision_Ambigua + requiere_auditoria=True
     - score < 0.5 → Cola_Auditoria_Humana
     - score ≥ 0.5 + nivel Urgente → Cola_Emergencia_Medica + alerta
     - score ≥ 0.5 + nivel Rutina → Cola_Rutina
-    - Ambiguo → Cola_Auditoria_Humana
+    - Ambiguo → Cola_Revision_Ambigua
     """
+    if discrepancia_identidad:
+        return (
+            "Cola_Revision_Ambigua",
+            "Discrepancia detectada entre DNI e Historia Clínica: requiere revisión clínica de ambigüedad.",
+            None,
+            True,
+        )
+
     if nivel == "Ambiguo":
         return (
             "Cola_Revision_Ambigua",
@@ -106,3 +120,4 @@ def _calcular_destino(
         None,
         False,
     )
+
