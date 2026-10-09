@@ -32,6 +32,21 @@ async def get_user_by_document(documento_identidad: str) -> dict[str, Any] | Non
         return dict(row) if row else None
 
 
+async def get_user_by_email(correo: str) -> dict[str, Any] | None:
+    """Consulta un usuario por su correo electrónico."""
+    pool = await _require_pool()
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT id, documento_identidad, password_hash, salt, nombres, apellidos, 
+                      correo, telefono, rol, especialidad_medica, estado, created_at, updated_at
+               FROM usuarios
+               WHERE correo = $1""",
+            correo,
+        )
+        return dict(row) if row else None
+
+
 async def get_user_by_id(user_id: str) -> dict[str, Any] | None:
     """Consulta un usuario por su UUID."""
     pool = await _require_pool()

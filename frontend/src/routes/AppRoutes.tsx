@@ -5,6 +5,7 @@ import MainLayout from "../components/layout/MainLayout";
 import Loading from '../components/common/Loading'
 
 const Login = lazy(() => import('../pages/Login'))
+const SignUp = lazy(() => import('../pages/SignUp'))
 const Dashboard = lazy(() => import('../pages/Dashboard'))
 const NewDocument = lazy(() => import('../pages/NewDocument'))
 const DocumentDetail = lazy(() => import('../pages/DocumentDetail'))
@@ -23,6 +24,8 @@ const AppRoutes = () => {
       <Routes>
       {/* Public Route */}
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/register" element={<SignUp />} />
 
       {/* Protected Routes */}
       <Route

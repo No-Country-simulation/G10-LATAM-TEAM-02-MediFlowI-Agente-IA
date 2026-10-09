@@ -147,11 +147,11 @@ describe('Login - Enlace de registro (US3)', () => {
     expect(screen.getByRole('button', { name: /Regístrate/i })).toBeInTheDocument()
   })
 
-  it('navega a /register al hacer click en Regístrate', async () => {
+  it('navega a /signup al hacer click en Regístrate', async () => {
     const user = userEvent.setup()
     render(<Login />)
     const registerButton = screen.getByRole('button', { name: /Regístrate/i })
     await user.click(registerButton)
-    expect(mockNavigate).toHaveBeenCalledWith('/register')
+    expect(mockNavigate).toHaveBeenCalledWith('/signup')
   })
 })

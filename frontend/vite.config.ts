@@ -1,19 +1,21 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import { fileURLToPath, URL } from "node:url";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   test: {
-    environment: 'jsdom',
+    pool: "threads",
+    fileParallelism: false,
+    environment: "jsdom",
     globals: true,
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ["./src/test-setup.ts"],
   },
   server: {
     port: 5173,
@@ -22,10 +24,10 @@ export default defineConfig({
     },
     proxy: {
       // Proxy /api → backend en dev (evita CORS)
-      '/api': {
-        target: 'http://localhost:8000',
+      "/api": {
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
     },
   },
-})
+});

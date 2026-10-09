@@ -2,64 +2,76 @@
  * MediFlow - API Client para Autenticación y Gestión de Usuarios (RF-01 al RF-05)
  */
 
-import { apiRequest } from './httpClient'
+import { apiRequest } from "./httpClient";
 
 export interface User {
-  id: string
-  documento_identidad: string
-  nombres: string
-  apellidos: string
-  correo?: string
-  telefono?: string
-  rol: 'ADMINISTRADOR' | 'COORDINADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'
-  especialidad_medica?: string
-  estado: 'ACTIVO' | 'INACTIVO'
-  created_at?: string
+  id: string;
+  documento_identidad: string;
+  nombres: string;
+  apellidos: string;
+  correo?: string;
+  telefono?: string;
+  rol: "ADMINISTRADOR" | "COORDINADOR" | "OPERADOR" | "AUDITOR" | "SUPERVISOR";
+  especialidad_medica?: string;
+  estado: "ACTIVO" | "INACTIVO";
+  created_at?: string;
 }
 
 export interface LoginResponse {
-  access_token: string
-  token_type: string
-  user: User
-  mensaje: string
+  access_token: string;
+  token_type: string;
+  user: User;
+  mensaje: string;
 }
 
 export async function loginUser(documento_identidad: string, password: string): Promise<LoginResponse> {
-  return apiRequest<LoginResponse>('/auth/login', {
-    method: 'POST',
+  return apiRequest<LoginResponse>("/auth/login", {
+    method: "POST",
     auth: false,
     body: JSON.stringify({ documento_identidad, password }),
-  })
+  });
+}
+
+export async function signupUser(userData: Partial<User> & { password: string }): Promise<User> {
+  return apiRequest<User>("/auth/signup", {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify(userData),
+  });
 }
 
 export async function logoutUser(token: string): Promise<void> {
   try {
-    await apiRequest<unknown>('/auth/logout', { method: 'POST', token })
+    await apiRequest<unknown>("/auth/logout", { method: "POST", token });
   } catch {
     // El cierre local de sesión debe continuar aunque el servidor no responda.
   }
 }
 
 export async function getCurrentUser(token: string): Promise<User> {
-  return apiRequest<User>('/auth/me', { token })
+  return apiRequest<User>("/auth/me", { token });
 }
 
 export async function fetchUsers(token: string): Promise<User[]> {
-  return apiRequest<User[]>('/users', { token })
+  return apiRequest<User[]>("/users", { token });
 }
 
 export async function createNewUser(token: string, userData: Partial<User> & { password: string }): Promise<User> {
-  return apiRequest<User>('/users', {
-    method: 'POST',
+  return apiRequest<User>("/users", {
+    method: "POST",
     token,
     body: JSON.stringify(userData),
-  })
+  });
 }
 
-export async function updateUserDetails(token: string, userId: string, userData: Partial<User> & { password?: string }): Promise<User> {
+export async function updateUserDetails(
+  token: string,
+  userId: string,
+  userData: Partial<User> & { password?: string },
+): Promise<User> {
   return apiRequest<User>(`/users/${encodeURIComponent(userId)}`, {
-    method: 'PUT',
+    method: "PUT",
     token,
     body: JSON.stringify(userData),
-  })
+  });
 }

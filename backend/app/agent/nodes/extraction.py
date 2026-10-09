@@ -83,10 +83,32 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
                     codigos_invalidos.append(codigo_original)
             datos = _consolidar_datos(datos, datos_bloque)
 
+        # Verificar coincidencia de identificadores de paciente
+        nueva_metadata = dict(state.metadata)
+        if datos.paciente:
+            from app.agent.patient_matcher import verificar_identidad_paciente
+
+            matching = await verificar_identidad_paciente(
+                dni=datos.paciente.documento_identidad,
+                historia_clinica=datos.paciente.historia_clinica,
+            )
+
+            if matching.es_conflicto:
+                nueva_metadata["discrepancia_identidad_detectada"] = True
+                nueva_metadata["motivo_ambiguedad"] = "conflicto_identidad_dni_hc"
+                nueva_metadata["dni_detectado"] = matching.dni_evaluado
+                nueva_metadata["hc_detectada"] = matching.hc_evaluada
+            elif matching.estado == "asociado" and matching.paciente:
+                if not datos.paciente.id_paciente:
+                    datos.paciente.id_paciente = str(matching.paciente.get("id"))
+                if not datos.paciente.nombre and matching.paciente.get("nombres"):
+                    datos.paciente.nombre = f"{matching.paciente.get('nombres')} {matching.paciente.get('apellidos', '')}".strip()
+
         logger.info(
             "nodo.extraction.completado",
             documento_id=state.documento_id,
             diagnostico=datos.diagnostico_principal,
+            conflicto_identidad=nueva_metadata.get("discrepancia_identidad_detectada", False),
         )
 
         return {

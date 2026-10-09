@@ -96,3 +96,43 @@ me:
             schema:
               $ref: ../components/schemas.yaml#/schemas/ErrorResponse
     description: Consultar usuario autenticado.
+signup:
+  post:
+    tags:
+    - auth
+    summary: Registrar usuario
+    operationId: registrarUsuario
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/schemas/UsuarioCrear
+    responses:
+      '201':
+        description: Registro exitoso, pendiente de aprobación
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - message
+              - user
+              properties:
+                message:
+                  type: string
+                  example: User registered successfully. Pending admin approval.
+                user:
+                  $ref: ../components/schemas.yaml#/schemas/Usuario
+      '400':
+        $ref: ../components/responses.yaml#/responses/BadRequest
+      '409':
+        description: El correo ya está registrado
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/schemas/ErrorResponse
+      '500':
+        $ref: ../components/responses.yaml#/responses/InternalError
+    description: Registro de usuario en estado pendiente.
