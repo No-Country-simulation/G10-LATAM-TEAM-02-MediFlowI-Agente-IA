@@ -17,6 +17,7 @@ dependencies = [
   # Validación de datos
   "pydantic>=2.8.0",
   "pydantic-settings>=2.4.0",
+  "email-validator>=2.0.0",
   # Procesamiento de documentos
   "pymupdf>=1.24.0",
   "pytesseract>=0.3.10",
@@ -34,6 +35,7 @@ dependencies = [
   # Utils
   "python-dotenv>=1.0.0",
   "structlog>=24.0.0",
+  "bcrypt>=4.0.0",
 ]
 
 [project.optional-dependencies]

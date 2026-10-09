@@ -59,6 +59,8 @@ paths:
     $ref: ./paths/auth.yaml#/logout
   /auth/me:
     $ref: ./paths/auth.yaml#/me
+  /auth/signup:
+    $ref: ./paths/auth.yaml#/signup
   /users:
     $ref: ./paths/users.yaml#/users
   /users/{user_id}:
