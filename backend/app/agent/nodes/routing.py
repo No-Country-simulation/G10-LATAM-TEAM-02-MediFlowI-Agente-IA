@@ -23,14 +23,21 @@ async def node_routing(state: AgentState) -> dict:
         state.metadata.get("discrepancia_identidad_detectada", False)
     )
 
+    tipo_doc = state.clasificacion.categoria_documento if state.clasificacion else None
+    
+    meds_controlados = state.metadata.get("medicamentos_controlados", False) if state.metadata else False
+    discrepancia = state.metadata.get("discrepancia_identidad_detectada", False) if state.metadata else False
+
     destino, justificacion, notificacion, requiere_auditoria = _calcular_destino(
         score=score,
         nivel=nivel,
-        diagnostico=state.datos_extraidos.diagnostico_principal,
+        diagnostico=state.datos_extraidos.diagnostico_principal if state.datos_extraidos else None,
         paciente_nombre=state.datos_extraidos.paciente.nombre
-        if state.datos_extraidos.paciente
+        if state.datos_extraidos and state.datos_extraidos.paciente
         else None,
-        discrepancia_identidad=discrepancia_identidad,
+        tipo_documento=tipo_doc,
+        medicamentos_controlados=meds_controlados,
+        discrepancia_identidad=discrepancia
     )
 
     if state.metadata.get("cie10_codigos_invalidos"):
@@ -73,6 +80,8 @@ def _calcular_destino(
     nivel: str | None,
     diagnostico: str | None,
     paciente_nombre: str | None,
+    tipo_documento: str | None = None,
+    medicamentos_controlados: bool = False,
     discrepancia_identidad: bool = False,
 ) -> tuple:
     """
@@ -86,7 +95,7 @@ def _calcular_destino(
     if discrepancia_identidad:
         return (
             "Cola_Revision_Ambigua",
-            "Discrepancia detectada entre DNI e Historia Clínica: requiere revisión clínica de ambigüedad.",
+            "Discrepancia de identidad detectada. Requiere revisión de admisión.",
             None,
             True,
         )
@@ -120,6 +129,29 @@ def _calcular_destino(
             notificacion,
             False,
         )
+
+    # Evaluación Farmacia
+    diag_lower = (diagnostico or "").lower()
+    es_farmacia = (
+        tipo_documento == "Receta_Medica" or
+        ("farmacoterapia" in diag_lower and "descompensación aguda" not in diag_lower)
+    )
+
+    if es_farmacia:
+        if medicamentos_controlados:
+            return (
+                "Farmacia_Hospitalaria",
+                "Receta o farmacoterapia con medicamentos controlados/narcóticos. Requiere revisión estricta de Farmacia/Auditor.",
+                None,
+                True,
+            )
+        else:
+            return (
+                "Farmacia_Hospitalaria",
+                "Receta o farmacoterapia exclusiva procesada con éxito. Derivada a Farmacia_Hospitalaria.",
+                None,
+                False,
+            )
 
     # Rutina por defecto
     return (
