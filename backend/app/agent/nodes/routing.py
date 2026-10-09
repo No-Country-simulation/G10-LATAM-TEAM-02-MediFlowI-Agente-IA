@@ -33,6 +33,14 @@ async def node_routing(state: AgentState) -> dict:
         discrepancia_identidad=discrepancia_identidad,
     )
 
+    if state.metadata.get("cie10_codigos_invalidos"):
+        destino = "Cola_Auditoria_Humana"
+        justificacion = (
+            "Código CIE-10 sugerido inexistente o mal formado. Requiere revisión humana."
+        )
+        notificacion = None
+        requiere_auditoria = True
+
     decision = DecisionEnrutamientoState(
         destino_principal=destino,
         requiere_auditoria_humana=requiere_auditoria,
