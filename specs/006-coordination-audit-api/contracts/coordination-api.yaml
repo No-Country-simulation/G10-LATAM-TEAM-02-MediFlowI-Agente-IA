@@ -1,0 +1,241 @@
+openapi: 3.1.0
+info:
+  title: MediFlow Coordination & Medical Audit API
+  description: Endpoints exclusivos para médicos coordinadores y administradores para supervisión y resolución HITL.
+  version: 1.0.0
+paths:
+  /api/v1/coordination/pending:
+    get:
+      summary: Bandeja de triajes pendientes de auditoría HITL
+      description: Retorna la lista de triajes retenidos que requieren dictamen médico humano.
+      operationId: obtenerTriajesPendientesAuditoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: especialidad
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filtro opcional por especialidad requerida
+        - name: minutos_espera
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Filtro opcional por tiempo mínimo de espera en minutos
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista de triajes pendientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingTriageItem'
+        '401':
+          description: No autenticado
+        '403':
+          description: Permisos insuficientes (exclusivo COORDINADOR y ADMINISTRADOR)
+
+  /api/v1/coordination/resolve/{documento_id}:
+    post:
+      summary: Resolución médica de triaje HITL
+      description: Registra el dictamen médico formal y la justificación clínica para cerrar la revisión del triaje.
+      operationId: resolverTriajeAuditoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documento_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Identificador único del documento de triaje
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveTriageRequest'
+      responses:
+        '200':
+          description: Dictamen registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveTriageResponse'
+        '400':
+          description: Petición inválida o datos incompatibles
+        '401':
+          description: No autenticado
+        '403':
+          description: Permisos insuficientes (exclusivo COORDINADOR y ADMINISTRADOR)
+        '404':
+          description: Documento no encontrado
+        '422':
+          description: Error de validación en los campos de entrada
+
+  /api/v1/coordination/audit/{documento_id}:
+    get:
+      summary: Historial de eventos y dictámenes del documento
+      description: Retorna la bitácora inmutable de eventos de trazabilidad y auditorías de coordinación.
+      operationId: obtenerEventosAuditoriaDocumento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documento_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Identificador único del documento de triaje
+      responses:
+        '200':
+          description: Historial de eventos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEventItem'
+        '401':
+          description: No autenticado
+        '403':
+          description: Permisos insuficientes
+
+components:
+  schemas:
+    ResolveTriageRequest:
+      type: object
+      required:
+        - decision
+        - justificacion_clinica
+      properties:
+        decision:
+          type: string
+          enum: [aprobar, reclasificar, rechazar]
+        justificacion_clinica:
+          type: string
+          minLength: 5
+        categoria_destino:
+          type: string
+          nullable: true
+        prioridad_sugerida:
+          type: string
+          nullable: true
+    ResolveTriageResponse:
+      type: object
+      required:
+        - id
+        - documento_id
+        - coordinador_id
+        - decision
+        - justificacion_clinica
+        - nuevo_estado
+        - created_at
+      properties:
+        id:
+          type: string
+        documento_id:
+          type: string
+        episodio_id:
+          type: string
+          nullable: true
+        coordinador_id:
+          type: string
+        decision:
+          type: string
+        justificacion_clinica:
+          type: string
+        nuevo_estado:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        mensaje:
+          type: string
+    PendingTriageItem:
+      type: object
+      required:
+        - documento_id
+        - fecha_ingesta
+        - tiempo_espera_minutos
+        - estado
+      properties:
+        documento_id:
+          type: string
+        episodio_id:
+          type: string
+          nullable: true
+        fecha_ingesta:
+          type: string
+          format: date-time
+        tiempo_espera_minutos:
+          type: integer
+        estado:
+          type: string
+        canal_origen:
+          type: string
+        especialidad_sugerida:
+          type: string
+          nullable: true
+        nivel_prioridad:
+          type: string
+          nullable: true
+        confianza_ia:
+          type: number
+          nullable: true
+        motivo_hitl:
+          type: string
+          nullable: true
+        diagnostico_preliminar:
+          type: string
+          nullable: true
+        codigo_cie10:
+          type: string
+          nullable: true
+        paciente:
+          type: object
+          nullable: true
+    AuditEventItem:
+      type: object
+      required:
+        - id
+        - documento_id
+        - evento
+        - descripcion
+        - created_at
+      properties:
+        id:
+          type: string
+        documento_id:
+          type: string
+        episodio_id:
+          type: string
+          nullable: true
+        usuario_id:
+          type: string
+          nullable: true
+        evento:
+          type: string
+        descripcion:
+          type: string
+        metadata:
+          type: object
+        created_at:
+          type: string
+          format: date-time
