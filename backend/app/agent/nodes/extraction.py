@@ -8,6 +8,7 @@ import json
 
 import structlog
 
+from app.agent.clinical_catalog import validar_y_completar_cie10
 from app.agent.state import AgentState, DatosExtraidosState, MedicoSolicitanteState, PacienteState
 
 logger = structlog.get_logger(__name__)
@@ -69,19 +70,53 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
     try:
         bloques = dividir_texto_en_bloques(texto)
         datos = DatosExtraidosState()
+        codigos_invalidos: list[str] = []
         for bloque in bloques:
             prompt = _EXTRACTION_PROMPT.format(texto=bloque)
             datos_bloque = _parsear_respuesta(await _llamar_llm(prompt, llm_service))
+            codigo_original = datos_bloque.cie10_sugerido
+            if codigo_original is not None:
+                validacion = validar_y_completar_cie10(codigo_original)
+                datos_bloque.cie10_sugerido = validacion["codigo"]
+                datos_bloque.cie10_descripcion = validacion["descripcion"]
+                if codigo_original.strip() and not validacion["valido"]:
+                    codigos_invalidos.append(codigo_original)
             datos = _consolidar_datos(datos, datos_bloque)
+
+        # Verificar coincidencia de identificadores de paciente
+        nueva_metadata = dict(state.metadata)
+        if datos.paciente:
+            from app.agent.patient_matcher import verificar_identidad_paciente
+
+            matching = await verificar_identidad_paciente(
+                dni=datos.paciente.documento_identidad,
+                historia_clinica=datos.paciente.historia_clinica,
+            )
+
+            if matching.es_conflicto:
+                nueva_metadata["discrepancia_identidad_detectada"] = True
+                nueva_metadata["motivo_ambiguedad"] = "conflicto_identidad_dni_hc"
+                nueva_metadata["dni_detectado"] = matching.dni_evaluado
+                nueva_metadata["hc_detectada"] = matching.hc_evaluada
+            elif matching.estado == "asociado" and matching.paciente:
+                if not datos.paciente.id_paciente:
+                    datos.paciente.id_paciente = str(matching.paciente.get("id"))
+                if not datos.paciente.nombre and matching.paciente.get("nombres"):
+                    datos.paciente.nombre = f"{matching.paciente.get('nombres')} {matching.paciente.get('apellidos', '')}".strip()
 
         logger.info(
             "nodo.extraction.completado",
             documento_id=state.documento_id,
             diagnostico=datos.diagnostico_principal,
+            conflicto_identidad=nueva_metadata.get("discrepancia_identidad_detectada", False),
         )
 
         return {
             "datos_extraidos": datos,
+            "metadata": {
+                **state.metadata,
+                "cie10_codigos_invalidos": list(dict.fromkeys(codigos_invalidos)),
+            },
             "nodos_ejecutados": state.nodos_ejecutados + ["extraction"],
         }
 
@@ -105,6 +140,7 @@ def _consolidar_datos(
         estudio_realizado=acumulado.estudio_realizado or nuevo.estudio_realizado,
         diagnostico_principal=acumulado.diagnostico_principal or nuevo.diagnostico_principal,
         cie10_sugerido=acumulado.cie10_sugerido or nuevo.cie10_sugerido,
+        cie10_descripcion=acumulado.cie10_descripcion or nuevo.cie10_descripcion,
         hallazgos_clave=list(dict.fromkeys(acumulado.hallazgos_clave + nuevo.hallazgos_clave)),
     )
 

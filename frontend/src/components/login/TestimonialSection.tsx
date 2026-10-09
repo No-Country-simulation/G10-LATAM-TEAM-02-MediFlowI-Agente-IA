@@ -10,9 +10,9 @@ export function TestimonialSection(): JSX.Element {
         backgroundImage: `linear-gradient(180deg, rgba(31,32,65,0) 0%, rgba(31,32,65,0.7) 65%, rgba(31,32,65,0.96) 100%), url(${banner})`,
       }}
     >
-      <div className="flex flex-col w-full max-w-[560px] items-start gap-4 relative z-10">
+      <div className="flex flex-col w-full items-start gap-4 relative z-10">
         <blockquote
-          className="relative self-stretch font-bold text-white text-xl lg:text-2xl leading-[1.4]"
+          className="relative self-stretch font-medium text-white text-xl leading-[1.4]"
           style={{ fontFamily: "'Quicksand', sans-serif" }}
         >
           &ldquo;Simplemente la plataforma que nuestro equipo médico necesitaba para optimizar la atención.&rdquo;

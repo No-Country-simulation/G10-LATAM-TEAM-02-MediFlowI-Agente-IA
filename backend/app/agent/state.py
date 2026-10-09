@@ -29,6 +29,7 @@ class DatosExtraidosState(BaseModel):
     estudio_realizado: str | None = None
     diagnostico_principal: str | None = None
     cie10_sugerido: str | None = None
+    cie10_descripcion: str | None = None
     hallazgos_clave: list[str] = Field(default_factory=list)
 
 

@@ -19,6 +19,9 @@ async def node_routing(state: AgentState) -> dict:
 
     score = state.clasificacion.score_confianza_clasificacion
     nivel = state.clasificacion.nivel_prioridad
+    discrepancia_identidad = bool(
+        state.metadata.get("discrepancia_identidad_detectada", False)
+    )
 
     tipo_doc = state.clasificacion.categoria_documento if state.clasificacion else None
     
@@ -36,6 +39,14 @@ async def node_routing(state: AgentState) -> dict:
         medicamentos_controlados=meds_controlados,
         discrepancia_identidad=discrepancia
     )
+
+    if state.metadata.get("cie10_codigos_invalidos"):
+        destino = "Cola_Auditoria_Humana"
+        justificacion = (
+            "Código CIE-10 sugerido inexistente o mal formado. Requiere revisión humana."
+        )
+        notificacion = None
+        requiere_auditoria = True
 
     decision = DecisionEnrutamientoState(
         destino_principal=destino,
@@ -75,10 +86,11 @@ def _calcular_destino(
 ) -> tuple:
     """
     Lógica de decisión condicional:
+    - discrepancia_identidad → Cola_Revision_Ambigua + requiere_auditoria=True
     - score < 0.5 → Cola_Auditoria_Humana
     - score ≥ 0.5 + nivel Urgente → Cola_Emergencia_Medica + alerta
     - score ≥ 0.5 + nivel Rutina → Cola_Rutina
-    - Ambiguo → Cola_Auditoria_Humana
+    - Ambiguo → Cola_Revision_Ambigua
     """
     if discrepancia_identidad:
         return (
@@ -148,3 +160,4 @@ def _calcular_destino(
         None,
         False,
     )
+

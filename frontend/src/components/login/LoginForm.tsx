@@ -123,11 +123,10 @@ export function LoginForm({
           type="submit"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
-          className={`flex h-[44px] items-center justify-center w-full rounded-lg transition-colors duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-[#2c5282] focus-visible:ring-offset-2 ${
-            isSubmitting
+          className={`flex h-[44px] items-center justify-center w-full rounded-lg transition-colors duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-[#2c5282] focus-visible:ring-offset-2 ${isSubmitting
               ? 'bg-[#94a3b8] text-white cursor-not-allowed'
               : 'bg-[#2c5282] hover:bg-[#1f3e66] active:bg-[#172e4b] text-white cursor-pointer'
-          }`}
+            }`}
         >
           {isSubmitting ? (
             <>
@@ -171,7 +170,7 @@ export function LoginForm({
         <button
           type="button"
           onClick={onRegister}
-          className="font-bold text-[#2c5282] hover:text-[#1a365d] hover:underline focus-visible:underline transition-colors cursor-pointer"
+          className="bg-transparent font-bold text-[#2c5282] hover:text-[#1a365d] hover:underline focus-visible:underline transition-colors cursor-pointer"
           style={{ fontFamily: "'Montserrat', sans-serif" }}
         >
           Regístrate

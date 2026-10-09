@@ -11,9 +11,24 @@
   --bs-primary-rgb: 2, 132, 199;
   --bs-body-bg: #f8fafc;
   --bs-body-color: #1e293b;
-  --bs-font-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+  --bs-font-sans-serif: 'Quicksand', sans-serif;
   --card-border-radius: 0.85rem;
   --card-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+
+  --primary: #2C5282;
+  --secondary: #6FCF97;
+  --tertiary: #BC9CFF;
+  --error: #F72C2C;
+  --orange: #F59E0B;
+  --green: #10B981;
+  --blue: #3B82F6;
+  --text-main: #1A1816;
+
+  --dark-shade-100: #1F2041;
+  --dark-shade-75: rgba(31, 32, 65, 0.75);
+  --dark-shade-50: rgba(31, 32, 65, 0.50);
+  --dark-shade-25: rgba(31, 32, 65, 0.25);
+  --dark-shade-5: rgba(31, 32, 65, 0.05);
 }
 
 body {
@@ -39,6 +54,7 @@ body {
   .main-content-wrapper.with-sidebar {
     margin-left: 250px !important;
   }
+
   .main-content-wrapper.no-sidebar {
     margin-left: 0 !important;
   }

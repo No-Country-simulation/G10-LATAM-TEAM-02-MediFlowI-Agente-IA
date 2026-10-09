@@ -5,7 +5,7 @@ Maneja el hashing seguro de contraseñas con PBKDF2-HMAC-SHA256,
 generación y validación de tokens de sesión y contraseñas.
 """
 
-import hashlib
+import bcrypt
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -19,30 +19,17 @@ from app.repositories.session_repository import (
 )
 
 
-def generate_salt() -> str:
-    """Genera un salt aleatorio en formato hexadecimal (32 caracteres)."""
-    return secrets.token_hex(16)
-
-
-def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
+def hash_password(password: str) -> tuple[str, str]:
     """
-    Genera el hash PBKDF2-HMAC-SHA256 de una contraseña.
-    Retorna la tupla (password_hash, salt).
+    Genera el hash bcrypt de una contraseña.
     """
-    if not salt:
-        salt = generate_salt()
-
-    password_bytes = password.encode("utf-8")
-    salt_bytes = salt.encode("utf-8")
-
-    dk = hashlib.pbkdf2_hmac("sha256", password_bytes, salt_bytes, 100000)
-    return dk.hex(), salt
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8"), salt.decode("utf-8")
 
 
-def verify_password(password: str, stored_hash: str, salt: str) -> bool:
+def verify_password(password: str, stored_hash: str, salt: str = "") -> bool:
     """Verifica si una contraseña en texto plano coincide con el hash almacenado."""
-    calculated_hash, _ = hash_password(password, salt)
-    return secrets.compare_digest(calculated_hash, stored_hash)
+    return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
 
 
 async def create_access_token(user_data: dict, expires_delta_hours: int = 12) -> str:
