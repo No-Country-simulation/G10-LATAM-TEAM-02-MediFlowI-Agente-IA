@@ -1,0 +1,122 @@
+coordinationPending:
+  get:
+    tags:
+      - coordination
+    summary: Bandeja de triajes pendientes de auditoría HITL
+    description: Retorna la lista de triajes retenidos que requieren revisión médica humana (exclusivo COORDINADOR y ADMINISTRADOR).
+    operationId: obtenerTriajesPendientesAuditoria
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: especialidad
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filtro opcional por especialidad
+      - name: minutos_espera
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+        description: Filtro por tiempo mínimo de espera en minutos
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+    responses:
+      '200':
+        description: Lista de triajes pendientes
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/schemas/PendingTriageItem'
+      '401':
+        description: No autenticado
+      '403':
+        description: No autorizado (requiere rol COORDINADOR o ADMINISTRADOR)
+      '503':
+        description: Base de datos no disponible
+
+coordinationResolve:
+  post:
+    tags:
+      - coordination
+    summary: Resolución médica de triaje HITL
+    description: Registra el dictamen médico formal, reasignación y justificación clínica de un caso en revisión.
+    operationId: resolverTriajeAuditoria
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: documento_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Identificador único del documento de triaje
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/schemas/ResolveTriageRequest'
+    responses:
+      '200':
+        description: Resolución médica registrada exitosamente
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/schemas/ResolveTriageResponse'
+      '401':
+        description: No autenticado
+      '403':
+        description: No autorizado (requiere rol COORDINADOR o ADMINISTRADOR)
+      '404':
+        description: Documento de triaje no encontrado
+      '422':
+        description: Error de validación en los campos de entrada
+      '503':
+        description: Base de datos no disponible
+
+coordinationAudit:
+  get:
+    tags:
+      - coordination
+    summary: Historial de eventos y trazabilidad del documento
+    description: Retorna la bitácora inmutable de eventos hospitalarios y auditorías para un documento.
+    operationId: obtenerHistorialAuditoriaDocumento
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: documento_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Identificador único del documento de triaje
+    responses:
+      '200':
+        description: Historial de eventos del documento
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/schemas/AuditEventItem'
+      '401':
+        description: No autenticado
+      '403':
+        description: No autorizado (requiere rol COORDINADOR o ADMINISTRADOR)
+      '503':
+        description: Base de datos no disponible

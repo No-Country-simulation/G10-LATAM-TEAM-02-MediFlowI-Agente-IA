@@ -683,3 +683,148 @@ schemas:
         type: array
         items:
           $ref: '#/schemas/ValidationError'
+  PendingTriageItem:
+    type: object
+    required:
+      - documento_id
+      - fecha_ingesta
+      - estado
+    properties:
+      documento_id:
+        type: string
+        example: DOC-2026-0001
+      episodio_id:
+        type:
+          - string
+          - 'null'
+        format: uuid
+      fecha_ingesta:
+        type: string
+        format: date-time
+      tiempo_espera_minutos:
+        type: integer
+        example: 25
+      estado:
+        type: string
+        example: pendiente_auditoria
+      canal_origen:
+        type: string
+        example: Admision
+      especialidad_sugerida:
+        type:
+          - string
+          - 'null'
+        example: Cardiologia
+      nivel_prioridad:
+        type:
+          - string
+          - 'null'
+        example: Urgente
+      confianza_ia:
+        type:
+          - number
+          - 'null'
+        example: 0.42
+      motivo_hitl:
+        type:
+          - string
+          - 'null'
+      diagnostico_preliminar:
+        type:
+          - string
+          - 'null'
+      codigo_cie10:
+        type:
+          - string
+          - 'null'
+      paciente:
+        type:
+          - object
+          - 'null'
+  ResolveTriageRequest:
+    type: object
+    required:
+      - decision
+      - justificacion_clinica
+    properties:
+      decision:
+        type: string
+        enum:
+          - aprobar
+          - reclasificar
+          - rechazar
+      justificacion_clinica:
+        type: string
+        minLength: 5
+        maxLength: 2000
+      categoria_destino:
+        type:
+          - string
+          - 'null'
+      prioridad_sugerida:
+        type:
+          - string
+          - 'null'
+  ResolveTriageResponse:
+    type: object
+    required:
+      - id
+      - documento_id
+      - coordinador_id
+      - decision
+      - justificacion_clinica
+      - nuevo_estado
+      - created_at
+    properties:
+      id:
+        type: string
+      documento_id:
+        type: string
+      episodio_id:
+        type:
+          - string
+          - 'null'
+      coordinador_id:
+        type: string
+      decision:
+        type: string
+      justificacion_clinica:
+        type: string
+      nuevo_estado:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      mensaje:
+        type: string
+  AuditEventItem:
+    type: object
+    required:
+      - id
+      - documento_id
+      - evento
+      - descripcion
+      - created_at
+    properties:
+      id:
+        type: string
+      documento_id:
+        type: string
+      episodio_id:
+        type:
+          - string
+          - 'null'
+      usuario_id:
+        type:
+          - string
+          - 'null'
+      evento:
+        type: string
+      descripcion:
+        type: string
+      metadata:
+        type: object
+      created_at:
+        type: string
+        format: date-time
+
