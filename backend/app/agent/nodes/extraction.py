@@ -114,7 +114,7 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
         return {
             "datos_extraidos": datos,
             "metadata": {
-                **state.metadata,
+                **nueva_metadata,
                 "cie10_codigos_invalidos": list(dict.fromkeys(codigos_invalidos)),
             },
             "nodos_ejecutados": state.nodos_ejecutados + ["extraction"],

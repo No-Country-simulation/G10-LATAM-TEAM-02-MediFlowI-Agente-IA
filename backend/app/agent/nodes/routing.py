@@ -23,7 +23,12 @@ async def node_routing(state: AgentState) -> dict:
         state.metadata.get("discrepancia_identidad_detectada", False)
     )
 
-    tipo_doc = state.clasificacion.categoria_documento if state.clasificacion else None
+    tipo_doc = (
+        getattr(state.clasificacion, "tipo_documento", None)
+        or getattr(state.clasificacion, "categoria_documento", None)
+        if state.clasificacion
+        else None
+    )
     
     meds_controlados = state.metadata.get("medicamentos_controlados", False) if state.metadata else False
     discrepancia = state.metadata.get("discrepancia_identidad_detectada", False) if state.metadata else False

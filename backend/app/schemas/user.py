@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from uuid import UUID
 
 class UserCreate(BaseModel):
@@ -21,6 +21,8 @@ class UserCreate(BaseModel):
             raise ValueError("La contraseña debe tener al menos un carácter especial.")
         return v
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID | str
     documento_identidad: str
     nombres: str
@@ -34,6 +36,3 @@ class UserResponse(BaseModel):
     @classmethod
     def serialize_id(cls, v) -> str:
         return str(v) if v is not None else ""
-
-    class Config:
-        from_attributes = True
