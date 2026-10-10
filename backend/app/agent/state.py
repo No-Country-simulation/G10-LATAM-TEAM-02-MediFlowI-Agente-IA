@@ -35,6 +35,7 @@ class DatosExtraidosState(BaseModel):
 
 class ClasificacionState(BaseModel):
     tipo_documento: str | None = None
+    categoria_documento: str | None = None
     especialidad: str | None = None
     nivel_prioridad: Literal["Urgente", "Rutina", "Ambiguo"] | None = None
     score_confianza_clasificacion: float = 0.0
