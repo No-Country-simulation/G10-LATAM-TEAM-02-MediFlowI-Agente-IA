@@ -162,6 +162,9 @@ class PostgresStorageRepository:
             self._mock_store[resultado.documento_id]["paciente_id"] = resultado.metadata.get(
                 "paciente_id"
             )
+            self._mock_store[resultado.documento_id]["episodio_id"] = resultado.metadata.get(
+                "episodio_id"
+            )
             self._mock_history.extend(
                 [
                     {
@@ -212,6 +215,18 @@ class PostgresStorageRepository:
                         }.get(
                             resultado.metadata["asociacion_paciente"], "PACIENTE_SIN_COINCIDENCIA"
                         ),
+                    }
+                )
+            if resultado.metadata.get("episodio_id"):
+                self._mock_history.append(
+                    {
+                        "documento_id": resultado.documento_id,
+                        "usuario_id": usuario_registro_id,
+                        "evento": "DOCUMENTO_ASOCIADO_A_EPISODIO",
+                        "metadata": {
+                            "episodio_id": resultado.metadata["episodio_id"],
+                            "codigo_episodio": resultado.metadata.get("codigo_episodio"),
+                        },
                     }
                 )
             logger.info("postgres.mock.guardado", documento_id=resultado.documento_id)
@@ -315,6 +330,13 @@ class PostgresStorageRepository:
                     await conn.execute(
                         "UPDATE documentos_triaje SET paciente_id = $1::uuid WHERE documento_id = $2",
                         resultado.metadata["paciente_id"],
+                        resultado.documento_id,
+                    )
+
+                if resultado.metadata.get("episodio_id"):
+                    await conn.execute(
+                        "UPDATE documentos_triaje SET episodio_id = $1::uuid WHERE documento_id = $2",
+                        resultado.metadata["episodio_id"],
                         resultado.documento_id,
                     )
 

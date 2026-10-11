@@ -320,3 +320,27 @@ async def list_episodes(
             return [dict(row) for row in rows]
     except Exception as exc:
         raise _database_failure("listar episodios clínicos", exc) from exc
+
+
+async def get_active_episode_by_patient(paciente_id: UUID | str) -> dict[str, Any] | None:
+    """Busca el episodio clínico activo más reciente de un paciente (estado != 'cerrado' y != 'atendido')."""
+    uuid_val = _ensure_uuid(paciente_id)
+    if uuid_val is None:
+        return None
+
+    pool = await _require_pool()
+    query = f"""
+        SELECT {VISTA_EPISODIOS_COLUMNS}
+        FROM v_episodios_detalle
+        WHERE paciente_id = $1 AND estado_atencion NOT IN ('cerrado', 'atendido')
+        ORDER BY created_at DESC
+        LIMIT 1;
+    """
+
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, uuid_val)
+            return dict(row) if row else None
+    except Exception as exc:
+        raise _database_failure("obtener episodio activo del paciente", exc) from exc
+
