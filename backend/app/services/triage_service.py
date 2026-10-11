@@ -95,6 +95,16 @@ class TriageService:
             )
             aplicar_asociacion_paciente(resultado, resolucion)
 
+        # 1.1 Orquestar episodio clínico y trazabilidad si el paciente está asociado
+        if (
+            resultado.metadata.get("asociacion_paciente") == "asociado"
+            and resultado.metadata.get("paciente_id")
+        ):
+            await self._orquestar_episodio_y_trazabilidad(
+                resultado=resultado,
+                usuario_registro_id=usuario_registro_id,
+            )
+
         ext = "pdf" if tipo_archivo == "PDF" else ("png" if tipo_archivo == "IMAGEN" else "txt")
         nombre_orig = nombre_original or f"ingesta_{documento_id}.{ext}"
 
@@ -179,3 +189,86 @@ class TriageService:
             "Cola_Revision_Ambigua": f"revision_ambigua/{doc_id}/resultado.json",
         }
         return rutas.get(destino or "", f"procesados/{doc_id}/resultado.json")
+
+    async def _orquestar_episodio_y_trazabilidad(
+        self,
+        resultado: AgentState,
+        usuario_registro_id: str | None = None,
+    ) -> None:
+        """
+        Orquesta la vinculación o apertura automática de un episodio clínico:
+        1. Consulta si el paciente cuenta con un episodio activo (estado != 'cerrado' y != 'atendido').
+        2. Si no tiene episodio activo, crea uno nuevo vía episode_repository.
+        3. Asigna episodio_id y codigo_episodio en metadata del estado.
+        4. Registra el evento inmutable DOCUMENTO_ASOCIADO_A_EPISODIO en trazabilidad_eventos.
+        5. Aísla cualquier contingencia técnica para garantizar continuidad clínica.
+        """
+        paciente_id = resultado.metadata.get("paciente_id")
+        if not paciente_id:
+            return
+
+        try:
+            from app.repositories.episode_repository import (
+                create_episode,
+                get_active_episode_by_patient,
+            )
+            from app.repositories.audit_repository import AuditRepository
+
+            episodio_activo = await get_active_episode_by_patient(paciente_id)
+            if episodio_activo:
+                episodio_id_str = str(episodio_activo.get("episodio_id") or episodio_activo.get("id"))
+                codigo_episodio = episodio_activo.get("codigo_episodio") or ""
+                resultado.metadata["episodio_id"] = episodio_id_str
+                resultado.metadata["codigo_episodio"] = codigo_episodio
+                resultado.metadata["episodio_nuevo"] = False
+            else:
+                nuevo_episodio = await create_episode({
+                    "paciente_id": paciente_id,
+                    "operador_ingreso_id": usuario_registro_id,
+                    "nivel_prioridad": resultado.clasificacion.nivel_prioridad or "Rutina",
+                    "motivo_consulta": (
+                        resultado.datos_extraidos.diagnostico_principal
+                        or "Ingreso por triaje médico"
+                    ),
+                    "especialidad_requerida": resultado.clasificacion.especialidad or None,
+                    "estado_atencion": "ingresado",
+                })
+                episodio_id_str = str(nuevo_episodio.get("id") or nuevo_episodio.get("episodio_id"))
+                codigo_episodio = nuevo_episodio.get("codigo_episodio") or ""
+                resultado.metadata["episodio_id"] = episodio_id_str
+                resultado.metadata["codigo_episodio"] = codigo_episodio
+                resultado.metadata["episodio_nuevo"] = True
+
+            # Registrar evento inmutable en trazabilidad_eventos
+            es_nuevo = resultado.metadata["episodio_nuevo"]
+            await AuditRepository.registrar_evento_trazabilidad(
+                episodio_id=episodio_id_str,
+                documento_id=resultado.documento_id,
+                usuario_id=usuario_registro_id,
+                evento="DOCUMENTO_ASOCIADO_A_EPISODIO",
+                descripcion=(
+                    f"Documento de triaje {resultado.documento_id} asociado al episodio "
+                    f"{codigo_episodio} ({'nuevo' if es_nuevo else 'activo preexistente'})."
+                ),
+                metadata={
+                    "codigo_episodio": codigo_episodio,
+                    "episodio_nuevo": es_nuevo,
+                    "nivel_prioridad": resultado.clasificacion.nivel_prioridad,
+                    "destino_principal": resultado.decision_enrutamiento.destino_principal,
+                },
+            )
+            logger.info(
+                "triage_service.episodio.orquestado",
+                documento_id=resultado.documento_id,
+                episodio_id=episodio_id_str,
+                codigo_episodio=codigo_episodio,
+                es_nuevo=es_nuevo,
+            )
+        except Exception as exc:
+            logger.warning(
+                "triage_service.episodio.error",
+                documento_id=resultado.documento_id,
+                error=str(exc),
+            )
+            resultado.metadata["episodio_error"] = str(exc)
+
