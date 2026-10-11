@@ -164,3 +164,89 @@ def test_e2e_hospital_workflow_admission_to_coordination_resolution(
             },
         )
         assert resp_admin.status_code == 200
+
+
+def test_e2e_triage_ingestion_creates_episode_and_immutable_traceability(
+    client: TestClient,
+    bearer_headers: dict,
+):
+    """
+    Flujo E2E de Triaje con Creación y Vinculación Automática de Episodio:
+    1. Paciente identificado en admisión hospitalaria.
+    2. Ingesta de documento clínico vía canal Admision.
+    3. Creación automática de episodio clínico en 'episodios_clinicos'.
+    4. Vinculación relacional de 'episodio_id' en 'documentos_triaje'.
+    5. Registro inmutable del evento 'DOCUMENTO_ASOCIADO_A_EPISODIO' en 'trazabilidad_eventos'.
+    """
+    patient_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    paciente_resuelto = {
+        "id": patient_id,
+        "numero_documento": "88776655",
+        "nombres": "Mateo",
+        "apellidos": "Salas",
+    }
+    episodio_mock = {
+        "id": "11112222-3333-4444-5555-666677778888",
+        "codigo_episodio": "EP-20261011-MATEO1",
+        "paciente_id": patient_id,
+        "estado_atencion": "ingresado",
+        "nivel_prioridad": "Rutina",
+    }
+
+    with (
+        patch(
+            "app.repositories.patient_repository.resolver_paciente_por_identificadores",
+            new_callable=AsyncMock,
+        ) as mock_resolver,
+        patch(
+            "app.repositories.episode_repository.get_active_episode_by_patient",
+            new_callable=AsyncMock,
+        ) as mock_get_active,
+        patch(
+            "app.repositories.episode_repository.create_episode",
+            new_callable=AsyncMock,
+        ) as mock_create_epi,
+        patch(
+            "app.repositories.audit_repository.AuditRepository.registrar_evento_trazabilidad",
+            new_callable=AsyncMock,
+        ) as mock_audit,
+    ):
+        mock_resolver.return_value = {"estado": "asociado", "paciente": paciente_resuelto}
+        mock_get_active.return_value = None
+        mock_create_epi.return_value = episodio_mock
+        mock_audit.return_value = {"id": "audit-uuid-e2e-1"}
+
+        resp_triage = client.post(
+            "/api/v1/triage",
+            headers=bearer_headers,
+            json={
+                "documento_id": "DOC-E2E-EPISODIO-001",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Paciente Mateo Salas DNI 88776655. Consulta de rutina ambulatoria.",
+                "canal_origen": "Admision",
+            },
+        )
+
+        assert resp_triage.status_code == 200
+        triage_data = resp_triage.json()
+
+        # Validación 1: Metadatos del documento contienen el episodio
+        assert triage_data["metadata"]["asociacion_paciente"] == "asociado"
+        assert triage_data["metadata"]["paciente_id"] == patient_id
+        assert triage_data["metadata"]["episodio_id"] == episodio_mock["id"]
+        assert triage_data["metadata"]["codigo_episodio"] == episodio_mock["codigo_episodio"]
+        assert triage_data["metadata"]["episodio_nuevo"] is True
+
+        # Validación 2: Creación de episodio invocada con datos coherentes
+        mock_create_epi.assert_called_once()
+        call_kwargs = mock_create_epi.call_args[0][0]
+        assert call_kwargs["paciente_id"] == patient_id
+        assert call_kwargs["estado_atencion"] == "ingresado"
+
+        # Validación 3: Trazabilidad inmutable registrada
+        mock_audit.assert_called_once()
+        audit_call = mock_audit.call_args
+        assert audit_call.kwargs.get("evento") == "DOCUMENTO_ASOCIADO_A_EPISODIO" or (
+            len(audit_call.args) > 3 and audit_call.args[3] == "DOCUMENTO_ASOCIADO_A_EPISODIO"
+        )
+
