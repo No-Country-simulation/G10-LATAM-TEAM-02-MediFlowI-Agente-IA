@@ -154,25 +154,53 @@ async def _llamar_llm(prompt: str, llm_service) -> str:
     return await llm_service.completar(prompt)
 
 
-def _parsear_respuesta(raw: str) -> DatosExtraidosState:
-    """Parsea el JSON devuelto por el LLM al modelo Pydantic."""
-    # Limpiar posible markdown wrapper ```json ... ```
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+def _parsear_respuesta(raw: object) -> DatosExtraidosState:
+    """Parsea el JSON devuelto por el LLM al modelo Pydantic de forma tolerante."""
+    from app.services.llm_service import LLMService
 
-    data = json.loads(raw)
+    raw_str = LLMService._normalizar_contenido(raw).strip()
+    if not raw_str:
+        return DatosExtraidosState()
+
+    # Limpiar posible markdown wrapper ```json ... ```
+    if "```" in raw_str:
+        partes = raw_str.split("```")
+        for parte in partes:
+            bloque = parte.strip()
+            if bloque.startswith("json"):
+                bloque = bloque[4:].strip()
+            if bloque.startswith("{") and bloque.endswith("}"):
+                raw_str = bloque
+                break
+        else:
+            if raw_str.startswith("```"):
+                raw_str = raw_str.split("```")[1]
+                if raw_str.startswith("json"):
+                    raw_str = raw_str[4:].strip()
+
+    try:
+        data = json.loads(raw_str)
+    except Exception as exc:
+        logger.warning("nodo.extraction.json_invalido", error=str(exc), raw=raw_str[:200])
+        return DatosExtraidosState()
+
+    if not isinstance(data, dict):
+        return DatosExtraidosState()
 
     paciente_data = data.get("paciente") or {}
     medico_data = data.get("medico_solicitante") or {}
 
     return DatosExtraidosState(
-        paciente=PacienteState(**paciente_data) if paciente_data else None,
-        medico_solicitante=MedicoSolicitanteState(**medico_data) if medico_data else None,
+        paciente=PacienteState(**paciente_data)
+        if isinstance(paciente_data, dict) and paciente_data
+        else None,
+        medico_solicitante=MedicoSolicitanteState(**medico_data)
+        if isinstance(medico_data, dict) and medico_data
+        else None,
         estudio_realizado=data.get("estudio_realizado"),
         diagnostico_principal=data.get("diagnostico_principal"),
         cie10_sugerido=data.get("cie10_sugerido"),
-        hallazgos_clave=data.get("hallazgos_clave") or [],
+        hallazgos_clave=data.get("hallazgos_clave")
+        if isinstance(data.get("hallazgos_clave"), list)
+        else [],
     )

@@ -208,3 +208,82 @@ async def test_caso_4_conflicto_identidad_dni_hc():
     assert resultado.metadata.get("discrepancia_identidad_detectada") is True
     assert resultado.metadata.get("motivo_ambiguedad") == "conflicto_identidad_dni_hc"
 
+
+def test_parsear_respuesta_extraccion_defensiva():
+    """Valida que _parsear_respuesta en extraction tolere listas y bloques Markdown con espacios."""
+    from app.agent.nodes.extraction import _parsear_respuesta
+
+    payload_lista = [
+        {"type": "text", "text": "```json\n{\n  \"paciente\": {\"nombre\": \"Mateo Torres\"},\n"},
+        {"type": "text", "text": "  \"diagnostico_principal\": \"Amigdalitis aguda\",\n  \"cie10_sugerido\": \"J03.9\"\n}\n```"},
+    ]
+    datos = _parsear_respuesta(payload_lista)
+    assert datos.paciente is not None
+    assert datos.paciente.nombre == "Mateo Torres"
+    assert datos.diagnostico_principal == "Amigdalitis aguda"
+    assert datos.cie10_sugerido == "J03.9"
+
+    # Entrada no válida o vacía retorna estado seguro
+    assert _parsear_respuesta(None).diagnostico_principal is None
+    assert _parsear_respuesta("texto no json").diagnostico_principal is None
+
+
+def test_parsear_respuesta_clasificacion_defensiva():
+    """Valida que _parsear_respuesta en classification tolere listas y bloques Markdown."""
+    from app.agent.nodes.classification import _parsear_respuesta
+
+    payload_lista = [
+        {"type": "text", "text": "```json\n{\n  \"tipo_documento\": \"Informe Clínico\",\n"},
+        {"type": "text", "text": "  \"nivel_prioridad\": \"Urgente\",\n  \"especialidad\": \"Medicina General\"\n}\n```"},
+    ]
+    clasif = _parsear_respuesta(payload_lista)
+    assert clasif.tipo_documento == "Informe Clínico"
+    assert clasif.nivel_prioridad == "Urgente"
+    assert clasif.especialidad == "Medicina General"
+    assert clasif.score_confianza_clasificacion == 0.85
+
+    # Entrada vacía o inválida retorna estado ambiguo seguro
+    vacio = _parsear_respuesta("")
+    assert vacio.nivel_prioridad == "Ambiguo"
+    assert vacio.tipo_documento == "Otro"
+
+
+@pytest.mark.asyncio
+async def test_ejecutar_triage_con_llm_multimodal_lista():
+    """Verifica que el pipeline de triaje complete exitosamente con LLM devolviendo bloques multiformato."""
+    from unittest.mock import AsyncMock, MagicMock
+    from langchain_core.messages import AIMessage
+
+    settings = get_settings()
+    llm = LLMService(settings=settings)
+    mock_client = MagicMock()
+    
+    extraction_json = '```json\n{"paciente": {"nombre": "Juan Pérez", "documento_identidad": "12345678"}, "diagnostico_principal": "Faringoamigdalitis", "cie10_sugerido": "J03.9", "hallazgos_clave": ["Fiebre"]}\n```'
+    classification_json = '```json\n{"tipo_documento": "Informe Clínico", "especialidad": "Medicina General", "nivel_prioridad": "Rutina"}\n```'
+
+    async def mock_ainvoke(messages):
+        content = messages[0].content
+        if "extrae" in content.lower() or "diagnostico_principal" in content.lower():
+            return AIMessage(content=[{"type": "text", "text": extraction_json}])
+        return AIMessage(content=[{"type": "text", "text": classification_json}])
+
+    mock_client.ainvoke = AsyncMock(side_effect=mock_ainvoke)
+    llm._client = mock_client
+    llm._provider = "gemini"
+
+    resultado = await ejecutar_triage(
+        documento_id="DOC-MULTIMODAL-01",
+        tipo_archivo="TEXTO",
+        documento_texto="Paciente Juan Pérez con DNI 12345678. Presenta dolor de garganta y fiebre.",
+        canal_origen="Consulta_Externa",
+        llm_service=llm,
+    )
+
+    assert resultado.status == "procesado"
+    assert resultado.datos_extraidos.paciente.nombre == "Juan Pérez"
+    assert resultado.datos_extraidos.diagnostico_principal == "Faringoamigdalitis"
+    assert resultado.datos_extraidos.cie10_sugerido == "J03.9"
+    assert resultado.clasificacion.nivel_prioridad == "Rutina"
+    assert resultado.clasificacion.score_confianza_clasificacion >= 0.80
+    assert not resultado.error_mensaje
+

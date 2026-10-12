@@ -124,14 +124,50 @@ async def _llamar_llm(prompt: str, llm_service) -> str:
     return await llm_service.completar(prompt)
 
 
-def _parsear_respuesta(raw: str) -> ClasificacionState:
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+def _parsear_respuesta(raw: object) -> ClasificacionState:
+    from app.services.llm_service import LLMService
 
-    data = json.loads(raw)
+    raw_str = LLMService._normalizar_contenido(raw).strip()
+    if not raw_str:
+        return ClasificacionState(
+            tipo_documento="Otro",
+            nivel_prioridad="Ambiguo",
+            score_confianza_clasificacion=0.30,
+        )
+
+    # Limpiar posible markdown wrapper ```json ... ```
+    if "```" in raw_str:
+        partes = raw_str.split("```")
+        for parte in partes:
+            bloque = parte.strip()
+            if bloque.startswith("json"):
+                bloque = bloque[4:].strip()
+            if bloque.startswith("{") and bloque.endswith("}"):
+                raw_str = bloque
+                break
+        else:
+            if raw_str.startswith("```"):
+                raw_str = raw_str.split("```")[1]
+                if raw_str.startswith("json"):
+                    raw_str = raw_str[4:].strip()
+
+    try:
+        data = json.loads(raw_str)
+    except Exception as exc:
+        logger.warning("nodo.classification.json_invalido", error=str(exc), raw=raw_str[:200])
+        return ClasificacionState(
+            tipo_documento="Otro",
+            nivel_prioridad="Ambiguo",
+            score_confianza_clasificacion=0.30,
+        )
+
+    if not isinstance(data, dict):
+        return ClasificacionState(
+            tipo_documento="Otro",
+            nivel_prioridad="Ambiguo",
+            score_confianza_clasificacion=0.30,
+        )
+
     nivel = data.get("nivel_prioridad", "Ambiguo")
 
     # Score de confianza inicial basado en la solidez de la clasificación
