@@ -17,7 +17,7 @@ import {
 
 import { useAuth } from "../hooks/useAuth";
 import logo from "../assets/login/logo.png";
-import welcomeTeamImg from "../assets/welcome_team.jpg";
+import welcomeTeamImg from "../assets/ImagenBienvenida.png";
 
 const Dashboard = () => {
   const { user } = useAuth();
