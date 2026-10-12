@@ -216,6 +216,27 @@ Abre tu navegador en:
 
 ---
 
+### Tarea 2.5: Adaptador de Inferencia y Normalización de Respuestas LLM
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Objetivo**: Garantizar la interoperabilidad robusta del agente con modelos fundacionales en vivo (Google Gemini / OpenAI), consolidando respuestas de tipo lista de bloques (`AIMessage`), implementando deserialización JSON defensiva y coerción de esquemas Pydantic en el estado.
+- **🛠️ Ejecución MANUAL**:
+  1. En `backend/app/services/llm_service.py`, implementar `_normalizar_contenido()` para unificar respuestas de texto plano, diccionarios y listas de bloques estructurados de LangChain.
+  2. En `backend/app/agent/nodes/extraction.py` y `backend/app/agent/nodes/classification.py`, aplicar sanitización defensiva mediante expresiones regulares para extraer JSONs limpios antes del parseo Pydantic.
+  3. En `backend/app/agent/state.py`, agregar validador de campo (`@field_validator`) en `PacienteState` para convertir automáticamente cadenas verbales en enteros (ej. `"19 años"` ➔ `19`).
+  4. Ejecutar pruebas unitarias y de integración del servicio y los nodos:
+     ```powershell
+     .venv\Scripts\pytest tests/test_llm_service.py tests/test_agent_cases.py -v
+     ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Normalizar respuestas del LLM para soportar bloques de contenido en AIMessage y validar coerción en extracción clínica
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
+
+---
+
 ## ⚡ Bloque 3: Backend REST APIs & Servicios (Personas 5 y 6)
 
 ### Tarea 3.1: Endpoints de Gestión de Episodios Clínicos (`/api/v1/episodes`)
