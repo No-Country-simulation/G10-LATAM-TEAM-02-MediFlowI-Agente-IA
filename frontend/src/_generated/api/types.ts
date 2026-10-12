@@ -451,6 +451,11 @@ export interface components {
             diagnostico_principal?: string | null;
             /** @example I26.9 */
             cie10_sugerido?: string | null;
+            /**
+             * @description Descripción nosológica del catálogo CIE-10 versionado, separada del diagnóstico original.
+             * @example Embolia pulmonar sin mención de corazón pulmonar agudo
+             */
+            cie10_descripcion?: string | null;
             hallazgos_clave?: string[] | null;
         };
         /** @description Mensaje emitido para comunicar una urgencia. */
@@ -466,7 +471,7 @@ export interface components {
              * @example Cola_Emergencia_Medica
              * @enum {string}
              */
-            destino_principal: "Cola_Emergencia_Medica" | "Cola_Rutina" | "Cola_Auditoria_Humana" | "Cola_Revision_Ambigua";
+            destino_principal: "Cola_Emergencia_Medica" | "Cola_Rutina" | "Farmacia_Hospitalaria" | "Cola_Auditoria_Humana" | "Cola_Revision_Ambigua";
             /** @example false */
             requiere_auditoria_humana: boolean;
             /** @example Hallazgo crítico de alta gravedad detectado. */

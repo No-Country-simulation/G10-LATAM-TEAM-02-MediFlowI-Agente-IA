@@ -3,6 +3,7 @@ login:
     tags:
     - auth
     summary: Iniciar sesión
+    description: Iniciar sesión.
     operationId: iniciarSesion
     security: []
     requestBody:
@@ -57,12 +58,12 @@ login:
           application/json:
             schema:
               $ref: ../components/schemas.yaml#/schemas/ErrorResponse
-    description: Iniciar sesión.
 logout:
   post:
     tags:
     - auth
     summary: Cerrar sesión
+    description: Cerrar sesión.
     operationId: cerrarSesion
     responses:
       '200':
@@ -73,12 +74,12 @@ logout:
           application/json:
             schema:
               $ref: ../components/schemas.yaml#/schemas/ErrorResponse
-    description: Cerrar sesión.
 me:
   get:
     tags:
     - auth
     summary: Consultar usuario autenticado
+    description: Consultar usuario autenticado.
     operationId: consultarSesion
     responses:
       '200':
@@ -95,13 +96,13 @@ me:
           application/json:
             schema:
               $ref: ../components/schemas.yaml#/schemas/ErrorResponse
-    description: Consultar usuario autenticado.
 signup:
   post:
     tags:
     - auth
     summary: Registrar usuario
-    operationId: registrarUsuario
+    description: Registro de usuario en estado pendiente.
+    operationId: registrarUsuarioPublico
     security: []
     requestBody:
       required: true
@@ -135,4 +136,3 @@ signup:
               $ref: ../components/schemas.yaml#/schemas/ErrorResponse
       '500':
         $ref: ../components/responses.yaml#/responses/InternalError
-    description: Registro de usuario en estado pendiente.

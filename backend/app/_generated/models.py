@@ -60,6 +60,11 @@ class DatosExtraidos(BaseModel):
         None, examples=['Tromboembolismo Pulmonar Agudo (TEP)']
     )
     cie10_sugerido: str | None = Field(None, examples=['I26.9'])
+    cie10_descripcion: str | None = Field(
+        None,
+        description='Descripción nosológica del catálogo CIE-10 versionado, separada del diagnóstico original.',
+        examples=['Embolia pulmonar sin mención de corazón pulmonar agudo'],
+    )
     hallazgos_clave: list[str] | None = None
 
 

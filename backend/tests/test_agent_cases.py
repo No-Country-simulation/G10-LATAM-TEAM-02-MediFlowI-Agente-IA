@@ -176,3 +176,35 @@ async def test_caso_3_ambiguo_hitl():
     assert resultado.decision_enrutamiento.destino_principal == "Cola_Revision_Ambigua"
     assert resultado.decision_enrutamiento.requiere_auditoria_humana is True
     assert resultado.status == "pendiente_auditoria"
+
+
+@pytest.mark.asyncio
+async def test_caso_4_conflicto_identidad_dni_hc():
+    """
+    Caso 4 (Conflicto DNI/HC): Documento con DNI y HC cruzados de distintos pacientes.
+    Debe derivarse forzosamente a Cola_Revision_Ambigua con requiere_auditoria_humana = True
+    y registrar la discrepancia en metadata.
+    """
+    from unittest.mock import AsyncMock, patch
+
+    settings = get_settings()
+    llm = LLMService(settings=settings)
+
+    with patch(
+        "app.repositories.patient_repository.resolver_paciente_por_identificadores",
+        new=AsyncMock(return_value={"estado": "conflicto", "paciente": None}),
+    ):
+        resultado = await ejecutar_triage(
+            documento_id="DOC-004-CONFLICT",
+            tipo_archivo="TEXTO",
+            documento_texto="HOSPITAL SANTA LUCIA. Paciente Carlos con DNI 12345678 y HC HC-999. Control de rutina sin hallazgos.",
+            canal_origen="Consulta_Externa",
+            llm_service=llm,
+        )
+
+    assert resultado.decision_enrutamiento.destino_principal == "Cola_Revision_Ambigua"
+    assert resultado.decision_enrutamiento.requiere_auditoria_humana is True
+    assert resultado.status == "pendiente_auditoria"
+    assert resultado.metadata.get("discrepancia_identidad_detectada") is True
+    assert resultado.metadata.get("motivo_ambiguedad") == "conflicto_identidad_dni_hc"
+

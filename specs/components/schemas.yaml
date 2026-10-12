@@ -154,6 +154,12 @@ schemas:
         - string
         - 'null'
         example: I26.9
+      cie10_descripcion:
+        type:
+        - string
+        - 'null'
+        description: Descripción nosológica del catálogo CIE-10 versionado, separada del diagnóstico original.
+        example: Embolia pulmonar sin mención de corazón pulmonar agudo
       hallazgos_clave:
         type:
         - array
@@ -186,6 +192,7 @@ schemas:
         enum:
         - Cola_Emergencia_Medica
         - Cola_Rutina
+        - Farmacia_Hospitalaria
         - Cola_Auditoria_Humana
         - Cola_Revision_Ambigua
         example: Cola_Emergencia_Medica

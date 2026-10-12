@@ -103,6 +103,7 @@ class LLMService:
     def _respuesta_mock(self, prompt: str) -> str:
         """Mock de respuesta LLM para desarrollo sin credenciales."""
         import json
+        import re
 
         prompt_lower = prompt.lower()
         is_extraction = "extrae" in prompt_lower or "diagnostico_principal" in prompt_lower
@@ -115,12 +116,24 @@ class LLMService:
         elif "documento a analizar:" in prompt_lower:
             cuerpo = prompt_lower.split("documento a analizar:")[1]
 
+        # Extraer identificadores si están presentes en el texto
+        dni_match = re.search(r"(?:dni|documento(?:\s+de\s+identidad)?)\s*[:#]?\s*([0-9a-z\-]+)", cuerpo)
+        hc_match = re.search(r"(?:hc|historia\s+cl[íi]nica)\s*[:#]?\s*([0-9a-z\-]+)", cuerpo)
+        dni_extraido = dni_match.group(1).upper() if dni_match else None
+        hc_extraida = hc_match.group(1).upper() if hc_match else None
+
         # Caso 3: Ambiguo / ilegible
         if any(w in cuerpo for w in ["ilegible", "ambiguo", "???"]):
             if is_extraction:
                 return json.dumps(
                     {
-                        "paciente": {"nombre": None, "edad": None, "id_paciente": None},
+                        "paciente": {
+                            "nombre": None,
+                            "edad": None,
+                            "id_paciente": None,
+                            "documento_identidad": dni_extraido,
+                            "historia_clinica": hc_extraida,
+                        },
                         "medico_solicitante": {"nombre": None, "matricula": None},
                         "estudio_realizado": None,
                         "diagnostico_principal": None,
@@ -156,6 +169,8 @@ class LLMService:
                             "nombre": "Carlos Eduardo Mendes",
                             "edad": 52,
                             "id_paciente": "PAC-8942",
+                            "documento_identidad": dni_extraido,
+                            "historia_clinica": hc_extraida,
                         },
                         "medico_solicitante": {
                             "nombre": "Dra. Renata Silveira",
@@ -184,7 +199,13 @@ class LLMService:
         if is_extraction:
             return json.dumps(
                 {
-                    "paciente": {"nombre": "Ana García", "edad": 35, "id_paciente": "PAC-0001"},
+                    "paciente": {
+                        "nombre": "Ana García",
+                        "edad": 35,
+                        "id_paciente": "PAC-0001",
+                        "documento_identidad": dni_extraido,
+                        "historia_clinica": hc_extraida,
+                    },
                     "medico_solicitante": {"nombre": "Dr. Roberto López", "matricula": "98231"},
                     "estudio_realizado": "Hemograma completo",
                     "diagnostico_principal": "Analítica normal sin hallazgos patológicos",

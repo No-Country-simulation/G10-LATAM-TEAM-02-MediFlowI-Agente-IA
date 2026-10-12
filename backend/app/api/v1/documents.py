@@ -10,7 +10,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
-from app.agent.clinical_catalog import normalizar_tipo_documento
+from app.agent.clinical_catalog import normalizar_tipo_documento, validar_y_completar_cie10
 from app.core.config import Settings, get_settings
 from app.core.security import require_current_user, require_roles
 from app.repositories.postgres_storage import PostgresStorageRepository
@@ -65,6 +65,10 @@ def _format_document_row(row: dict) -> dict:
         doc["clasificacion"]["tipo_documento"] = _tipo_documento_publico(
             row["clasificacion"].get("tipo_documento")
         )
+        doc["datos_extraidos"] = dict(row.get("datos_extraidos") or {})
+        doc["datos_extraidos"]["cie10_descripcion"] = validar_y_completar_cie10(
+            doc["datos_extraidos"].get("cie10_sugerido")
+        )["descripcion"]
         return doc
 
     created_at = _serialize_temporal(row.get("created_at"))
@@ -95,6 +99,9 @@ def _format_document_row(row: dict) -> dict:
             "estudio_realizado": row.get("estudio_realizado"),
             "diagnostico_principal": row.get("diagnostico_principal"),
             "cie10_sugerido": row.get("cie10_sugerido"),
+            "cie10_descripcion": validar_y_completar_cie10(row.get("cie10_sugerido"))[
+                "descripcion"
+            ],
             "hallazgos_clave": _as_json_value(row.get("hallazgos_clave"), []),
         },
         "decision_enrutamiento": {

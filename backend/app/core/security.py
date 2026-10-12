@@ -19,6 +19,9 @@ from app.repositories.session_repository import (
 )
 
 
+import hashlib
+
+
 def hash_password(password: str) -> tuple[str, str]:
     """
     Genera el hash bcrypt de una contraseña.
@@ -28,8 +31,27 @@ def hash_password(password: str) -> tuple[str, str]:
 
 
 def verify_password(password: str, stored_hash: str, salt: str = "") -> bool:
-    """Verifica si una contraseña en texto plano coincide con el hash almacenado."""
-    return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+    """Verifica si una contraseña en texto plano coincide con el hash almacenado (bcrypt o PBKDF2)."""
+    if stored_hash and stored_hash.startswith(("$2a$", "$2b$", "$2y$")):
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except Exception:
+            return False
+    if salt:
+        try:
+            legacy_hash = hashlib.pbkdf2_hmac(
+                "sha256",
+                password.encode("utf-8"),
+                salt.encode("utf-8"),
+                100_000,
+            ).hex()
+            return secrets.compare_digest(legacy_hash, stored_hash)
+        except Exception:
+            pass
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+    except Exception:
+        return False
 
 
 async def create_access_token(user_data: dict, expires_delta_hours: int = 12) -> str:

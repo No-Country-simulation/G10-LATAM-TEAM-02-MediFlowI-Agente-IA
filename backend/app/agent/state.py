@@ -29,11 +29,13 @@ class DatosExtraidosState(BaseModel):
     estudio_realizado: str | None = None
     diagnostico_principal: str | None = None
     cie10_sugerido: str | None = None
+    cie10_descripcion: str | None = None
     hallazgos_clave: list[str] = Field(default_factory=list)
 
 
 class ClasificacionState(BaseModel):
     tipo_documento: str | None = None
+    categoria_documento: str | None = None
     especialidad: str | None = None
     nivel_prioridad: Literal["Urgente", "Rutina", "Ambiguo"] | None = None
     score_confianza_clasificacion: float = 0.0
