@@ -12,26 +12,36 @@ const Login = (): JSX.Element => {
   const location = useLocation();
   const { login } = useAuth();
 
-  const [documentoIdentidad, setDocumentoIdentidad] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const from = location.state?.from?.pathname || "/dashboard";
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    if (!documentoIdentidad.trim() || !password.trim()) {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
       setError("Por favor complete todos los campos.");
+      return;
+    }
+
+    if (trimmedEmail.includes("@") && !emailRegex.test(trimmedEmail)) {
+      setError("Por favor, introduzca una dirección de correo electrónico válida");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const result = await login(documentoIdentidad, password);
+      const result = await login(trimmedEmail, trimmedPassword);
       if (result.success) {
         navigate(from, { replace: true });
       } else {
@@ -83,9 +93,9 @@ const Login = (): JSX.Element => {
         </div>
 
         <LoginForm
-          documentoIdentidad={documentoIdentidad}
+          email={email}
           password={password}
-          onDocumentoChange={setDocumentoIdentidad}
+          onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onSubmit={handleSubmit}
           onRegister={handleRegister}

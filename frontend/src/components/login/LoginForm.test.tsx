@@ -4,9 +4,9 @@ import { LoginForm } from './LoginForm'
 
 describe('LoginForm (US2)', () => {
   const defaultProps = {
-    documentoIdentidad: '',
+    email: '',
     password: '',
-    onDocumentoChange: vi.fn(),
+    onEmailChange: vi.fn(),
     onPasswordChange: vi.fn(),
     onSubmit: vi.fn(),
     onRegister: vi.fn(),

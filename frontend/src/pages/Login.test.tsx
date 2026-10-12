@@ -132,6 +132,22 @@ describe('Login - Validación y submit (US2)', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true })
     })
   })
+
+  it('muestra error cuando el formato de correo electrónico es inválido', async () => {
+    const user = userEvent.setup()
+    render(<Login />)
+
+    const correoInput = screen.getByLabelText(/Correo/i)
+    const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+
+    await user.type(correoInput, 'invalido@sin-punto')
+    await user.type(passwordInput, 'testpassword')
+    await user.click(button)
+
+    expect(screen.getByText('Por favor, introduzca una dirección de correo electrónico válida')).toBeInTheDocument()
+    expect(mockLogin).not.toHaveBeenCalled()
+  })
 })
 
 describe('Login - Enlace de registro (US3)', () => {

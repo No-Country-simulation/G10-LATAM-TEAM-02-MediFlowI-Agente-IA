@@ -10,26 +10,37 @@ const inputBase =
   'w-full font-medium text-sm placeholder:text-[rgba(31,32,65,0.35)] outline-none bg-transparent pt-0.5'
 
 interface LoginFormProps {
-  documentoIdentidad: string
+  email?: string
   password: string
-  onDocumentoChange: (value: string) => void
+  onEmailChange?: (value: string) => void
   onPasswordChange: (value: string) => void
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
   onRegister: () => void
   isSubmitting: boolean
   error: string
+  // Retrocompatibilidad
+  documentoIdentidad?: string
+  onDocumentoChange?: (value: string) => void
 }
 
 export function LoginForm({
-  documentoIdentidad,
+  email,
   password,
-  onDocumentoChange,
+  onEmailChange,
   onPasswordChange,
   onSubmit,
   onRegister,
   isSubmitting,
   error,
+  documentoIdentidad,
+  onDocumentoChange,
 }: LoginFormProps): JSX.Element {
+  const emailValue = email ?? documentoIdentidad ?? ''
+  const handleEmailChange = (value: string) => {
+    if (onEmailChange) onEmailChange(value)
+    if (onDocumentoChange) onDocumentoChange(value)
+  }
+
   return (
     <form
       onSubmit={onSubmit}
@@ -65,7 +76,7 @@ export function LoginForm({
       <div className="flex flex-col gap-3 w-full">
         {/* Campo CORREO ELECTRÓNICO */}
         <label
-          htmlFor="documentoIdentidad"
+          htmlFor="email"
           className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : fieldCardEnabled}`}
         >
           <span
@@ -75,14 +86,14 @@ export function LoginForm({
             Correo Electrónico
           </span>
           <input
-            id="documentoIdentidad"
-            name="documentoIdentidad"
+            id="email"
+            name="email"
             type="text"
             autoComplete="username"
             aria-label="Correo"
             placeholder="email@example.com"
-            value={documentoIdentidad}
-            onChange={(e) => onDocumentoChange(e.target.value)}
+            value={emailValue}
+            onChange={(e) => handleEmailChange(e.target.value)}
             disabled={isSubmitting}
             className={`${inputBase} ${isSubmitting ? 'text-[rgba(31,32,65,0.45)] cursor-not-allowed' : 'text-[#1f2041]'}`}
             style={{ fontFamily: "'Montserrat', sans-serif" }}
