@@ -1,6 +1,4 @@
 import { useState, type FormEvent, type JSX } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { signupUser } from '../../api/auth.api';
 import type { User } from '../../api/auth.api';
 import { Button, Input, Alert } from "../common";

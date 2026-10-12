@@ -173,6 +173,37 @@ describe('Login - Interacción, Validación y submit (US2)', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true })
     })
   })
+
+  it('envía correo y contraseña al hook de autenticación preservando el perfil de usuario', async () => {
+    const mockUserPayload = {
+      id: 'usr-1234-uuid',
+      documento_identidad: '12345678',
+      nombres: 'María',
+      apellidos: 'Gómez Pérez',
+      correo: 'maria.gomez@mediflow.local',
+      especialidad_medica: 'Medicina General',
+      rol: 'COORDINADOR',
+      estado: 'ACTIVO',
+      token: 'mf_session_token_123',
+    }
+    mockLogin.mockResolvedValue({ success: true, user: mockUserPayload })
+
+    const user = userEvent.setup()
+    render(<Login />)
+
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+
+    await user.type(correoInput, 'maria.gomez@mediflow.local')
+    await user.type(passwordInput, 'ClaveSegura#2026')
+    await user.click(button)
+
+    expect(mockLogin).toHaveBeenCalledWith('maria.gomez@mediflow.local', 'ClaveSegura#2026')
+    await vi.waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true })
+    })
+  })
 })
 
 describe('Login - Enlace de registro (US3)', () => {

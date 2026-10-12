@@ -191,6 +191,7 @@ async def login(req: LoginRequest):
         "correo": user["correo"],
         "telefono": user["telefono"],
         "rol": user["rol"],
+        "especialidad_medica": user.get("especialidad_medica"),
         "estado": user["estado"],
     }
 
