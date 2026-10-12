@@ -216,6 +216,93 @@ Abre tu navegador en:
 
 ---
 
+### Tarea 2.5: Adaptador de Inferencia y Normalización de Respuestas LLM
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Objetivo**: Garantizar la interoperabilidad robusta del agente con modelos fundacionales en vivo (Google Gemini / OpenAI), consolidando respuestas de tipo lista de bloques (`AIMessage`), implementando deserialización JSON defensiva y coerción de esquemas Pydantic en el estado.
+- **🛠️ Ejecución MANUAL**:
+  1. En `backend/app/services/llm_service.py`, implementar `_normalizar_contenido()` para unificar respuestas de texto plano, diccionarios y listas de bloques estructurados de LangChain.
+  2. En `backend/app/agent/nodes/extraction.py` y `backend/app/agent/nodes/classification.py`, aplicar sanitización defensiva mediante expresiones regulares para extraer JSONs limpios antes del parseo Pydantic.
+  3. En `backend/app/agent/state.py`, agregar validador de campo (`@field_validator`) en `PacienteState` para convertir automáticamente cadenas verbales en enteros (ej. `"19 años"` ➔ `19`).
+  4. Ejecutar pruebas unitarias y de integración del servicio y los nodos:
+     ```powershell
+     .venv\Scripts\pytest tests/test_llm_service.py tests/test_agent_cases.py -v
+     ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Normalizar respuestas del LLM para soportar bloques de contenido en AIMessage y validar coerción en extracción clínica
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
+
+---
+
+### Tarea 2.6: Ingesta Híbrida Multimodal de Imágenes y Documentos Escaneados con Visión y OCR
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Objetivo**: Habilitar en el nodo `ingestion` la lectura directa de imágenes clínicas (JPEG, PNG, WebP) y PDFs escaneados (sin texto vectorial embebido) mediante visión multimodal con Gemini (`ChatGoogleGenerativeAI`), con mecanismo de contingencia (*fallback*) hacia Tesseract OCR local y degradación limpia a auditoría médica asistida (HITL) ante errores críticos.
+- **🛠️ Ejecución MANUAL**:
+  1. En `backend/app/services/llm_service.py`, implementar `completar_multimodal(prompt, imagenes)` transmitiendo bloques `image_url` en Base64.
+  2. En `backend/app/agent/graph.py`, inyectar `llm_service` al nodo de ingesta utilizando `_wrap_with_llm(node_ingestion, llm_service)`.
+  3. En `backend/app/agent/nodes/ingestion.py`, actualizar `_extraer_texto_pdf` para detectar PDFs escaneados (< 50 caracteres) y rasterizar sus páginas con PyMuPDF (`fitz.Matrix(2, 2)`), invocando primariamente visión multimodal.
+  4. En `_extraer_texto_imagen`, priorizar la transcripción clínica por visión multimodal, manteniendo un bloque defensivo `try/except` con fallback a OCR local (`pytesseract`) y enrutamiento seguro a `pendiente_auditoria` si ambos fallan.
+  5. Ejecutar la suite de pruebas multimodales y de ingesta:
+     ```powershell
+     .venv\Scripts\pytest tests/test_ingestion_multimodal.py -v
+     ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Ingesta híbrida multimodal de imágenes y documentos escaneados con Gemini Vision y fallback local a Tesseract OCR
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
+
+---
+
+### Tarea 2.7: Extracción Estructurada de Farmacoterapia y Medicamentos Prescritos
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Objetivo**: Extender el nodo `extraction` y el estado del agente (`AgentState`) para identificar, extraer y estructurar prescripciones médicas (nombre de fármaco, dosis, frecuencia y vía de administración) con modelos Pydantic v2, dando cumplimiento al 100% del requisito oficial R3 del proyecto.
+- **🛠️ Ejecución MANUAL**:
+  1. En `backend/app/agent/state.py`, crear el modelo `MedicamentoPrescritoState(BaseModel)` con campos: `medicamento: str`, `dosis: str | None`, `frecuencia: str | None`, `via_administracion: str | None`.
+  2. Agregar el campo `medicamentos: list[MedicamentoPrescritoState] = Field(default_factory=list)` dentro de `DatosExtraidosState`.
+  3. En `backend/app/agent/nodes/extraction.py`, ampliar `_EXTRACTION_PROMPT` para solicitar la extracción estructurada del arreglo `medicamentos` cuando el documento contenga recetas o indicaciones terapéuticas.
+  4. Actualizar la función `_parsear_respuesta` y `_consolidar_datos` para deserializar defensivamente la lista de medicamentos y vincularla a la regla de enrutamiento a `Farmacia_Hospitalaria`.
+  5. Ejecutar la suite de pruebas de extracción clínica:
+     ```powershell
+     .venv\Scripts\pytest tests/test_agent_cases.py -k "medicamentos" -v
+     ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Extracción estructurada de medicamentos prescritos dosis y via de administracion en recetas medicas
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
+
+---
+
+### Tarea 2.8: Despacho Activo y Emisión de Alertas de Guardia en Tiempo Real
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Objetivo**: Conectar la decisión de enrutamiento crítico (`Cola_Emergencia_Medica`) con un servicio de emisión de alertas en tiempo real (Server-Sent Events / SSE y persistencia de eventos prioritarios), garantizando notificación acústica y visual inmediata al personal de guardia hospitalaria ante patologías de riesgo vital (TEP, Infarto, Shock).
+- **🛠️ Ejecución MANUAL**:
+  1. En `backend/app/services/alert_service.py`, implementar un gestor de eventos asíncrono para suscripciones en tiempo real (`AlertBroadcaster`) con canal hospitalario `Alerta_Guardia_Medica`.
+  2. En `backend/app/agent/nodes/routing.py`, tras detectar `Cola_Emergencia_Medica`, invocar la publicación del evento crítico enriquecido con paciente, diagnóstico y nivel de urgencia.
+  3. Crear endpoint `GET /api/v1/alerts/stream` en FastAPI para emisión continua vía SSE (Server-Sent Events) hacia el frontend clínico.
+  4. Persistir la alerta emitida en la tabla `trazabilidad_eventos` con tipo `"ALERTA_GUARDIA_EMITIDA"`.
+  5. Probar con tests de integración de alertas y streaming:
+     ```powershell
+     .venv\Scripts\pytest tests/test_alert_broadcaster.py -v
+     ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Emision de alertas criticas de guardia en tiempo real mediante SSE y notificaciones hospitalarias de emergencia
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
+
+---
+
 ## ⚡ Bloque 3: Backend REST APIs & Servicios (Personas 5 y 6)
 
 ### Tarea 3.1: Endpoints de Gestión de Episodios Clínicos (`/api/v1/episodes`)

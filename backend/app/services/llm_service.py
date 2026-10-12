@@ -98,7 +98,32 @@ class LLMService:
         from langchain_core.messages import HumanMessage
 
         respuesta = await self._client.ainvoke([HumanMessage(content=prompt)])
-        return respuesta.content
+        return self._normalizar_contenido(getattr(respuesta, "content", respuesta))
+
+    @staticmethod
+    def _normalizar_contenido(content: object) -> str:
+        """Consolida strings, listas y bloques estructurados de LLM en un único str."""
+        if content is None:
+            return ""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            partes: list[str] = []
+            for parte in content:
+                if isinstance(parte, str):
+                    partes.append(parte)
+                elif isinstance(parte, dict) and "text" in parte:
+                    partes.append(str(parte["text"]))
+                elif hasattr(parte, "text"):
+                    partes.append(str(getattr(parte, "text")))
+                elif parte is not None:
+                    partes.append(str(parte))
+            return "".join(partes)
+        if isinstance(content, dict) and "text" in content:
+            return str(content["text"])
+        if hasattr(content, "text"):
+            return str(getattr(content, "text"))
+        return str(content)
 
     def _respuesta_mock(self, prompt: str) -> str:
         """Mock de respuesta LLM para desarrollo sin credenciales."""

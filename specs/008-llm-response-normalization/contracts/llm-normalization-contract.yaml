@@ -1,0 +1,33 @@
+openapi: 3.1.0
+info:
+  title: MediFlow LLM Response Normalization Contract
+  version: 1.0.0
+  description: Contrato interno de normalización de respuestas entre LLMService y nodos de LangGraph.
+
+components:
+  schemas:
+    LLMContentBlock:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "text"
+        text:
+          type: string
+          example: '{"diagnostico_principal": "Faringoamigdalitis aguda"}'
+      required:
+        - text
+
+    RawLLMResponse:
+      oneOf:
+        - type: string
+        - type: array
+          items:
+            type: string
+        - type: array
+          items:
+            $ref: '#/components/schemas/LLMContentBlock'
+
+    NormalizedLLMOutput:
+      type: string
+      description: Cadena UTF-8 consolidada y lista para deserialización JSON.

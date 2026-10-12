@@ -5,9 +5,10 @@ AgentState es el objeto que viaja a través de todos los nodos del grafo.
 Cada nodo puede leer y escribir campos en este estado.
 """
 
+import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PacienteState(BaseModel):
@@ -16,6 +17,17 @@ class PacienteState(BaseModel):
     id_paciente: str | None = None
     documento_identidad: str | None = None
     historia_clinica: str | None = None
+
+    @field_validator("edad", mode="before")
+    @classmethod
+    def _parse_edad(cls, value):
+        if value is None or isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            match = re.search(r"\d+", value)
+            if match:
+                return int(match.group())
+        return None
 
 
 class MedicoSolicitanteState(BaseModel):
