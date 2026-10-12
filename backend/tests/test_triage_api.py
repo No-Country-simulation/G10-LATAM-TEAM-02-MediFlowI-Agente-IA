@@ -177,3 +177,200 @@ def test_triage_retorna_503_si_no_hay_proveedor_llm(client, bearer_headers):
 
     assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
     assert response.json()["detail"]["error"] == "LLM_NO_DISPONIBLE"
+
+
+def test_triage_auto_crea_episodio_paciente_sin_episodio_activo(client, bearer_headers):
+    """US1 (P1): Si paciente está asociado y no tiene episodio activo, crea uno automáticamente."""
+    mock_paciente = {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "numero_documento": "12345678",
+        "nombres": "Carlos",
+        "apellidos": "Ruiz",
+    }
+    nuevo_epi = {
+        "id": "aaaa1111-bbbb-2222-cccc-333333333333",
+        "codigo_episodio": "EP-20261011-TEST",
+        "paciente_id": mock_paciente["id"],
+        "estado_atencion": "ingresado",
+    }
+
+    with (
+        patch(
+            "app.repositories.patient_repository.resolver_paciente_por_identificadores",
+            new_callable=AsyncMock,
+        ) as mock_resolver,
+        patch(
+            "app.repositories.episode_repository.get_active_episode_by_patient",
+            new_callable=AsyncMock,
+        ) as mock_get_active,
+        patch(
+            "app.repositories.episode_repository.create_episode",
+            new_callable=AsyncMock,
+        ) as mock_create_epi,
+        patch(
+            "app.repositories.audit_repository.AuditRepository.registrar_evento_trazabilidad",
+            new_callable=AsyncMock,
+        ) as mock_audit,
+    ):
+        mock_resolver.return_value = {"estado": "asociado", "paciente": mock_paciente}
+        mock_get_active.return_value = None
+        mock_create_epi.return_value = nuevo_epi
+        mock_audit.return_value = {"id": "audit-uuid-1"}
+
+        response = client.post(
+            "/api/v1/triage",
+            json={
+                "documento_id": "DOC-AUTO-EPI-001",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Paciente Carlos Ruiz DNI 12345678. Dolor torácico moderado.",
+            },
+            headers=bearer_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["metadata"]["episodio_id"] == nuevo_epi["id"]
+        assert data["metadata"]["codigo_episodio"] == nuevo_epi["codigo_episodio"]
+        assert data["metadata"]["episodio_nuevo"] is True
+        mock_create_epi.assert_called_once()
+
+
+def test_triage_asocia_episodio_activo_existente_sin_duplicar(client, bearer_headers):
+    """US2 (P2): Si paciente ya tiene episodio activo, asocia el documento sin duplicar."""
+    mock_paciente = {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "numero_documento": "12345678",
+        "nombres": "Carlos",
+        "apellidos": "Ruiz",
+    }
+    epi_existente = {
+        "episodio_id": "bbbb2222-cccc-3333-dddd-444444444444",
+        "codigo_episodio": "EP-20261011-EXIST",
+        "paciente_id": mock_paciente["id"],
+        "estado_atencion": "en_triaje",
+    }
+
+    with (
+        patch(
+            "app.repositories.patient_repository.resolver_paciente_por_identificadores",
+            new_callable=AsyncMock,
+        ) as mock_resolver,
+        patch(
+            "app.repositories.episode_repository.get_active_episode_by_patient",
+            new_callable=AsyncMock,
+        ) as mock_get_active,
+        patch(
+            "app.repositories.episode_repository.create_episode",
+            new_callable=AsyncMock,
+        ) as mock_create_epi,
+        patch(
+            "app.repositories.audit_repository.AuditRepository.registrar_evento_trazabilidad",
+            new_callable=AsyncMock,
+        ) as mock_audit,
+    ):
+        mock_resolver.return_value = {"estado": "asociado", "paciente": mock_paciente}
+        mock_get_active.return_value = epi_existente
+        mock_audit.return_value = {"id": "audit-uuid-2"}
+
+        response = client.post(
+            "/api/v1/triage",
+            json={
+                "documento_id": "DOC-LINK-EPI-002",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Paciente Carlos Ruiz DNI 12345678. Analítica de control.",
+            },
+            headers=bearer_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["metadata"]["episodio_id"] == epi_existente["episodio_id"]
+        assert data["metadata"]["codigo_episodio"] == epi_existente["codigo_episodio"]
+        assert data["metadata"]["episodio_nuevo"] is False
+        mock_create_epi.assert_not_called()
+
+
+def test_triage_registra_evento_inmutable_trazabilidad(client, bearer_headers):
+    """US3 (P3): Verifica que se emite DOCUMENTO_ASOCIADO_A_EPISODIO en trazabilidad_eventos."""
+    mock_paciente = {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "numero_documento": "12345678",
+    }
+    nuevo_epi = {
+        "id": "aaaa1111-bbbb-2222-cccc-333333333333",
+        "codigo_episodio": "EP-20261011-TEST",
+    }
+
+    with (
+        patch(
+            "app.repositories.patient_repository.resolver_paciente_por_identificadores",
+            new_callable=AsyncMock,
+        ) as mock_resolver,
+        patch(
+            "app.repositories.episode_repository.get_active_episode_by_patient",
+            new_callable=AsyncMock,
+        ) as mock_get_active,
+        patch(
+            "app.repositories.episode_repository.create_episode",
+            new_callable=AsyncMock,
+        ) as mock_create_epi,
+        patch(
+            "app.repositories.audit_repository.AuditRepository.registrar_evento_trazabilidad",
+            new_callable=AsyncMock,
+        ) as mock_audit,
+    ):
+        mock_resolver.return_value = {"estado": "asociado", "paciente": mock_paciente}
+        mock_get_active.return_value = None
+        mock_create_epi.return_value = nuevo_epi
+        mock_audit.return_value = {"id": "audit-uuid-3"}
+
+        response = client.post(
+            "/api/v1/triage",
+            json={
+                "documento_id": "DOC-AUDIT-EPI-003",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Paciente DNI 12345678 para triaje.",
+            },
+            headers=bearer_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_audit.assert_called_once()
+        args, kwargs = mock_audit.call_args
+        assert kwargs.get("evento") == "DOCUMENTO_ASOCIADO_A_EPISODIO" or (len(args) > 3 and args[3] == "DOCUMENTO_ASOCIADO_A_EPISODIO")
+
+
+def test_triage_resiliencia_si_falla_orquestacion_episodio(client, bearer_headers):
+    """US4 (P4): Si la orquestación de episodio falla, el triaje entrega su resultado con 200 OK."""
+    mock_paciente = {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "numero_documento": "12345678",
+    }
+
+    with (
+        patch(
+            "app.repositories.patient_repository.resolver_paciente_por_identificadores",
+            new_callable=AsyncMock,
+        ) as mock_resolver,
+        patch(
+            "app.repositories.episode_repository.get_active_episode_by_patient",
+            new_callable=AsyncMock,
+            side_effect=Exception("Error transitorio en pool de episodios"),
+        ),
+    ):
+        mock_resolver.return_value = {"estado": "asociado", "paciente": mock_paciente}
+
+        response = client.post(
+            "/api/v1/triage",
+            json={
+                "documento_id": "DOC-RESILIENCIA-004",
+                "tipo_archivo": "TEXTO",
+                "documento_texto": "Paciente DNI 12345678 informe.",
+            },
+            headers=bearer_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "episodio_error" in data["metadata"]
+

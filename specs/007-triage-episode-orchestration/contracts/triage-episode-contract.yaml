@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: MediFlow Triage Service Episode Orchestration Contract
+  version: 1.0.0
+  description: Contrato de orquestación y respuesta tras asociar documento a episodio clínico.
+
+paths:
+  /api/v1/triage:
+    post:
+      summary: Procesa un documento clínico y orquesta automáticamente el episodio
+      description: |
+        Ejecuta el agente LangGraph. Si el paciente es identificado:
+        - Si no tiene episodio activo, crea uno nuevo en `episodios_clinicos`.
+        - Si tiene episodio activo, vincula el documento al existente.
+        - Persiste `episodio_id` en `documentos_triaje`.
+        - Emite evento `DOCUMENTO_ASOCIADO_A_EPISODIO` en `trazabilidad_eventos`.
+      responses:
+        '200':
+          description: Triaje procesado con éxito y episodio orquestado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageResponseWithEpisode'
+
+components:
+  schemas:
+    TriageResponseWithEpisode:
+      type: object
+      properties:
+        documento_id:
+          type: string
+          example: "DOC-20261010-001"
+        status:
+          type: string
+          example: "procesado"
+        canal_origen:
+          type: string
+          example: "Admision"
+        prioridad:
+          type: string
+          example: "URGENTE"
+        destino_principal:
+          type: string
+          example: "Cola_Emergencia_Medica"
+        requiere_auditoria_humana:
+          type: boolean
+          example: false
+        metadata:
+          type: object
+          properties:
+            asociacion_paciente:
+              type: string
+              example: "asociado"
+            paciente_id:
+              type: string
+              format: uuid
+              example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+            episodio_id:
+              type: string
+              format: uuid
+              example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+            codigo_episodio:
+              type: string
+              example: "EP-20261010-AB12"
+            episodio_nuevo:
+              type: boolean
+              example: true
