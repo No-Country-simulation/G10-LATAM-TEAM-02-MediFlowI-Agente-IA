@@ -11,7 +11,17 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from app.api.v1 import auth, documents, health, patients, triage, users, episodes
+from app.api.v1 import (
+    auth,
+    coordination,
+    documents,
+    episodes,
+    health,
+    metrics,
+    patients,
+    triage,
+    users,
+)
 from app.api.v1 import settings as settings_router
 from app.core.config import get_settings
 from app.repositories.postgres_storage import DatabaseUnavailableError
@@ -115,6 +125,8 @@ def create_app() -> FastAPI:
     app.include_router(users.router, prefix=api_prefix)  # GET|POST|PUT /api/v1/users
     app.include_router(patients.router, prefix=api_prefix)  # GET|POST|PUT /api/v1/patients
     app.include_router(episodes.router, prefix=api_prefix)  # GET|POST /api/v1/episodes
+    app.include_router(coordination.router, prefix=api_prefix)  # GET|POST /api/v1/coordination
+    app.include_router(metrics.router, prefix=api_prefix)  # GET /api/v1/metrics
 
     return app
 
