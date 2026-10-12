@@ -1,0 +1,201 @@
+openapi: 3.0.3
+info:
+  title: MediFlow Authentication & Session API
+  version: 1.0.0
+  description: Contratos de endpoints REST para inicio de sesión por correo, consulta de perfil activo y cierre de sesión.
+
+paths:
+  /auth/login:
+    post:
+      summary: Iniciar sesión en el sistema hospitalario
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Inicio de sesión exitoso con token y datos de usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales inválidas (usuario no existe o contraseña errónea)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '403':
+          description: Cuenta inactiva o deshabilitada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '422':
+          description: Error de validación en esquema o campos requeridos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/me:
+    get:
+      summary: Consultar datos del usuario de la sesión activa
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Perfil completo del usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Token no proporcionado, inválido, expirado o revocado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+
+  /auth/logout:
+    post:
+      summary: Cerrar sesión e invalidar token revocable
+      operationId: logoutUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sesión cerrada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                    example: "Cierre de sesión exitoso. Token invalidado."
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: mf_session_token
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - password
+      properties:
+        correo:
+          type: string
+          format: email
+          example: "doctor@mediflow.local"
+          description: "Dirección de correo electrónico del usuario"
+        documento_identidad:
+          type: string
+          pattern: '^\d{8}$'
+          example: "12345678"
+          description: "Número de documento de identidad de 8 cifras (opcional para retrocompatibilidad)"
+        password:
+          type: string
+          example: "MiContraseñaSegura#2026"
+          description: "Contraseña en texto plano"
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - documento_identidad
+        - nombres
+        - apellidos
+        - rol
+        - estado
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+        documento_identidad:
+          type: string
+          example: "12345678"
+        nombres:
+          type: string
+          example: "María"
+        apellidos:
+          type: string
+          example: "Gómez Pérez"
+        correo:
+          type: string
+          format: email
+          example: "maria.gomez@mediflow.local"
+        telefono:
+          type: string
+          nullable: true
+          example: "+51 987654321"
+        rol:
+          type: string
+          enum: [ADMINISTRADOR, COORDINADOR, OPERADOR]
+          example: "COORDINADOR"
+        especialidad_medica:
+          type: string
+          nullable: true
+          example: "Medicina General"
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+          example: "ACTIVO"
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    LoginResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - user
+        - mensaje
+      properties:
+        access_token:
+          type: string
+          example: "mf_session_4f89d3a7c8e..."
+        token_type:
+          type: string
+          example: "Bearer"
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        mensaje:
+          type: string
+          example: "Bienvenido/a María Gómez Pérez (COORDINADOR)"
+
+    ErrorDetail:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: "Credenciales inválidas. Contraseña incorrecta."
+
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
