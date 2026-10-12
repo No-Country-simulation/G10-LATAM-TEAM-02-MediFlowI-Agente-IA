@@ -1,12 +1,15 @@
 """Comparación de JSON reales del API con el contrato, con persistencia simulada."""
 
 import json
+import importlib
 import sys
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import yaml
+from pydantic import ValidationError
 from jsonschema import Draft202012Validator
 
 from app._generated.models import DocumentoClinico, ResultadoTriaje
@@ -151,3 +154,100 @@ def test_stored_documents_match_contract(
         ResultadoTriaje.model_validate(document)
         assert document["clasificacion"]["tipo_documento"] == expected_type
     assert row == original
+
+
+@pytest.fixture(scope="module")
+def metrics_design():
+    path = Path(__file__).resolve().parents[2] / "specs/006-api04-metricas-triaje/contracts/metrics.openapi.yaml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def metrics_generated_model():
+    # Import here: absence of the new model must not prevent existing test collection.
+    return getattr(importlib.import_module("app._generated.models"), "MetricsResponse")
+
+
+def test_metrics_contract_matches_approved_design(contract, metrics_design):
+    schemas = contract["components"]["schemas"]
+    for name in ("MetricsResponse", "DistribucionPrioridadMetrics"):
+        assert schemas[name] == metrics_design["components"]["schemas"][name]
+    operation = contract["paths"]["/metrics"]["get"]
+    assert operation["operationId"] == "obtenerMetricasTriaje"
+    assert operation["security"] == [{"BearerAuth": []}]
+    assert set(operation["responses"]) == {"200", "401", "503"}
+    assert operation["responses"]["200"]["content"]["application/json"]["examples"] == (
+        metrics_design["paths"]["/metrics"]["get"]["responses"]["200"]["content"]["application/json"]["examples"]
+    )
+
+
+@pytest.mark.parametrize("name", ["normal", "cero", "vacio", "sinTiempos"])
+def test_metrics_examples_schema_and_generated_model(contract, metrics_design, name):
+    payload = metrics_design["paths"]["/metrics"]["get"]["responses"]["200"]["content"]["application/json"]["examples"][name]["value"]
+    validator = Draft202012Validator({"$ref": "#/components/schemas/MetricsResponse", "components": contract["components"]})
+    validator.validate(payload)
+    model = metrics_generated_model()
+    assert json.loads(model.model_validate(payload).model_dump_json()) == payload
+    assert all(field.is_required() for field in model.model_fields.values())
+    colors = payload["distribucion_prioridad"]
+    assert set(colors) == {"Rojo", "Amarillo", "Verde"}
+    assert all(type(value) is int and value >= 0 for value in colors.values())
+
+
+@pytest.mark.parametrize("change", ["missing-rate", "missing-time", "missing-color", "extra", "extra-color", "negative-color", "fraction-color", "negative-time", "negative-rate", "over-rate"])
+def test_metrics_closed_required_bounded_models(contract, change):
+    payload = {"distribucion_prioridad": {"Rojo": 0, "Amarillo": 0, "Verde": 1}, "tasa_hitl": 0, "tiempo_promedio_ia_segundos": 0}
+    if change == "missing-rate":
+        del payload["tasa_hitl"]
+    elif change == "missing-time":
+        del payload["tiempo_promedio_ia_segundos"]
+    elif change == "missing-color":
+        del payload["distribucion_prioridad"]["Rojo"]
+    elif change == "extra":
+        payload["total"] = 1
+    elif change == "extra-color":
+        payload["distribucion_prioridad"]["Azul"] = 1
+    elif change == "negative-color":
+        payload["distribucion_prioridad"]["Rojo"] = -1
+    elif change == "fraction-color":
+        payload["distribucion_prioridad"]["Rojo"] = 0.5
+    elif change == "negative-time":
+        payload["tiempo_promedio_ia_segundos"] = -0.1
+    elif change == "negative-rate":
+        payload["tasa_hitl"] = -0.1
+    elif change == "over-rate":
+        payload["tasa_hitl"] = 100.01
+    validator = Draft202012Validator({"$ref": "#/components/schemas/MetricsResponse", "components": contract["components"]})
+    assert not validator.is_valid(payload)
+    with pytest.raises(ValidationError):
+        metrics_generated_model().model_validate(payload)
+
+
+@pytest.mark.parametrize("payload", [
+    {"distribucion_prioridad": {"Rojo": 2, "Amarillo": 3, "Verde": 5}, "tasa_hitl": 30, "tiempo_promedio_ia_segundos": 2},
+    {"distribucion_prioridad": {"Rojo": 0, "Amarillo": 0, "Verde": 1}, "tasa_hitl": 0, "tiempo_promedio_ia_segundos": 0},
+    {"distribucion_prioridad": {"Rojo": 0, "Amarillo": 0, "Verde": 0}, "tasa_hitl": None, "tiempo_promedio_ia_segundos": None},
+    {"distribucion_prioridad": {"Rojo": 0, "Amarillo": 1, "Verde": 0}, "tasa_hitl": 0, "tiempo_promedio_ia_segundos": None},
+    {"distribucion_prioridad": {"Rojo": 0, "Amarillo": 0, "Verde": 2}, "tasa_hitl": 0, "tiempo_promedio_ia_segundos": 1.667},
+], ids=["normal", "cero", "vacio", "sin-tiempos", "redondeo-final"])
+def test_metrics_http_json_matches_contract(contract, client, bearer_headers, monkeypatch, payload):
+    module = importlib.import_module("app.repositories.metrics_repository")
+    monkeypatch.setattr(module, "obtener_metricas", AsyncMock(return_value=metrics_generated_model().model_validate(payload)))
+    response = client.get("/api/v1/metrics", headers=bearer_headers)
+    assert response.status_code == 200
+    assert_response(contract, "/metrics", "get", response)
+    assert response.json() == payload
+    metrics_generated_model().model_validate(response.json())
+
+
+@pytest.mark.parametrize("kind", ["unauthorized", "auth-unavailable", "calculation-unavailable"])
+def test_metrics_http_errors_match_contract(contract, client, bearer_headers, monkeypatch, kind):
+    from app.repositories.postgres_storage import DatabaseUnavailableError
+    reader = AsyncMock(side_effect=DatabaseUnavailableError("sandbox unavailable"))
+    monkeypatch.setattr(importlib.import_module("app.repositories.metrics_repository"), "obtener_metricas", reader)
+    if kind == "auth-unavailable":
+        monkeypatch.setattr("app.core.security.get_active_session_user", AsyncMock(side_effect=RuntimeError("sandbox unavailable")))
+    response = client.get("/api/v1/metrics", headers={} if kind == "unauthorized" else bearer_headers)
+    assert response.status_code == (401 if kind == "unauthorized" else 503)
+    assert_response(contract, "/metrics", "get", response)
+    if kind != "calculation-unavailable":
+        reader.assert_not_awaited()

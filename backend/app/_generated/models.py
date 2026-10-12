@@ -7,7 +7,52 @@ from datetime import date
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, RootModel, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, RootModel, SecretStr
+
+
+class DistribucionPrioridadMetrics(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    Rojo: int = Field(..., description='Documentos Urgente; presentación roja.', ge=0)
+    Amarillo: int = Field(
+        ...,
+        description='Documentos Ambiguo; incertidumbre documental, no gravedad intermedia.',
+        ge=0,
+    )
+    Verde: int = Field(..., description='Documentos Rutina; presentación verde.', ge=0)
+
+
+class TasaHitl(RootModel[float]):
+    root: float = Field(
+        ...,
+        description='Porcentaje histórico 100*N/D, dos decimales con empate hacia arriba; null si D=0, cero si N=0 y D>0.',
+        ge=0.0,
+        le=100.0,
+    )
+
+
+class TiempoPromedioIaSegundos(RootModel[float]):
+    root: float = Field(
+        ...,
+        description='Promedio del tiempo persistido admisible en segundos, tres decimales con empate hacia arriba; null sin tiempos, cero registrado válido; puede ser anterior/sintético, no promedio por nodo ni latencia HTTP.',
+        ge=0.0,
+    )
+
+
+class MetricsResponse(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    distribucion_prioridad: DistribucionPrioridadMetrics
+    tasa_hitl: TasaHitl | None = Field(
+        ...,
+        description='Porcentaje histórico 100*N/D, dos decimales con empate hacia arriba; null si D=0, cero si N=0 y D>0.',
+    )
+    tiempo_promedio_ia_segundos: TiempoPromedioIaSegundos | None = Field(
+        ...,
+        description='Promedio del tiempo persistido admisible en segundos, tres decimales con empate hacia arriba; null sin tiempos, cero registrado válido; puede ser anterior/sintético, no promedio por nodo ni latencia HTTP.',
+    )
 
 
 class DocumentoClinico(BaseModel):
