@@ -50,22 +50,19 @@ describe('Login - Renderizado (US1)', () => {
     expect(screen.getByText(/SISTEMA AUTÓNOMO DE TRIAJE/i)).toBeInTheDocument()
   })
 
-  it('renderiza campo DNI con etiqueta asociada', () => {
+  it('renderiza campo correo con etiqueta asociada', () => {
     render(<Login />)
-    const dniInput = screen.getByLabelText(/DNI/i)
-    expect(dniInput).toBeInTheDocument()
-    expect(dniInput).toHaveAttribute('type', 'text')
-    expect(dniInput).toHaveAttribute('inputMode', 'numeric')
-    expect(dniInput).toHaveAttribute('maxLength', '8')
-    expect(dniInput).toHaveAttribute('autoComplete', 'username')
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    expect(correoInput).toBeInTheDocument()
+    expect(correoInput).toHaveAttribute('type', 'email')
+    expect(correoInput).toHaveAttribute('placeholder', 'email@example.com')
   })
 
   it('renderiza campo contraseña con etiqueta asociada', () => {
     render(<Login />)
-    const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
     expect(passwordInput).toBeInTheDocument()
     expect(passwordInput).toHaveAttribute('type', 'password')
-    expect(passwordInput).toHaveAttribute('autoComplete', 'current-password')
   })
 
   it('renderiza botón "Iniciar sesión"', () => {
@@ -73,6 +70,12 @@ describe('Login - Renderizado (US1)', () => {
     const button = screen.getByRole('button', { name: /Iniciar sesión/i })
     expect(button).toBeInTheDocument()
     expect(button).toHaveAttribute('type', 'submit')
+  })
+
+  it('el botón para iniciar sesión permanece deshabilitado si no hay texto ingresado', () => {
+    render(<Login />)
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+    expect(button).toBeDisabled()
   })
 
   it('no tiene defaultValue en los inputs (sin credenciales hardcodeadas)', () => {
@@ -85,30 +88,66 @@ describe('Login - Renderizado (US1)', () => {
   })
 })
 
-describe('Login - Validación y submit (US2)', () => {
+describe('Login - Interacción, Validación y submit (US2)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('no envía el formulario con campos vacíos', async () => {
-    mockLogin.mockResolvedValue({ success: true })
+  it('actualiza el valor escrito en el input y no renderiza el nombre del campo', async () => {
     const user = userEvent.setup()
     render(<Login />)
-    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
-    await user.click(button)
-    expect(mockNavigate).not.toHaveBeenCalled()
+
+    const correoInput = screen.getByLabelText(/CORREO/i) as HTMLInputElement
+    await user.type(correoInput, 'doctor@mediflow.com')
+
+    expect(correoInput.value).toBe('doctor@mediflow.com')
+    expect(correoInput.value).not.toBe('correo')
+    expect(correoInput.value).not.toBe('documentoIdentidad')
   })
 
-  it('muestra error cuando el login falla', async () => {
+  it('habilita el botón solo cuando ambos campos contienen texto', async () => {
+    const user = userEvent.setup()
+    render(<Login />)
+
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
+
+    expect(button).toBeDisabled()
+
+    await user.type(correoInput, 'doctor@mediflow.com')
+    expect(button).toBeDisabled()
+
+    await user.type(passwordInput, 'Secret123!')
+    expect(button).not.toBeDisabled()
+  })
+
+  it('muestra mensaje de error si se ingresa un correo con formato inválido', async () => {
+    const user = userEvent.setup()
+    render(<Login />)
+
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+
+    await user.type(correoInput, 'cadena_simple_invalida')
+    await user.type(passwordInput, 'Secret123!')
+    await user.click(button)
+
+    expect(screen.getByText('Por favor, introduzca una dirección de correo electrónico válida')).toBeInTheDocument()
+    expect(mockLogin).not.toHaveBeenCalled()
+  })
+
+  it('muestra error general cuando el login falla en el servidor', async () => {
     mockLogin.mockResolvedValue({ success: false, message: 'Credenciales incorrectas' })
     const user = userEvent.setup()
     const { container } = render(<Login />)
 
-    const dniInput = screen.getByLabelText(/DNI/i)
-    const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
     const button = screen.getByRole('button', { name: /Iniciar sesión/i })
 
-    await user.type(dniInput, '12345678')
+    await user.type(correoInput, 'doctor@mediflow.com')
     await user.type(passwordInput, 'testpassword')
     await user.click(button)
 
@@ -122,14 +161,45 @@ describe('Login - Validación y submit (US2)', () => {
     const user = userEvent.setup()
     render(<Login />)
 
-    const dniInput = screen.getByLabelText(/DNI/i)
-    const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
     const button = screen.getByRole('button', { name: /Iniciar sesión/i })
 
-    await user.type(dniInput, '12345678')
+    await user.type(correoInput, 'doctor@mediflow.com')
     await user.type(passwordInput, 'testpassword')
     await user.click(button)
 
+    await vi.waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true })
+    })
+  })
+
+  it('envía correo y contraseña al hook de autenticación preservando el perfil de usuario', async () => {
+    const mockUserPayload = {
+      id: 'usr-1234-uuid',
+      documento_identidad: '12345678',
+      nombres: 'María',
+      apellidos: 'Gómez Pérez',
+      correo: 'maria.gomez@mediflow.local',
+      especialidad_medica: 'Medicina General',
+      rol: 'COORDINADOR',
+      estado: 'ACTIVO',
+      token: 'mf_session_token_123',
+    }
+    mockLogin.mockResolvedValue({ success: true, user: mockUserPayload })
+
+    const user = userEvent.setup()
+    render(<Login />)
+
+    const correoInput = screen.getByLabelText(/CORREO/i)
+    const passwordInput = screen.getByLabelText('CONTRASEÑA')
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+
+    await user.type(correoInput, 'maria.gomez@mediflow.local')
+    await user.type(passwordInput, 'ClaveSegura#2026')
+    await user.click(button)
+
+    expect(mockLogin).toHaveBeenCalledWith('maria.gomez@mediflow.local', 'ClaveSegura#2026')
     await vi.waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true })
     })

@@ -44,7 +44,7 @@ async def get_active_session_user(token: str) -> dict[str, Any] | None:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """SELECT u.id, u.documento_identidad, u.nombres, u.apellidos,
-                          u.correo, u.telefono, u.rol, u.estado
+                          u.correo, u.telefono, u.rol, u.especialidad_medica, u.estado
                    FROM sesiones_usuario s
                    JOIN usuarios u ON u.id = s.usuario_id
                    WHERE s.token_hash = $1

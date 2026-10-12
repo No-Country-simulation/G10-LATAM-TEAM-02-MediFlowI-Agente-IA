@@ -25,10 +25,15 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 class LoginRequest(BaseModel):
-    documento_identidad: str = Field(
-        ...,
+    documento_identidad: str | None = Field(
+        None,
         description="Número de documento de identidad de 8 cifras (DNI)",
         json_schema_extra={"example": "12345678"},
+    )
+    correo: str | None = Field(
+        None,
+        description="Correo electrónico del usuario",
+        json_schema_extra={"example": "usuario@mediflow.local"},
     )
     password: str = Field(
         ..., description="Contraseña del usuario", json_schema_extra={"example": "admin"}
@@ -36,7 +41,9 @@ class LoginRequest(BaseModel):
 
     @field_validator("documento_identidad")
     @classmethod
-    def validate_documento_identidad(cls, v: str) -> str:
+    def validate_documento_identidad(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         v_clean = v.strip()
         if not re.match(r"^\d{8}$", v_clean):
             raise ValueError("El documento de identidad debe ser un número exacto de 8 cifras.")
@@ -148,7 +155,15 @@ async def login(req: LoginRequest):
 
     Valida que el usuario exista, esté activo y la contraseña sea correcta.
     """
-    user = await get_user_by_document(req.documento_identidad)
+    if req.correo:
+        user = await get_user_by_email(req.correo)
+    elif req.documento_identidad:
+        user = await get_user_by_document(req.documento_identidad)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Debe ingresar un correo electrónico o documento de identidad.",
+        )
 
     if not user:
         raise HTTPException(
@@ -176,6 +191,7 @@ async def login(req: LoginRequest):
         "correo": user["correo"],
         "telefono": user["telefono"],
         "rol": user["rol"],
+        "especialidad_medica": user.get("especialidad_medica"),
         "estado": user["estado"],
     }
 
