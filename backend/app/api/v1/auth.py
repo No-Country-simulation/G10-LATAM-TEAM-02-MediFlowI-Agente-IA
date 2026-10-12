@@ -6,18 +6,24 @@ cierre de sesión y verificación de usuario activo en sesión.
 """
 
 import re
+from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.security import (
     create_access_token,
+    hash_password,
     invalidate_access_token,
     require_current_user,
     verify_password,
-    hash_password,
 )
-from app.repositories.user_repository import get_user_by_document, create_user, get_user_by_email
+from app.repositories.user_repository import (
+    create_user,
+    get_user_by_document,
+    get_user_by_email,
+)
 from app.schemas.user import UserCreate
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -25,10 +31,20 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 class LoginRequest(BaseModel):
-    documento_identidad: str = Field(
-        ...,
+    documento_identidad: str | None = Field(
+        None,
         description="Número de documento de identidad de 8 cifras (DNI)",
         json_schema_extra={"example": "12345678"},
+    )
+    correo: str | None = Field(
+        None,
+        description="Correo electrónico del usuario",
+        json_schema_extra={"example": "usuario@mediflow.local"},
+    )
+    email: str | None = Field(
+        None,
+        description="Alias de correo electrónico",
+        json_schema_extra={"example": "usuario@mediflow.local"},
     )
     password: str = Field(
         ..., description="Contraseña del usuario", json_schema_extra={"example": "admin"}
@@ -36,15 +52,19 @@ class LoginRequest(BaseModel):
 
     @field_validator("documento_identidad")
     @classmethod
-    def validate_documento_identidad(cls, v: str) -> str:
+    def validate_documento_identidad(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         v_clean = v.strip()
+        if not v_clean:
+            return None
+        if "@" in v_clean:
+            return v_clean
         if not re.match(r"^\d{8}$", v_clean):
             raise ValueError("El documento de identidad debe ser un número exacto de 8 cifras.")
         return v_clean
 
 
-from typing import Any
-from uuid import UUID
 
 class UserResponse(BaseModel):
     id: str | UUID
@@ -114,16 +134,16 @@ async def signup(req: UserCreate):
             salt=salt,
             nombres=req.nombres,
             apellidos=req.apellidos,
-            correo=req.correo,
+            correo=req.correo.strip().lower() if req.correo else None,
             telefono=req.telefono,
-            rol="OPERADOR",
-            estado="INACTIVO"
+            rol="PENDIENTE",
+            estado="ACTIVO",
         )
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al registrar usuario: {str(exc)}"
-        )
+            detail=f"Error al registrar usuario: {str(exc)}",
+        ) from exc
     
     if not new_user:
         raise HTTPException(
@@ -143,12 +163,28 @@ async def signup(req: UserCreate):
 async def login(req: LoginRequest):
     """
     Permite a un trabajador de la clínica iniciar sesión ingresando:
-    - documento_identidad (8 cifras)
+    - correo electrónico o documento de identidad
     - contraseña
 
     Valida que el usuario exista, esté activo y la contraseña sea correcta.
     """
-    user = await get_user_by_document(req.documento_identidad)
+    correo_identificador = req.correo or req.email
+    doc_identificador = req.documento_identidad
+
+    if doc_identificador and "@" in doc_identificador and not correo_identificador:
+        correo_identificador = doc_identificador
+        doc_identificador = None
+
+    user = None
+    if correo_identificador:
+        user = await get_user_by_email(correo_identificador.strip())
+    elif doc_identificador:
+        user = await get_user_by_document(doc_identificador.strip())
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Debe ingresar su correo electrónico o su documento de identidad.",
+        )
 
     if not user:
         raise HTTPException(

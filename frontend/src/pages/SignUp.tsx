@@ -1,12 +1,31 @@
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { SignUpForm } from '../components/auth/SignUpForm';
 import { TestimonialSection } from '../components/login/TestimonialSection';
 import logo from '../assets/login/logo.png';
 import '../styles/login.css';
+import type { User } from '../api/auth.api';
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const handleSuccess = async (user: User, password?: string, correo?: string) => {
+    const emailToUse = correo || user.correo;
+    if (emailToUse && password) {
+      try {
+        const res = await login(emailToUse, password);
+        if (res.success) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.error('Error al iniciar sesión automáticamente:', err);
+      }
+    }
+    navigate('/dashboard', { replace: true });
+  };
 
   return (
     <main className="login-page flex min-h-screen relative bg-[#f5f7fb] overflow-hidden">
@@ -42,7 +61,10 @@ export default function SignUp(): JSX.Element {
           />
         </div>
 
-        <SignUpForm onNavigateToLogin={() => navigate('/login')} />
+        <SignUpForm
+          onSuccess={handleSuccess}
+          onNavigateToLogin={() => navigate('/login')}
+        />
       </section>
     </main>
   );

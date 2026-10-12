@@ -63,7 +63,7 @@ export function LoginForm({
       )}
 
       <div className="flex flex-col gap-3 w-full">
-        {/* Campo DNI / CORREO */}
+        {/* Campo CORREO ELECTRÓNICO */}
         <label
           htmlFor="documentoIdentidad"
           className={`${fieldCardBase} ${isSubmitting ? fieldCardDisabled : fieldCardEnabled}`}
@@ -72,16 +72,14 @@ export function LoginForm({
             className="font-bold text-[11px] tracking-[0.06px] text-[rgba(31,32,65,0.5)] uppercase"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            Correo
+            Correo Electrónico
           </span>
           <input
             id="documentoIdentidad"
             name="documentoIdentidad"
             type="text"
-            inputMode="numeric"
-            maxLength={8}
             autoComplete="username"
-            aria-label="DNI"
+            aria-label="Correo"
             placeholder="email@example.com"
             value={documentoIdentidad}
             onChange={(e) => onDocumentoChange(e.target.value)}

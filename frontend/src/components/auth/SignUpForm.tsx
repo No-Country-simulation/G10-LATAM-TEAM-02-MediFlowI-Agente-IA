@@ -23,7 +23,7 @@ const inputBase =
   'w-full font-medium text-xs sm:text-sm placeholder:text-[rgba(31,32,65,0.35)] outline-none bg-transparent pt-0.5';
 
 interface SignUpFormProps {
-  onSuccess?: (user: User) => void;
+  onSuccess?: (user: User, password?: string, correo?: string) => void;
   onNavigateToLogin?: () => void;
 }
 
@@ -108,7 +108,7 @@ export function SignUpForm({ onSuccess, onNavigateToLogin }: SignUpFormProps): J
 
       setSuccessAlert(true);
       if (onSuccess) {
-        onSuccess(user);
+        onSuccess(user, formData.password, formData.correo.trim());
       }
     } catch (err: any) {
       const msg = err.message || '';

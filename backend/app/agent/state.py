@@ -50,7 +50,7 @@ class ClasificacionState(BaseModel):
     categoria_documento: str | None = None
     especialidad: str | None = None
     nivel_prioridad: Literal["Urgente", "Rutina", "Ambiguo"] | None = None
-    score_confianza_clasificacion: float = 0.0
+    score_confianza_clasificacion: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class DecisionEnrutamientoState(BaseModel):

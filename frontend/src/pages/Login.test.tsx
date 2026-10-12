@@ -50,14 +50,12 @@ describe('Login - Renderizado (US1)', () => {
     expect(screen.getByText(/SISTEMA AUTÓNOMO DE TRIAJE/i)).toBeInTheDocument()
   })
 
-  it('renderiza campo DNI con etiqueta asociada', () => {
+  it('renderiza campo Correo con etiqueta asociada', () => {
     render(<Login />)
-    const dniInput = screen.getByLabelText(/DNI/i)
-    expect(dniInput).toBeInTheDocument()
-    expect(dniInput).toHaveAttribute('type', 'text')
-    expect(dniInput).toHaveAttribute('inputMode', 'numeric')
-    expect(dniInput).toHaveAttribute('maxLength', '8')
-    expect(dniInput).toHaveAttribute('autoComplete', 'username')
+    const correoInput = screen.getByLabelText(/Correo/i)
+    expect(correoInput).toBeInTheDocument()
+    expect(correoInput).toHaveAttribute('type', 'text')
+    expect(correoInput).toHaveAttribute('autoComplete', 'username')
   })
 
   it('renderiza campo contraseña con etiqueta asociada', () => {
@@ -104,11 +102,11 @@ describe('Login - Validación y submit (US2)', () => {
     const user = userEvent.setup()
     const { container } = render(<Login />)
 
-    const dniInput = screen.getByLabelText(/DNI/i)
+    const correoInput = screen.getByLabelText(/Correo/i)
     const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
     const button = screen.getByRole('button', { name: /Iniciar sesión/i })
 
-    await user.type(dniInput, '12345678')
+    await user.type(correoInput, 'admin@mediflow.local')
     await user.type(passwordInput, 'testpassword')
     await user.click(button)
 
@@ -122,11 +120,11 @@ describe('Login - Validación y submit (US2)', () => {
     const user = userEvent.setup()
     render(<Login />)
 
-    const dniInput = screen.getByLabelText(/DNI/i)
+    const correoInput = screen.getByLabelText(/Correo/i)
     const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
     const button = screen.getByRole('button', { name: /Iniciar sesión/i })
 
-    await user.type(dniInput, '12345678')
+    await user.type(correoInput, 'admin@mediflow.local')
     await user.type(passwordInput, 'testpassword')
     await user.click(button)
 

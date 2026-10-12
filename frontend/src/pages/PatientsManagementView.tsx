@@ -313,7 +313,7 @@ export default function PatientsManagementView() {
   }
 
   return (
-    <div className="container-fluid py-4">
+    <div className="clinical-page w-full">
       {/* Encabezado Principal */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-2 border-bottom">
         <div>

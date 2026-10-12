@@ -25,7 +25,7 @@ from app.repositories.user_repository import (
 
 router = APIRouter(prefix="/users", tags=["Gestión de Usuarios"])
 
-VALID_ROLES = {"ADMINISTRADOR", "COORDINADOR", "OPERADOR", "AUDITOR", "SUPERVISOR"}
+VALID_ROLES = {"ADMINISTRADOR", "COORDINADOR", "OPERADOR", "AUDITOR", "SUPERVISOR", "PENDIENTE"}
 VALID_ESTADOS = {"ACTIVO", "INACTIVO"}
 
 
@@ -247,4 +247,16 @@ async def update_user_details(
     u_dict = dict(updated)
     u_dict["id"] = str(u_dict["id"])
     return UserResponse(**u_dict)
+
+
+@router.patch(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Actualizar parcialmente rol, especialidad o estado de un usuario",
+)
+async def patch_user_details(
+    user_id: str, req: UserUpdateRequest, admin: dict = Depends(require_admin)
+):
+    """Permite al Administrador cambiar rol, especialidad médica o estado activo/inactivo."""
+    return await update_user_details(user_id=user_id, req=req, admin=admin)
 

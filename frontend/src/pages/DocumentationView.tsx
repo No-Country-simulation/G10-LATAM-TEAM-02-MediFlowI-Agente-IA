@@ -6,7 +6,7 @@ export default function DocumentationView() {
   const [activeTab, setActiveTab] = useState<'roles' | 'triage' | 'storage'>('roles')
 
   return (
-    <div className="container-fluid py-4 px-4">
+    <div className="clinical-page w-full">
       {/* Header de Documentación */}
       <div className="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
         <div>
