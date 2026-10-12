@@ -1,26 +1,21 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import logo from "../../assets/login/logo.png";
 import {
-  FaTachometerAlt,
-  FaStethoscope,
-  FaUserInjured,
-  FaFileUpload,
-  FaCog,
-  FaClipboardCheck,
-  FaHistory,
-  FaBook,
-  FaChevronLeft,
-  FaHome,
-  FaSignOutAlt,
-} from "react-icons/fa";
+  LuPlus,
+  LuSlidersVertical,
+  LuFolder,
+  LuSquareCheck,
+  LuHouse,
+  LuChevronUp,
+  LuLogOut,
+  LuUsers,
+  LuSettings,
+} from "react-icons/lu";
 
-interface SidebarProps { isOpen: boolean; closeSidebar: () => void }
-
-interface NavItem {
-  path: string;
-  label: string;
-  icon: React.ReactNode;
-  allowedRoles?: string[];
+interface SidebarProps {
+  isOpen: boolean;
+  closeSidebar: () => void;
 }
 
 const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
@@ -34,155 +29,240 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
 
   const userRole = user?.rol?.toUpperCase();
   const isPendiente = userRole === "PENDIENTE";
+  const isAdmin = userRole === "ADMINISTRADOR";
 
-  const allNavItems: NavItem[] = isPendiente
-    ? [
-        {
-          path: "/dashboard",
-          label: "Inicio",
-          icon: <FaHome className="me-2 fs-5" />,
-        },
-      ]
-    : [
-        {
-          path: "/dashboard",
-          label: "Dashboard",
-          icon: <FaTachometerAlt className="me-2 fs-5" />,
-        },
-        {
-          path: "/pacientes",
-          label: "Pacientes",
-          icon: <FaUserInjured className="me-2 fs-5" />,
-        },
-        {
-          path: "/triaje",
-          label: "Triaje Clínico",
-          icon: <FaStethoscope className="me-2 fs-5" />,
-        },
-        {
-          path: "/documentos/nuevo",
-          label: "Subir Archivo",
-          icon: <FaFileUpload className="me-2 fs-5" />,
-          allowedRoles: ["ADMINISTRADOR", "OPERADOR"],
-        },
-        {
-          path: "/usuarios",
-          label: "Solicitudes de acceso",
-          icon: <FaClipboardCheck className="me-2 fs-5" />,
-          allowedRoles: ["ADMINISTRADOR"],
-        },
-        {
-          path: "/configuracion",
-          label: "Configuración",
-          icon: <FaCog className="me-2 fs-5" />,
-          allowedRoles: ["ADMINISTRADOR"],
-        },
-        {
-          path: "/auditoria",
-          label: "Auditoría (HITL)",
-          icon: <FaClipboardCheck className="me-2 fs-5" />,
-          allowedRoles: ["ADMINISTRADOR", "COORDINADOR", "AUDITOR", "SUPERVISOR"],
-        },
-        {
-          path: "/documentos",
-          label: "Historial",
-          icon: <FaHistory className="me-2 fs-5" />,
-        },
-        {
-          path: "/documentacion",
-          label: "Documentación",
-          icon: <FaBook className="me-2 fs-5" />,
-        },
-      ];
+  const userInitial = (
+    user?.nombres?.charAt(0) ||
+    user?.correo?.charAt(0) ||
+    "N"
+  ).toUpperCase();
 
-  const navItems = allNavItems.filter((item) => {
-    if (!item.allowedRoles) return true;
-    return userRole ? item.allowedRoles.includes(userRole) : false;
-  });
-
-  const userInitial = (user?.nombres?.charAt(0) || user?.correo?.charAt(0) || "U").toUpperCase();
+  const fullName = user
+    ? `${user.nombres} ${user.apellidos}`
+    : "Nombre del usuario";
+  const userEmail = user?.correo || "correo@axiom.ai";
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="position-fixed start-0 w-100 bg-dark opacity-50 d-lg-none"
-          style={{ top: "60px", bottom: 0, zIndex: 1035 }}
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm"
           onClick={closeSidebar}
-        ></div>
+        />
       )}
 
       <aside
-        className="bg-white border-end position-fixed start-0 bottom-0 shadow-sm d-flex flex-column justify-content-between"
+        className={`fixed top-0 bottom-0 left-0 z-50 w-[240px] bg-[#FAF9F5]/90 sm:bg-[#FAF9F5] backdrop-blur-md border-r border-[#E8E6DF] flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
         style={{
-          width: "250px",
-          top: "60px",
-          zIndex: 1040,
-          transition: "transform 0.3s ease-in-out",
-          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+          boxShadow: "0 0 20px rgba(0, 0, 0, 0.02)",
         }}
       >
-        <div className="py-3 px-3">
-          <div className="d-flex align-items-center justify-content-between text-uppercase text-muted fw-bold small mb-2 px-3">
-            <span>{isPendiente ? "Bienvenida" : "Menú Principal"}</span>
-            <button
-              type="button"
-              className="btn btn-sm btn-light text-muted p-1 border-0 rounded-circle"
-              onClick={closeSidebar}
-              title="Ocultar Menú"
+        <div className="flex flex-col flex-1 overflow-y-auto">
+          {/* Logo centrado de MediFlow */}
+          <div className="pt-7 pb-5 px-5 flex justify-center items-center">
+            <NavLink
+              to="/dashboard"
+              className="flex flex-col items-center select-none no-underline"
+              onClick={() => {
+                if (window.innerWidth < 1024) closeSidebar();
+              }}
             >
-              <FaChevronLeft size={14} />
-            </button>
+              <img
+                src={logo}
+                alt="MediFlow"
+                className="h-14 w-auto object-contain hover:opacity-95 transition-opacity"
+              />
+            </NavLink>
           </div>
-          <ul className="nav nav-pills flex-column mb-auto">
-            {navItems.map((item) => (
-              <li className="nav-item mb-1" key={item.path}>
+
+          {/* Opción única para usuario PENDIENTE: Inicio */}
+          {isPendiente ? (
+            <div className="mt-2 w-full">
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  `w-full flex items-center gap-3 px-5 py-3 text-[13px] font-medium transition-colors no-underline ${
+                    isActive
+                      ? "bg-[#EDEBE6] text-[#1E293B] font-semibold border-y border-[#E2DFD8]"
+                      : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
+                  }`
+                }
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
+                onClick={() => {
+                  if (window.innerWidth < 1024) closeSidebar();
+                }}
+              >
+                <LuHouse size={16} className="text-[#4B5563] shrink-0" />
+                <span>Inicio</span>
+              </NavLink>
+            </div>
+          ) : (
+            <>
+              {/* Botón "+ Nuevo enrutamiento" destacado en fondo beige claro */}
+              <div className="w-full mb-3">
                 <NavLink
-                  to={item.path}
-                  end={item.path === "/documentos"}
+                  to="/documentos/nuevo"
                   className={({ isActive }) =>
-                    `nav-link d-flex align-items-center px-3 py-2.5 rounded-3 fw-medium ${
-                      isActive ? "active bg-primary text-white" : "text-dark hover-bg-light"
+                    `w-full flex items-center gap-2.5 px-5 py-3.5 text-[13px] font-semibold tracking-wide transition-colors no-underline ${
+                      isActive
+                        ? "bg-[#EDEBE6] text-[#1E293B] border-y border-[#E2DFD8]"
+                        : "bg-[#EDEBE6] text-[#2C3E50] hover:bg-[#E4E0D6] border-y border-[#E2DFD8]"
                     }`
                   }
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
                   onClick={() => {
-                    if (window.innerWidth < 992) closeSidebar();
+                    if (window.innerWidth < 1024) closeSidebar();
                   }}
                 >
-                  {item.icon}
-                  <span>{item.label}</span>
+                  <LuPlus size={16} className="text-[#1E293B] stroke-[2.5] shrink-0" />
+                  <span>Nuevo enrutamiento</span>
                 </NavLink>
-              </li>
-            ))}
-          </ul>
+              </div>
+
+              {/* Menú de opciones */}
+              <nav className="flex flex-col gap-1 w-full">
+                {/* 1. Solicitudes de intervención manual */}
+                <NavLink
+                  to="/auditoria"
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-5 py-3 text-[13px] leading-tight transition-colors no-underline ${
+                      isActive
+                        ? "bg-[#EDEBE6] text-[#1E293B] font-semibold"
+                        : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
+                    }`
+                  }
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) closeSidebar();
+                  }}
+                >
+                  <LuSlidersVertical size={16} className="text-[#4B5563] shrink-0" />
+                  <span className="text-left">Solicitudes de intervención manual</span>
+                </NavLink>
+
+                {/* 2. Historial de enrutamiento */}
+                <NavLink
+                  to="/documentos"
+                  end
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-5 py-3 text-[13px] leading-tight transition-colors no-underline ${
+                      isActive
+                        ? "bg-[#EDEBE6] text-[#1E293B] font-semibold"
+                        : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
+                    }`
+                  }
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) closeSidebar();
+                  }}
+                >
+                  <LuFolder size={16} className="text-[#4B5563] shrink-0" />
+                  <span>Historial de enrutamiento</span>
+                </NavLink>
+
+                {/* 3. Solicitudes de acceso (ADMINISTRADOR) */}
+                {isAdmin && (
+                  <NavLink
+                    to="/solicitudes"
+                    className={({ isActive }) =>
+                      `w-full flex items-center gap-3 px-5 py-3 text-[13px] leading-tight transition-colors no-underline ${
+                        isActive
+                          ? "bg-[#EDEBE6] text-[#1E293B] font-semibold"
+                          : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
+                      }`
+                    }
+                    style={{ fontFamily: "'Montserrat', sans-serif" }}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) closeSidebar();
+                    }}
+                  >
+                    <LuSquareCheck size={16} className="text-[#4B5563] shrink-0" />
+                    <span>Solicitudes de acceso</span>
+                  </NavLink>
+                )}
+
+                {/* Opciones secundarias del sistema clínico */}
+                {isAdmin && (
+                  <>
+                    <NavLink
+                      to="/pacientes"
+                      className={({ isActive }) =>
+                        `w-full flex items-center gap-3 px-5 py-2.5 text-[12px] text-[#64748B] hover:text-[#1E293B] hover:bg-[#F3F1EC] transition-colors no-underline mt-2 ${
+                          isActive ? "bg-[#EDEBE6] text-[#1E293B] font-semibold" : ""
+                        }`
+                      }
+                      style={{ fontFamily: "'Montserrat', sans-serif" }}
+                      onClick={() => {
+                        if (window.innerWidth < 1024) closeSidebar();
+                      }}
+                    >
+                      <LuUsers size={15} className="shrink-0" />
+                      <span>Pacientes</span>
+                    </NavLink>
+                    <NavLink
+                      to="/configuracion"
+                      className={({ isActive }) =>
+                        `w-full flex items-center gap-3 px-5 py-2 text-[12px] text-[#64748B] hover:text-[#1E293B] hover:bg-[#F3F1EC] transition-colors no-underline ${
+                          isActive ? "bg-[#EDEBE6] text-[#1E293B] font-semibold" : ""
+                        }`
+                      }
+                      style={{ fontFamily: "'Montserrat', sans-serif" }}
+                      onClick={() => {
+                        if (window.innerWidth < 1024) closeSidebar();
+                      }}
+                    >
+                      <LuSettings size={15} className="shrink-0" />
+                      <span>Configuración OCI</span>
+                    </NavLink>
+                  </>
+                )}
+              </nav>
+            </>
+          )}
         </div>
 
-        {/* Perfil en la parte inferior del Sidebar */}
-        <div className="p-3 border-top bg-light/50">
-          <div className="d-flex align-items-center gap-2 mb-2">
-            <div
-              className="d-flex align-items-center justify-content-center text-white rounded-circle fw-bold text-sm shadow-sm shrink-0"
-              style={{ width: "36px", height: "36px", backgroundColor: "#1e3a5f" }}
-            >
-              {userInitial}
-            </div>
-            <div className="overflow-hidden" style={{ minWidth: 0 }}>
-              <div className="fw-semibold text-truncate small text-dark">
-                {user ? `${user.nombres} ${user.apellidos}` : "Usuario MediFlow"}
+        {/* Sección inferior: Usuario logueado y Logout */}
+        <div className="p-4 border-t border-[#E8E6DF] bg-[#FAF9F5]">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 select-none shadow-sm"
+                style={{ backgroundColor: "#204A79" }}
+              >
+                {userInitial}
               </div>
-              <div className="text-muted text-truncate" style={{ fontSize: "0.75rem" }}>
-                {user?.correo || user?.rol || "Sin correo"}
+              <div className="overflow-hidden min-w-0">
+                <div
+                  className="text-xs font-bold text-[#1F2041] truncate"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                  title={fullName}
+                >
+                  {fullName}
+                </div>
+                <div
+                  className="text-[11px] text-[#8A92A6] truncate"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                  title={userEmail}
+                >
+                  {userEmail}
+                </div>
               </div>
             </div>
+            <LuChevronUp size={15} className="text-[#64748B] shrink-0" />
           </div>
+
           <button
             type="button"
             onClick={handleLogout}
-            className="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-1.5 py-1 text-xs"
+            className="flex items-center gap-2 mt-4 text-xs font-semibold text-[#204A79] hover:text-[#153457] cursor-pointer bg-transparent border-0 transition-colors p-0"
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            <FaSignOutAlt size={12} />
-            <span>Cerrar sesión</span>
+            <LuLogOut size={14} className="stroke-[2.2]" />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
