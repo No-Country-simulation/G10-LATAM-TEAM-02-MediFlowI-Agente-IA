@@ -40,7 +40,11 @@ tags:
   description: Registro e historial de pacientes
 - name: settings
   description: Configuración manual del sistema
+- name: metrics
+  description: Agregados hospitalarios de documentos de triaje, de solo lectura.
 paths:
+  /metrics:
+    $ref: ./paths/metrics.yaml#/metrics
   /health:
     $ref: ./paths/health.yaml#/health
   /triage:
@@ -77,12 +81,30 @@ paths:
     $ref: ./paths/patients.yaml#/associateDocument
   /settings:
     $ref: ./paths/settings.yaml#/settings
+  /coordination/pending:
+    $ref: ./paths/coordination.yaml#/coordinationPending
+  /coordination/resolve/{documento_id}:
+    $ref: ./paths/coordination.yaml#/coordinationResolve
+  /coordination/audit/{documento_id}:
+    $ref: ./paths/coordination.yaml#/coordinationAudit
 components:
   schemas:
+    DistribucionPrioridadMetrics:
+      $ref: ./components/schemas.yaml#/schemas/DistribucionPrioridadMetrics
+    MetricsResponse:
+      $ref: ./components/schemas.yaml#/schemas/MetricsResponse
     DocumentoClinico:
       $ref: ./components/schemas.yaml#/schemas/DocumentoClinico
     Clasificacion:
       $ref: ./components/schemas.yaml#/schemas/Clasificacion
+    PendingTriageItem:
+      $ref: ./components/schemas.yaml#/schemas/PendingTriageItem
+    ResolveTriageRequest:
+      $ref: ./components/schemas.yaml#/schemas/ResolveTriageRequest
+    ResolveTriageResponse:
+      $ref: ./components/schemas.yaml#/schemas/ResolveTriageResponse
+    AuditEventItem:
+      $ref: ./components/schemas.yaml#/schemas/AuditEventItem
     Paciente:
       $ref: ./components/schemas.yaml#/schemas/Paciente
     MedicoSolicitante:

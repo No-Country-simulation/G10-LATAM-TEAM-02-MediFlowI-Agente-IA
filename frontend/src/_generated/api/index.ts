@@ -1,6 +1,8 @@
 // AUTO-GENERADO desde specs/openapi.yaml. NO EDITAR.
 import type { components } from './types'
 export type * from './types'
+export type DistribucionPrioridadMetrics = components['schemas']['DistribucionPrioridadMetrics']
+export type MetricsResponse = components['schemas']['MetricsResponse']
 export type DocumentoClinico = components['schemas']['DocumentoClinico']
 export type Clasificacion = components['schemas']['Clasificacion']
 export type Paciente = components['schemas']['Paciente']
