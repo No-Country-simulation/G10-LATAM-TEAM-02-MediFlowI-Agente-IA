@@ -40,9 +40,11 @@ tags:
   description: Registro e historial de pacientes
 - name: settings
   description: Configuración manual del sistema
-- name: coordination
-  description: Coordinación y auditoría médica HITL
+- name: metrics
+  description: Agregados hospitalarios de documentos de triaje, de solo lectura.
 paths:
+  /metrics:
+    $ref: ./paths/metrics.yaml#/metrics
   /health:
     $ref: ./paths/health.yaml#/health
   /triage:
@@ -87,6 +89,10 @@ paths:
     $ref: ./paths/coordination.yaml#/coordinationAudit
 components:
   schemas:
+    DistribucionPrioridadMetrics:
+      $ref: ./components/schemas.yaml#/schemas/DistribucionPrioridadMetrics
+    MetricsResponse:
+      $ref: ./components/schemas.yaml#/schemas/MetricsResponse
     DocumentoClinico:
       $ref: ./components/schemas.yaml#/schemas/DocumentoClinico
     Clasificacion:

@@ -4,6 +4,82 @@
  */
 
 export interface paths {
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar métricas agregadas de documentos de triaje
+         * @description Accesible para cualquier sesión válida y activa mediante Bearer existente,
+         *     incluidos ADMINISTRADOR, COORDINADOR, SUPERVISOR, AUDITOR y OPERADOR.
+         *     No añade permisos de auditoría, escritura, usuarios o configuración;
+         *     no hay restricción ni respuesta 403 por rol en esta operación.
+         *
+         *     Población C: documentos únicos por documento_id externo, de todo el
+         *     historial sin filtro de fecha, con al menos un PROCESAMIENTO_FINALIZADO
+         *     de historial_documento ligado al UUID interno y estado actual procesado,
+         *     pendiente_auditoria o rechazado. No exige paciente, episodio, tiempo,
+         *     nodos ni origen específico. Otros estados o ausencia de evento final
+         *     excluyen el documento. Un BD-04 recibido no entra; procesado después
+         *     puede entrar aunque conserve nodos vacíos y tiempo nulo. La población
+         *     acredita procesamiento registrado alguna vez, no todos los casos ni
+         *     el último intento; ausencia de evento no prueba ausencia de actividad.
+         *
+         *     Usa prioridad vigente. Urgente -> Rojo, Ambiguo -> Amarillo, Rutina ->
+         *     Verde: colores de presentación, no una escala de severidad clínica.
+         *     Amarillo expresa incertidumbre documental, nunca gravedad intermedia.
+         *     Prioridad nula no aporta a colores pero sí al denominador HITL; por eso
+         *     la suma de colores puede ser menor que el denominador.
+         *
+         *     HITL histórico cuenta una vez cada documento de C con bandera verdadera,
+         *     decisión aprobar/reclasificar/rechazar en auditorias_hitl, evento
+         *     PENDIENTE_AUDITORIA/AUDITORIA_APROBADA/AUDITORIA_RECLASIFICADA/
+         *     AUDITORIA_RECHAZADA en historial_documento, o dictamen directamente
+         *     ligado al documento en auditorias_coordinacion con decisión aprobar,
+         *     aprobado, reclasificar, reclasificado, rechazar o rechazado. Cada fuente
+         *     basta sin corroboración; duplicados y superposición no multiplican
+         *     documentos. Otras decisiones, vínculo solo a episodio y Ambiguo solo
+         *     no acreditan HITL. Coordinación como evidencia suficiente es una
+         *     convención operativa, no certificación independiente del motivo clínico;
+         *     ausencia de evidencia no demuestra que jamás requirió revisión.
+         *
+         *     Tiempo: promedio del tiempo_procesamiento_ms persistido de documentos
+         *     de C con valor no nulo y no negativo, una vez por documento y convertido
+         *     a segundos. Cero entra, nulos/negativos no entran en suma ni divisor.
+         *     Puede conservar valores anteriores o sintéticos; no garantiza última
+         *     ejecución, todos los intentos, cada nodo ni respuesta HTTP completa.
+         *
+         *     Exactamente tres raíces y tres colores. Porcentaje 100*N/D (0–100),
+         *     null si D=0; cero si D>0 y N=0. Tiempo null sin valores admisibles,
+         *     cero si todos los admisibles son cero. Redondeo único al final sobre
+         *     valores originales: porcentaje dos decimales y segundos tres, empate
+         *     exacto hacia arriba. JSON numérico, sin strings ni padding obligatorio.
+         *
+         *     Tres indicadores de una misma vista lógica de datos confirmados. Una
+         *     petición iniciada después de COMMIT refleja cambios sin refresco extra;
+         *     cambios durante la petición pueden verse o no, sin mezclar vistas.
+         *     Lectura sin IA, escrituras ni cambios LOCAL/OCI. No garantiza atomicidad
+         *     de productores existentes ni permite respaldo por archivos ante fallos.
+         *
+         *     Latencia observada en la comprobación práctica P04 de spec.md, con
+         *     PostgreSQL aislado, sesión real, tiempos observados y Scalar manual,
+         *     sin SLA numérico ni perfil de benchmark obligatorio. No es el tiempo
+         *     registrado del agente ni una prueba de rendimiento bajo carga o
+         *     en producción, incluida la VM de producción.
+         *     DashboardSummary no consume /metrics; consumo tipado externo, sin integración visual.
+         */
+        get: operations["obtenerMetricasTriaje"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -197,6 +273,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar usuario
+         * @description Registro de usuario en estado pendiente.
+         */
+        post: operations["registrarUsuarioPublico"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -377,6 +473,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Conteos de documentos únicos elegibles por prioridad vigente, no pacientes ni porcentajes. */
+        DistribucionPrioridadMetrics: {
+            /** @description Documentos Urgente; presentación roja. */
+            Rojo: number;
+            /** @description Documentos Ambiguo; incertidumbre documental, no gravedad intermedia. */
+            Amarillo: number;
+            /** @description Documentos Rutina; presentación verde. */
+            Verde: number;
+        };
+        /** @description Observación agregada coherente, sin datos identificativos ni campos adicionales. */
+        MetricsResponse: {
+            distribucion_prioridad: components["schemas"]["DistribucionPrioridadMetrics"];
+            /** @description Porcentaje histórico 100*N/D, dos decimales con empate hacia arriba; null si D=0, cero si N=0 y D>0. */
+            tasa_hitl: number | null;
+            /** @description Promedio del tiempo persistido admisible en segundos, tres decimales con empate hacia arriba; null sin tiempos, cero registrado válido; puede ser anterior/sintético, no promedio por nodo ni latencia HTTP. */
+            tiempo_promedio_ia_segundos: number | null;
+        };
         /** @description Documento de entrada al triaje. canal_origen conserva el valor vacío por defecto de la API. */
         DocumentoClinico: {
             /**
@@ -768,6 +881,42 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    obtenerMetricasTriaje: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agregados correctos, incluso con población elegible vacía. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricsResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description Conserva el 503 de autenticación cuando PostgreSQL impide validar
+             *     la sesión. Tras autenticar, indisponibilidad/fallo de consulta se
+             *     traduce mediante el handler existente: detail.error =
+             *     POSTGRESQL_NO_DISPONIBLE. Nunca 200 con ceros/resultado parcial
+             *     ni 401 atribuido a sesión inválida si la validación no fue posible.
+             */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     healthCheck: {
         parameters: {
             query?: never;
@@ -1134,6 +1283,45 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+        };
+    };
+    registrarUsuarioPublico: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsuarioCrear"];
+            };
+        };
+        responses: {
+            /** @description Registro exitoso, pendiente de aprobación */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example User registered successfully. Pending admin approval. */
+                        message: string;
+                        user: components["schemas"]["Usuario"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description El correo ya está registrado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalError"];
         };
     };
     listarUsuarios: {
