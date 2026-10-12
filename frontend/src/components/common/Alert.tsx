@@ -3,7 +3,7 @@ import { faCheck, faExclamationTriangle, faInfoCircle, faXmark } from "@fortawes
 
 interface AlertProps {
   title: string;
-  message: string;
+  message?: string;
   onClose?: () => void;
   type: 'success' | 'error' | 'warning' | 'info';
 }

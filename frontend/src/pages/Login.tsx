@@ -1,37 +1,70 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { FormEvent, JSX } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { LoginForm } from "../components/login/LoginForm";
 import { TestimonialSection } from "../components/login/TestimonialSection";
 import logo from "../assets/login/logo.png";
 import "../styles/login.css";
-import type { FormEvent, JSX } from "react";
 
 const Login = (): JSX.Element => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
 
-  const [documentoIdentidad, setDocumentoIdentidad] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const from = location.state?.from?.pathname || "/dashboard";
 
+  const handleChange = (field: string, value: string) => {
+    if (field === "email") {
+      setEmail(value);
+    } else if (field === "password") {
+      setPassword(value);
+    }
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+    if (error) {
+      setError("");
+    }
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email.trim()) {
+      newErrors.email = "Por favor ingrese su correo electrónico.";
+    } else if (!emailRegex.test(email.trim())) {
+      newErrors.email = "Por favor, introduzca una dirección de correo electrónico válida";
+    }
+
+    if (!password.trim()) {
+      newErrors.password = "Por favor ingrese su contraseña.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    if (!documentoIdentidad.trim() || !password.trim()) {
-      setError("Por favor complete todos los campos.");
+    if (!validate()) {
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const result = await login(documentoIdentidad, password);
+      const result = await login(email.trim(), password);
       if (result.success) {
         navigate(from, { replace: true });
       } else {
@@ -83,14 +116,14 @@ const Login = (): JSX.Element => {
         </div>
 
         <LoginForm
-          documentoIdentidad={documentoIdentidad}
+          email={email}
           password={password}
-          onDocumentoChange={setDocumentoIdentidad}
-          onPasswordChange={setPassword}
+          onChange={handleChange}
           onSubmit={handleSubmit}
           onRegister={handleRegister}
           isSubmitting={isSubmitting}
           error={error}
+          errors={errors}
         />
       </section>
     </main>

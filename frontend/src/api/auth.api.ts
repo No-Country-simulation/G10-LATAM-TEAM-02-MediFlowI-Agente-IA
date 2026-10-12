@@ -24,11 +24,15 @@ export interface LoginResponse {
   mensaje: string;
 }
 
-export async function loginUser(documento_identidad: string, password: string): Promise<LoginResponse> {
+export async function loginUser(identifier: string, password: string): Promise<LoginResponse> {
+  const body = identifier.includes("@")
+    ? { correo: identifier.trim(), password }
+    : { documento_identidad: identifier.trim(), password };
+
   return apiRequest<LoginResponse>("/auth/login", {
     method: "POST",
     auth: false,
-    body: JSON.stringify({ documento_identidad, password }),
+    body: JSON.stringify(body),
   });
 }
 
