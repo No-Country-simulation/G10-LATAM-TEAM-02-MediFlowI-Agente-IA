@@ -13,8 +13,8 @@ async def test_signup_success(client):
         "apellidos": "Perez",
         "correo": "juan@test.com",
         "telefono": "987654321",
-        "rol": "OPERADOR",
-        "estado": "INACTIVO",
+        "rol": "PENDIENTE",
+        "estado": "ACTIVO",
     }
 
     with (
@@ -39,7 +39,8 @@ async def test_signup_success(client):
         assert response.status_code == 201
         data = response.json()
         assert data["documento_identidad"] == payload["documento_identidad"]
-        assert data["estado"] == "INACTIVO"
+        assert data["estado"] == "ACTIVO"
+        assert data["rol"] == "PENDIENTE"
         assert data["nombres"] == payload["nombres"]
 
 

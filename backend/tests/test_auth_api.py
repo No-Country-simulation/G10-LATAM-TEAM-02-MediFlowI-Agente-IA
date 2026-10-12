@@ -80,6 +80,22 @@ async def test_login_success():
 
 
 @pytest.mark.asyncio
+async def test_login_with_email_success():
+    """Verifica inicio de sesión exitoso con correo electrónico y contraseña."""
+    with patch("app.api.v1.auth.get_user_by_email", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = MOCK_ADMIN_USER
+
+        response = client.post(
+            "/api/v1/auth/login", json={"correo": "admin@mediflow.local", "password": "admin"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["user"]["correo"] == "admin@mediflow.local"
+        assert data["user"]["rol"] == "ADMINISTRADOR"
+
+
+@pytest.mark.asyncio
 async def test_login_invalid_dni_format():
     """Verifica rechazo si el documento de identidad no contiene 8 cifras."""
     response = client.post(

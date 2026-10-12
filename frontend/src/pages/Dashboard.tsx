@@ -15,12 +15,21 @@ import {
   FaChartLine
 } from "react-icons/fa";
 
+import { useAuth } from "../hooks/useAuth";
+import logo from "../assets/login/logo.png";
+import welcomeTeamImg from "../assets/welcome_team.jpg";
+
 const Dashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadDashboardData = useCallback(async () => {
+    if (user?.rol === 'PENDIENTE') {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -31,11 +40,51 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.rol]);
 
   useEffect(() => {
     queueMicrotask(() => void loadDashboardData());
   }, [loadDashboardData]);
+
+  if (user?.rol === "PENDIENTE") {
+    return (
+      <div
+        className="clinical-page d-flex flex-column align-items-center justify-content-center text-center py-5 px-3"
+        style={{ minHeight: "calc(100vh - 120px)" }}
+      >
+        <div style={{ maxWidth: "680px" }} className="d-flex flex-column align-items-center">
+          <h1
+            className="fw-bold display-5 mb-2"
+            style={{ fontFamily: "'Quicksand', sans-serif", color: "#1f2041" }}
+          >
+            Bienvenido a
+          </h1>
+          <div className="my-2">
+            <img
+              src={logo}
+              alt="MediFlow"
+              className="img-fluid select-none"
+              style={{ maxWidth: "240px", height: "auto" }}
+            />
+          </div>
+          <div className="my-4 shadow-sm" style={{ maxWidth: "420px", overflow: "hidden", borderRadius: "24px" }}>
+            <img
+              src={welcomeTeamImg}
+              alt="Equipo médico MediFlow"
+              className="img-fluid select-none"
+              style={{ borderRadius: "24px" }}
+            />
+          </div>
+          <p
+            className="fw-medium fs-5 mt-2"
+            style={{ fontFamily: "'Montserrat', sans-serif", color: "#314b6e", maxWidth: "560px" }}
+          >
+            Tu solicitud de acceso ha sido enviada al administrador del sistema, por favor, espera a que sea confirmada para comenzar.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return <Loading message="Cargando métricas del sistema MediFlow..." />;
   if (error) return <ErrorMessage title="Error al cargar Dashboard" message={error} onRetry={loadDashboardData} />;

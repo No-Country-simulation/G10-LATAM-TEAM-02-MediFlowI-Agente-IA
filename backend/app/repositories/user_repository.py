@@ -41,8 +41,8 @@ async def get_user_by_email(correo: str) -> dict[str, Any] | None:
             """SELECT id, documento_identidad, password_hash, salt, nombres, apellidos, 
                       correo, telefono, rol, especialidad_medica, estado, created_at, updated_at
                FROM usuarios
-               WHERE correo = $1""",
-            correo,
+               WHERE LOWER(correo) = LOWER($1)""",
+            correo.strip(),
         )
         return dict(row) if row else None
 

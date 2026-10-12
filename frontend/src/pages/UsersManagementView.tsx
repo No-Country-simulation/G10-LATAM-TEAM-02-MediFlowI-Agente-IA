@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import {
   fetchUsers,
   createNewUser,
@@ -6,50 +7,56 @@ import {
   type User,
 } from '../api/auth.api'
 import { useAuth } from '../hooks/useAuth'
+import Loading from '../components/common/Loading'
+import ErrorMessage from '../components/common/ErrorMessage'
 import {
   FaUserPlus,
-  FaUserEdit,
-  FaIdCard,
-  FaLock,
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaUserShield,
-  FaCheck,
-  FaSync,
   FaSearch,
   FaFilter,
-  FaUserCheck,
-  FaEdit,
-  FaToggleOn,
-  FaToggleOff,
-  FaStethoscope,
-  FaClipboardCheck,
-  FaSlidersH,
-  FaTimes,
-  FaKey,
+  FaCheck,
 } from 'react-icons/fa'
-import '../App.css'
+
+const SPECIALTIES = [
+  'Sin especialidad',
+  'Ginecología y Obstetricia',
+  'Cirugía General',
+  'Medicina Interna',
+  'Pediatría',
+  'Cardiología',
+  'Traumatología',
+  'Medicina General',
+  'Neurología',
+]
+
+const ROLES: Array<{ value: User['rol']; label: string }> = [
+  { value: 'ADMINISTRADOR', label: 'Administrador' },
+  { value: 'OPERADOR', label: 'Operador' },
+  { value: 'COORDINADOR', label: 'Coordinador' },
+  { value: 'AUDITOR', label: 'Auditor' },
+  { value: 'SUPERVISOR', label: 'Supervisor' },
+  { value: 'PENDIENTE', label: 'Pendiente' },
+]
 
 export default function UsersManagementView() {
   const { user: currentUser, token: authToken } = useAuth()
 
   const [usersList, setUsersList] = useState<User[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [loadingUsers, setLoadingUsers] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  // Modal State
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  // Filtros y Búsqueda
+  const [searchTerm, setSearchTerm] = useState('')
+  const [roleFilter, setRoleFilter] = useState('TODOS')
+  const [statusFilter, setStatusFilter] = useState('TODOS')
 
-  // Change Password Modal State
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
-  const [passwordUser, setPasswordUser] = useState<User | null>(null)
-  const [pwdNew, setPwdNew] = useState('')
-  const [pwdConfirm, setPwdConfirm] = useState('')
-  const [pwdModalError, setPwdModalError] = useState<string | null>(null)
-  const [savingPassword, setSavingPassword] = useState(false)
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 8
 
-  // Form State
+  // Modal para Crear Usuario
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [newDni, setNewDni] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -57,30 +64,22 @@ export default function UsersManagementView() {
   const [newApellidos, setNewApellidos] = useState('')
   const [newCorreo, setNewCorreo] = useState('')
   const [newTelefono, setNewTelefono] = useState('')
-  const [newEspecialidadMedica, setNewEspecialidadMedica] = useState('')
-  const [newRol, setNewRol] = useState<'ADMINISTRADOR' | 'COORDINADOR' | 'OPERADOR' | 'AUDITOR' | 'SUPERVISOR'>('OPERADOR')
-
-  const [userFormError, setUserFormError] = useState<string | null>(null)
-  const [userFormSuccess, setUserFormSuccess] = useState<string | null>(null)
+  const [newEspecialidad, setNewEspecialidad] = useState('')
+  const [newRol, setNewRol] = useState<User['rol']>('OPERADOR')
+  const [createModalError, setCreateModalError] = useState<string | null>(null)
   const [savingUser, setSavingUser] = useState(false)
 
-  // Search & Filter State
-  const [userSearchTerm, setUserSearchTerm] = useState('')
-  const [userRoleFilter, setUserRoleFilter] = useState('TODOS')
-
-  const canManageUsers =
-    !currentUser ||
-    currentUser.rol === 'ADMINISTRADOR' ||
-    currentUser.documento_identidad === 'admin'
-
+  // Cargar usuarios
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true)
+    setErrorMessage(null)
     try {
       if (!authToken) throw new Error('La sesión administrativa no está disponible.')
-      setUsersList(await fetchUsers(authToken))
+      const data = await fetchUsers(authToken)
+      setUsersList(data)
     } catch (error) {
       setUsersList([])
-      setUserFormError(error instanceof Error ? error.message : 'No se pudieron cargar los usuarios.')
+      setErrorMessage(error instanceof Error ? error.message : 'No se pudieron cargar las solicitudes de acceso.')
     } finally {
       setLoadingUsers(false)
     }
@@ -90,890 +89,603 @@ export default function UsersManagementView() {
     queueMicrotask(() => void loadUsers())
   }, [loadUsers])
 
-  const handleOpenCreateModal = () => {
-    setEditingUser(null)
-    setNewDni('')
-    setNewPassword('')
-    setConfirmPassword('')
-    setNewNombres('')
-    setNewApellidos('')
-    setNewCorreo('')
-    setNewTelefono('')
-    setNewEspecialidadMedica('')
-    setNewRol('OPERADOR')
-    setUserFormError(null)
-    setIsUserModalOpen(true)
+  const showToast = (msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => {
+      setToastMessage(null)
+    }, 3500)
   }
 
-  const handleOpenEditModal = (u: User) => {
-    setEditingUser(u)
-    setNewDni(u.documento_identidad)
-    setNewPassword('')
-    setConfirmPassword('')
-    setNewNombres(u.nombres)
-    setNewApellidos(u.apellidos)
-    setNewCorreo(u.correo || '')
-    setNewTelefono(u.telefono || '')
-    setNewEspecialidadMedica(u.especialidad_medica || '')
-    setNewRol(u.rol)
-    setUserFormError(null)
-    setIsUserModalOpen(true)
-  }
-
-  const handleCloseUserModal = () => {
-    setIsUserModalOpen(false)
-    setEditingUser(null)
-    setUserFormError(null)
-    setNewPassword('')
-    setConfirmPassword('')
-  }
-
-  const handleOpenPasswordModal = (u: User) => {
-    setPasswordUser(u)
-    setPwdNew('')
-    setPwdConfirm('')
-    setPwdModalError(null)
-    setIsPasswordModalOpen(true)
-  }
-
-  const handleClosePasswordModal = () => {
-    setIsPasswordModalOpen(false)
-    setPasswordUser(null)
-    setPwdModalError(null)
-    setPwdNew('')
-    setPwdConfirm('')
-  }
-
-  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setPwdModalError(null)
-
-    if (!pwdNew) {
-      setPwdModalError('Ingrese la nueva contraseña.')
-      return
-    }
-
-    if (pwdNew !== pwdConfirm) {
-      setPwdModalError('Las contraseñas no coinciden.')
-      return
-    }
-
-    if (!passwordUser) return
-
-    setSavingPassword(true)
+  // Actualización inmediata de Rol (Autosave)
+  const handleRoleChange = async (userId: string, newRole: User['rol']) => {
+    if (!authToken) return
+    setUpdatingId(userId)
     try {
-      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
-      await updateUserDetails(authToken, passwordUser.id, { password: pwdNew })
-      setUserFormSuccess(`Contraseña de "${passwordUser.nombres} ${passwordUser.apellidos}" actualizada correctamente.`)
-      handleClosePasswordModal()
-    } catch {
-      setPwdModalError('Ocurrió un error al actualizar la contraseña.')
+      const updated = await updateUserDetails(authToken, userId, { rol: newRole })
+      setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, rol: updated.rol } : u)))
+      showToast(`Rol actualizado a ${newRole} con éxito.`)
+    } catch (err: any) {
+      showToast(`Error al actualizar rol: ${err.message || 'Error del servidor'}`)
     } finally {
-      setSavingPassword(false)
+      setUpdatingId(null)
     }
   }
 
-  const handleToggleUserStatus = async (user: User) => {
-    const nextState = user.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'
+  // Actualización inmediata de Especialidad (Autosave)
+  const handleSpecialtyChange = async (userId: string, newSpecialty: string) => {
+    if (!authToken) return
+    setUpdatingId(userId)
+    const val = newSpecialty === 'Sin especialidad' ? '' : newSpecialty
     try {
-      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
-      const updated = await updateUserDetails(authToken, user.id, { estado: nextState })
-      setUsersList((prev) => prev.map((item) => (item.id === user.id ? updated : item)))
-    } catch (error) {
-      setUserFormError(error instanceof Error ? error.message : 'No se pudo actualizar el estado.')
+      const updated = await updateUserDetails(authToken, userId, { especialidad_medica: val })
+      setUsersList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, especialidad_medica: updated.especialidad_medica } : u)),
+      )
+      showToast('Especialidad actualizada con éxito.')
+    } catch (err: any) {
+      showToast(`Error al actualizar especialidad: ${err.message || 'Error del servidor'}`)
+    } finally {
+      setUpdatingId(null)
     }
   }
 
-  const handleCreateOrUpdateUserSubmit = async (e: React.FormEvent) => {
+  // Toggle inmediato de Permiso / Estado (Autosave)
+  const handleToggleStatus = async (userItem: User) => {
+    if (!authToken) return
+    setUpdatingId(userItem.id)
+    const newStatus: 'ACTIVO' | 'INACTIVO' = userItem.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'
+    try {
+      const updated = await updateUserDetails(authToken, userItem.id, { estado: newStatus })
+      setUsersList((prev) => prev.map((u) => (u.id === userItem.id ? { ...u, estado: updated.estado } : u)))
+      showToast(`Permiso ${newStatus === 'ACTIVO' ? 'habilitado' : 'deshabilitado'} para ${userItem.nombres}.`)
+    } catch (err: any) {
+      showToast(`Error al modificar permiso: ${err.message || 'Error del servidor'}`)
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  // Manejo de Creación Manual
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    setUserFormError(null)
-    setUserFormSuccess(null)
+    setCreateModalError(null)
 
-    if (!editingUser) {
-      if (!newDni || newDni.length !== 8) {
-        setUserFormError('El documento de identidad debe tener exactamente 8 cifras (DNI).')
-        return
-      }
+    if (!newDni.trim() || !newNombres.trim() || !newApellidos.trim() || !newPassword) {
+      setCreateModalError('Por favor complete todos los campos obligatorios.')
+      return
+    }
 
-      if (!newPassword) {
-        setUserFormError('Debe ingresar la contraseña inicial del usuario.')
-        return
-      }
-
-      if (newPassword !== confirmPassword) {
-        setUserFormError('Las contraseñas no coinciden. Por favor verifique ambos campos.')
-        return
-      }
+    if (newPassword !== confirmPassword) {
+      setCreateModalError('Las contraseñas no coinciden.')
+      return
     }
 
     setSavingUser(true)
-
     try {
-      if (!authToken) throw new Error('La sesión administrativa no está disponible.')
-      if (editingUser) {
-        const updated = await updateUserDetails(authToken, editingUser.id, {
-          nombres: newNombres,
-          apellidos: newApellidos,
-          correo: newCorreo || undefined,
-          telefono: newTelefono || undefined,
-          especialidad_medica: newEspecialidadMedica || undefined,
-          rol: newRol,
-        })
-        setUsersList((prev) => prev.map((user) => (user.id === editingUser.id ? updated : user)))
-        setUserFormSuccess(`Trabajador "${newNombres} ${newApellidos}" actualizado con éxito.`)
-      } else {
-        const created = await createNewUser(authToken, {
-          documento_identidad: newDni,
-          password: newPassword,
-          nombres: newNombres,
-          apellidos: newApellidos,
-          correo: newCorreo || undefined,
-          telefono: newTelefono || undefined,
-          especialidad_medica: newEspecialidadMedica || undefined,
-          rol: newRol,
-        })
-        setUsersList((prev) => [created, ...prev])
-        setUserFormSuccess(`Usuario DNI ${newDni} registrado correctamente.`)
-      }
-
-      handleCloseUserModal()
-    } catch (error) {
-      setUserFormError(error instanceof Error ? error.message : 'Ocurrió un error al procesar la solicitud.')
+      if (!authToken) throw new Error('Sesión inválida.')
+      await createNewUser(authToken, {
+        documento_identidad: newDni.trim(),
+        password: newPassword,
+        nombres: newNombres.trim(),
+        apellidos: newApellidos.trim(),
+        correo: newCorreo.trim() || undefined,
+        telefono: newTelefono.trim() || undefined,
+        rol: newRol,
+        especialidad_medica: newEspecialidad === 'Sin especialidad' ? undefined : newEspecialidad || undefined,
+        estado: 'ACTIVO',
+      })
+      setIsCreateModalOpen(false)
+      showToast('Usuario creado exitosamente.')
+      await loadUsers()
+    } catch (err: any) {
+      setCreateModalError(err.message || 'Error al crear usuario.')
     } finally {
       setSavingUser(false)
     }
   }
 
-  if (!canManageUsers) {
-    return (
-      <div className="container-fluid py-4 px-4 text-center">
-        <div className="alert alert-danger rounded-4 p-4 shadow-sm max-w-xl mx-auto">
-          <h5 className="fw-bold">Acceso Restringido (RBAC: RF-05)</h5>
-          <p className="mb-0">No posee el rol de ADMINISTRADOR necesario para gestionar usuarios del sistema.</p>
-        </div>
-      </div>
-    )
+  // Formato de fecha
+  const formatDate = (isoString?: string) => {
+    if (!isoString) return '-'
+    try {
+      const d = new Date(isoString)
+      return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear().toString().slice(-2)}`
+    } catch {
+      return isoString
+    }
   }
 
+  // Filtrado de usuarios
+  const filteredUsers = usersList.filter((u) => {
+    const fullText = `${u.nombres} ${u.apellidos} ${u.correo || ''} ${u.documento_identidad}`.toLowerCase()
+    const matchesSearch = fullText.includes(searchTerm.toLowerCase())
+    const matchesRole = roleFilter === 'TODOS' || u.rol === roleFilter
+    const matchesStatus = statusFilter === 'TODOS' || u.estado === statusFilter
+    return matchesSearch && matchesRole && matchesStatus
+  })
+
+  // Paginación
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize))
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  const getInitials = (nombres: string, apellidos: string) => {
+    const n = nombres?.trim()?.[0] || ''
+    const a = apellidos?.trim()?.[0] || ''
+    return `${n}${a}`.toUpperCase() || 'U'
+  }
+
+  if (loadingUsers) return <Loading message="Cargando solicitudes de acceso y usuarios..." />
+  if (errorMessage) return <ErrorMessage title="Error al cargar usuarios" message={errorMessage} onRetry={loadUsers} />
+
   return (
-    <div className="container-fluid py-4 px-4">
-      {userFormSuccess && <div className="alert-success mb-3">{userFormSuccess}</div>}
-
-      {/* METRICAS DE USUARIOS (KPIs) */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <span className="text-muted small fw-semibold">Total Usuarios</span>
-                <h3 className="fw-bold text-dark mb-0 mt-1">{usersList.length}</h3>
-              </div>
-              <div className="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
-                <FaUser className="fs-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <span className="text-muted small fw-semibold">Usuarios Activos</span>
-                <h3 className="fw-bold text-success mb-0 mt-1">
-                  {usersList.filter((u) => u.estado === 'ACTIVO').length}
-                </h3>
-              </div>
-              <div className="bg-success bg-opacity-10 text-success p-3 rounded-circle">
-                <FaUserCheck className="fs-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <span className="text-muted small fw-semibold">Administradores</span>
-                <h3 className="fw-bold text-primary mb-0 mt-1">
-                  {usersList.filter((u) => u.rol === 'ADMINISTRADOR').length}
-                </h3>
-              </div>
-              <div className="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
-                <FaUserShield className="fs-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <span className="text-muted small fw-semibold">Operadores y Personal</span>
-                <h3 className="fw-bold text-info mb-0 mt-1">
-                  {usersList.filter((u) => u.rol !== 'ADMINISTRADOR').length}
-                </h3>
-              </div>
-              <div className="bg-info bg-opacity-10 text-info p-3 rounded-circle">
-                <FaUserEdit className="fs-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* TABLA DE USUARIOS REGISTRADOS */}
-      <section className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
-        <div className="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div>
-            <h4 className="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-              <FaUserShield className="text-primary" /> Usuarios Registrados en la Clínica
-            </h4>
-            <span className="text-muted small">Gestión de cuentas de trabajadores y control de acceso RBAC (RF-04)</span>
-          </div>
-          <div className="d-flex align-items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-primary fw-bold rounded-pill shadow-sm d-flex align-items-center gap-2 px-3"
-              onClick={handleOpenCreateModal}
-            >
-              <FaUserPlus /> Registrar Nuevo Usuario
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline-secondary rounded-circle p-2 d-flex align-items-center justify-content-center border"
-              onClick={loadUsers}
-              title="Refrescar Lista de Usuarios"
-              aria-label="Refrescar Lista de Usuarios"
-              style={{ width: '38px', height: '38px' }}
-            >
-              <FaSync className={loadingUsers ? 'icon-spin' : ''} />
-            </button>
-          </div>
-        </div>
-
-        {/* BUSCADOR Y FILTROS */}
-        <div className="bg-light bg-opacity-50 p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-3">
-          <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ maxWidth: '420px' }}>
-            <div className="input-group input-group-sm">
-              <span className="input-group-text bg-white border-end-0 text-muted">
-                <FaSearch />
-              </span>
-              <input
-                type="text"
-                className="form-control bg-white border-start-0 ps-0 shadow-none"
-                placeholder="Buscar por DNI, Nombre o Correo..."
-                value={userSearchTerm}
-                onChange={(e) => setUserSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="d-flex align-items-center gap-2">
-            <span className="small text-muted fw-semibold me-1 d-flex align-items-center gap-1">
-              <FaFilter /> Rol:
-            </span>
-            <select
-              className="form-select form-select-sm bg-white fw-semibold shadow-none border-secondary-subtle"
-              style={{ width: '180px' }}
-              value={userRoleFilter}
-              onChange={(e) => setUserRoleFilter(e.target.value)}
-            >
-              <option value="TODOS">Todos los Roles</option>
-              <option value="OPERADOR">OPERADOR</option>
-              <option value="COORDINADOR">COORDINADOR</option>
-              <option value="AUDITOR">AUDITOR</option>
-              <option value="SUPERVISOR">SUPERVISOR</option>
-              <option value="ADMINISTRADOR">ADMINISTRADOR</option>
-            </select>
-          </div>
-        </div>
-
-        {loadingUsers ? (
-          <div className="loading-state p-5 text-center"><span className="spinner"></span> Cargando usuarios...</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="table align-middle mb-0 table-hover">
-              <thead className="bg-light">
-                <tr className="text-secondary small text-uppercase fw-bold">
-                  <th className="ps-4">Trabajador</th>
-                  <th>DNI (8 cifras)</th>
-                  <th>Especialidad</th>
-                  <th>Contacto</th>
-                  <th>Rol Asignado</th>
-                  <th>Estado</th>
-                  <th className="text-end pe-4">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usersList
-                  .filter((u) => {
-                    const matchesSearch =
-                      userSearchTerm === '' ||
-                      u.documento_identidad.includes(userSearchTerm) ||
-                      `${u.nombres} ${u.apellidos}`.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-                      (u.correo && u.correo.toLowerCase().includes(userSearchTerm.toLowerCase())) ||
-                      (u.especialidad_medica && u.especialidad_medica.toLowerCase().includes(userSearchTerm.toLowerCase()))
-                    const matchesRole = userRoleFilter === 'TODOS' || u.rol === userRoleFilter
-                    return matchesSearch && matchesRole
-                  })
-                  .map((u) => {
-                    const initials = `${u.nombres?.trim().charAt(0) || ''}${u.apellidos?.trim().charAt(0) || ''}`.toUpperCase() || 'US'
-                    return (
-                      <tr key={u.id}>
-                        <td className="ps-4">
-                          <div className="d-flex align-items-center gap-3">
-                            <div
-                              className="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center flex-shrink-0"
-                              style={{ width: '40px', height: '40px', fontSize: '0.9rem' }}
-                            >
-                              {initials}
-                            </div>
-                            <div>
-                              <div className="fw-bold text-dark">{u.nombres} {u.apellidos}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="badge bg-light text-secondary border font-monospace px-2.5 py-1.5 rounded-2 fs-7 fw-semibold">
-                            {u.documento_identidad}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="badge bg-primary bg-opacity-10 text-primary fw-medium px-2.5 py-1 rounded-2">
-                            {u.especialidad_medica || 'Medicina General'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="small text-dark fw-medium d-flex align-items-center gap-1">
-                            <FaEnvelope className="text-muted fs-8" /> {u.correo || 'Sin correo'}
-                          </div>
-                          {u.telefono && (
-                            <div className="small text-muted d-flex align-items-center gap-1 mt-0.5">
-                              <FaPhone className="text-muted fs-8" /> {u.telefono}
-                            </div>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`role-pill role-${u.rol.toLowerCase()}`}>
-                            {u.rol}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge rounded-pill px-3 py-1.5 fw-semibold ${u.estado === 'ACTIVO' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}`}>
-                            ● {u.estado}
-                          </span>
-                        </td>
-                        <td className="text-end pe-4">
-                          <div className="d-flex align-items-center justify-content-end gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-warning rounded-circle d-flex align-items-center justify-content-center p-2"
-                              onClick={() => handleOpenPasswordModal(u)}
-                              title="Cambiar contraseña de usuario"
-                              style={{ width: '32px', height: '32px' }}
-                            >
-                              <FaKey />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary rounded-pill fw-semibold d-flex align-items-center gap-1 px-3"
-                              onClick={() => handleOpenEditModal(u)}
-                              title="Editar datos del usuario"
-                            >
-                              <FaEdit /> Editar
-                            </button>
-                            <button
-                              type="button"
-                              className={`btn btn-sm rounded-pill fw-semibold d-flex align-items-center gap-1 px-3 ${
-                                u.estado === 'ACTIVO' ? 'btn-outline-danger' : 'btn-outline-success'
-                              }`}
-                              onClick={() => handleToggleUserStatus(u)}
-                              title={u.estado === 'ACTIVO' ? 'Desactivar Cuenta' : 'Activar Cuenta'}
-                            >
-                              {u.estado === 'ACTIVO' ? (
-                                <><FaToggleOff /> Desactivar</>
-                              ) : (
-                                <><FaToggleOn /> Activar</>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                {usersList.filter((u) => {
-                  const matchesSearch =
-                    userSearchTerm === '' ||
-                    u.documento_identidad.includes(userSearchTerm) ||
-                    `${u.nombres} ${u.apellidos}`.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-                    (u.correo && u.correo.toLowerCase().includes(userSearchTerm.toLowerCase()))
-                  const matchesRole = userRoleFilter === 'TODOS' || u.rol === userRoleFilter
-                  return matchesSearch && matchesRole
-                }).length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-5 text-muted">
-                      <FaSearch className="fs-2 mb-2 text-secondary opacity-50 d-block mx-auto" />
-                      No se encontraron usuarios que coincidan con la búsqueda o filtro.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* MODAL DE REGISTRAR / EDITAR USUARIO */}
-      {isUserModalOpen && (
+    <div className="clinical-page min-h-screen py-4 px-3 sm:px-6 lg:px-8 bg-[#f5fbf7]">
+      {/* Toast de notificación */}
+      {toastMessage && (
         <div
-          className="modal-overlay"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1050,
-            backdropFilter: 'blur(4px)',
-          }}
+          role="status"
+          className="position-fixed bottom-4 end-4 z-50 bg-[#1e3a5f] text-white px-4 py-3 rounded-xl shadow-lg d-flex align-items-center gap-2"
+          style={{ zIndex: 1060 }}
         >
-          <div
-            className="card shadow-lg border-0 rounded-4 p-0 overflow-hidden"
-            style={{ maxWidth: '680px', width: '94%', maxHeight: '90vh', overflowY: 'auto' }}
-          >
-            {/* CABECERA GRADIENTE */}
-            <div
-              className="p-4 text-white position-relative overflow-hidden"
-              style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0284c7 100%)',
-              }}
-            >
-              <div className="d-flex align-items-center justify-content-between position-relative" style={{ zIndex: 2 }}>
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="bg-white bg-opacity-20 text-white p-3 rounded-3 d-flex align-items-center justify-content-center shadow-sm"
-                    style={{ backdropFilter: 'blur(8px)', width: '48px', height: '48px' }}
-                  >
-                    {editingUser ? <FaUserEdit className="fs-4" /> : <FaUserPlus className="fs-4" />}
-                  </div>
-                  <div>
-                    <h5 className="fw-bold mb-1 text-white">
-                      {editingUser ? 'Editar Trabajador del Sistema' : 'Registrar Nuevo Usuario'}
-                    </h5>
-                    <p className="mb-0 text-white-50 small">
-                      {editingUser
-                        ? 'Actualiza los datos personales o modifica los permisos asignados'
-                        : 'Ingresa los datos personales y asigna el rol correspondiente'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-sm text-white rounded-circle p-0 d-flex align-items-center justify-content-center border-0 opacity-75 opacity-100-hover"
-                  onClick={handleCloseUserModal}
-                  style={{ width: '36px', height: '36px', backdropFilter: 'blur(4px)', background: 'rgba(255,255,255,0.15)' }}
-                >
-                  <FaTimes />
-                </button>
-              </div>
-            </div>
-
-            {/* CUERPO DEL FORMULARIO */}
-            <div className="p-4">
-              {userFormError && <div className="alert alert-danger border-0 shadow-sm mb-4">{userFormError}</div>}
-
-              <form onSubmit={handleCreateOrUpdateUserSubmit}>
-                <div className="row g-3 text-start">
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="u-dni" className="form-label fw-bold text-dark small mb-1">
-                      Documento de Identidad (DNI) <span className="text-danger">*</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0 text-muted">
-                        <FaIdCard />
-                      </span>
-                      <input
-                        id="u-dni"
-                        type="text"
-                        maxLength={8}
-                        className="form-control border-start-0 font-monospace fw-semibold"
-                        placeholder="Ej. 77665544"
-                        value={newDni}
-                        onChange={(e) => setNewDni(e.target.value.replace(/\D/g, ''))}
-                        disabled={!!editingUser}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="u-cor" className="form-label fw-bold text-dark small mb-1">
-                      Correo Electrónico <span className="text-muted fw-normal">(Opcional)</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0 text-muted">
-                        <FaEnvelope />
-                      </span>
-                      <input
-                        id="u-cor"
-                        type="email"
-                        className="form-control border-start-0"
-                        placeholder="maria.gomez@clinica.com"
-                        value={newCorreo}
-                        onChange={(e) => setNewCorreo(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="u-nom" className="form-label fw-bold text-dark small mb-1">
-                      Nombres <span className="text-danger">*</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0 text-muted">
-                        <FaUser />
-                      </span>
-                      <input
-                        id="u-nom"
-                        type="text"
-                        className="form-control border-start-0"
-                        placeholder="Ej. María Fernanda"
-                        value={newNombres}
-                        onChange={(e) => setNewNombres(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="u-ape" className="form-label fw-bold text-dark small mb-1">
-                      Apellidos <span className="text-danger">*</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0 text-muted">
-                        <FaUser />
-                      </span>
-                      <input
-                        id="u-ape"
-                        type="text"
-                        className="form-control border-start-0"
-                        placeholder="Ej. Gómez Torres"
-                        value={newApellidos}
-                        onChange={(e) => setNewApellidos(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="u-tel" className="form-label fw-bold text-dark small mb-1">
-                      Teléfono / Celular <span className="text-muted fw-normal">(Opcional)</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0 text-muted">
-                        <FaPhone />
-                      </span>
-                      <input
-                        id="u-tel"
-                        type="text"
-                        className="form-control border-start-0"
-                        placeholder="Ej. 987654321"
-                        value={newTelefono}
-                        onChange={(e) => setNewTelefono(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="u-esp" className="form-label fw-bold text-dark small mb-1">
-                      Especialidad Médica <span className="text-muted fw-normal">(Opcional)</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0 text-muted">
-                        <FaStethoscope />
-                      </span>
-                      <input
-                        id="u-esp"
-                        type="text"
-                        className="form-control border-start-0"
-                        placeholder="Ej. Medicina General, Cardiología..."
-                        value={newEspecialidadMedica}
-                        onChange={(e) => setNewEspecialidadMedica(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* CAMPOS DE CONTRASEÑA SOLO EN REGISTRO DE USUARIO NUEVO */}
-                  {!editingUser && (
-                    <>
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-pwd" className="form-label fw-bold text-dark small mb-1">
-                          Contraseña Inicial <span className="text-danger">*</span>
-                        </label>
-                        <div className="input-group">
-                          <span className="input-group-text bg-light border-end-0 text-muted">
-                            <FaLock />
-                          </span>
-                          <input
-                            id="u-pwd"
-                            type="password"
-                            className="form-control border-start-0"
-                            placeholder="••••••••"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="col-12 col-md-6">
-                        <label htmlFor="u-cpwd" className="form-label fw-bold text-dark small mb-1">
-                          Confirmar Contraseña <span className="text-danger">*</span>
-                        </label>
-                        <div className="input-group">
-                          <span className="input-group-text bg-light border-end-0 text-muted">
-                            <FaLock />
-                          </span>
-                          <input
-                            id="u-cpwd"
-                            type="password"
-                            className="form-control border-start-0"
-                            placeholder="••••••••"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* SELECCIÓN DE ROL EN CARDS */}
-                  <div className="col-12 mt-4">
-                    <label className="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1">
-                      <FaUserShield className="text-primary opacity-75" /> Rol Asignado en el Sistema
-                    </label>
-                    <div className="row g-2">
-                      {[
-                        {
-                          role: 'OPERADOR',
-                          title: 'OPERADOR',
-                          icon: FaStethoscope,
-                        },
-                        {
-                          role: 'COORDINADOR',
-                          title: 'COORDINADOR (HITL)',
-                          icon: FaClipboardCheck,
-                        },
-                        {
-                          role: 'ADMINISTRADOR',
-                          title: 'ADMINISTRADOR',
-                          icon: FaUserShield,
-                        },
-                        {
-                          role: 'AUDITOR',
-                          title: 'AUDITOR',
-                          icon: FaSlidersH,
-                        },
-                      ].map((item) => {
-                        const isSelected = newRol === item.role
-                        const IconComp = item.icon
-                        return (
-                          <div key={item.role} className="col-12 col-sm-6">
-                            <div
-                              className={`card p-3 border transition-all ${
-                                isSelected ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-light-subtle bg-light'
-                              }`}
-                              style={{
-                                cursor: 'pointer',
-                                borderRadius: '12px',
-                                borderWidth: isSelected ? '2px' : '1px',
-                                transition: 'all 0.2s ease-in-out',
-                              }}
-                              onClick={() => setNewRol(item.role as User['rol'])}
-                            >
-                              <div className="d-flex align-items-center gap-3">
-                                <div
-                                  className={`p-2 rounded-3 d-flex align-items-center justify-content-center ${
-                                    isSelected ? 'bg-primary text-white' : 'bg-white text-secondary shadow-sm'
-                                  }`}
-                                  style={{ width: '36px', height: '36px' }}
-                                >
-                                  <IconComp />
-                                </div>
-                                <div className="flex-grow-1 d-flex align-items-center justify-content-between">
-                                  <span className="fw-bold text-dark small">{item.title}</span>
-                                  {isSelected && <FaCheck className="text-primary small" />}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* BOTONES FOOTER */}
-                <div className="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
-                  <button
-                    type="button"
-                    className="btn btn-light text-secondary px-4 rounded-pill fw-semibold border"
-                    onClick={handleCloseUserModal}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary px-4 py-2 fw-bold rounded-pill shadow-sm d-flex align-items-center gap-2"
-                    disabled={savingUser}
-                  >
-                    {savingUser ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...
-                      </>
-                    ) : editingUser ? (
-                      <>
-                        <FaCheck /> Actualizar Usuario
-                      </>
-                    ) : (
-                      <>
-                        <FaUserPlus /> Registrar Trabajador
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <FaCheck className="text-emerald-400" />
+          <span className="small font-medium">{toastMessage}</span>
         </div>
       )}
 
-      {/* MODAL DE CAMBIAR CONTRASEÑA */}
-      {isPasswordModalOpen && passwordUser && (
-        <div
-          className="modal-overlay"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1050,
-            backdropFilter: 'blur(4px)',
-          }}
+      {/* Tabs superiores tipo Píldora (Enrutamiento, Historial, Solicitudes) */}
+      <div className="d-flex justify-content-center align-items-center gap-4 mb-4">
+        <Link
+          to="/triaje"
+          className="text-decoration-none fw-semibold text-secondary small hover:text-dark transition-colors"
         >
-          <div
-            className="card shadow-lg border-0 rounded-4 p-0 overflow-hidden"
-            style={{ maxWidth: '480px', width: '92%' }}
-          >
-            {/* Cabecera del Modal */}
-            <div
-              className="p-4 text-white position-relative overflow-hidden"
-              style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0284c7 100%)',
-              }}
+          Enrutamiento
+        </Link>
+        <Link
+          to="/documentos"
+          className="text-decoration-none fw-semibold text-secondary small hover:text-dark transition-colors"
+        >
+          Historial
+        </Link>
+        <span
+          className="px-4 py-1.5 rounded-pill bg-white shadow-sm fw-bold small text-dark border border-slate-200"
+          style={{ color: '#1e3a5f' }}
+        >
+          Solicitudes
+        </span>
+      </div>
+
+      {/* Encabezado principal */}
+      <div className="text-center mb-5">
+        <h1
+          className="display-6 fw-bold tracking-tight mb-2"
+          style={{ fontFamily: "'Quicksand', sans-serif", color: '#1e3a5f' }}
+        >
+          Solicitudes de acceso
+        </h1>
+        <p
+          className="text-secondary fw-normal fs-6 mx-auto"
+          style={{ fontFamily: "'Montserrat', sans-serif", maxWidth: '620px', color: '#556987' }}
+        >
+          A continuación se listan todas las solicitudes de acceso que han sido recibidas para utilizar MediFlow
+        </p>
+      </div>
+
+      {/* Barra de herramientas (Búsqueda, Filtro y Botón Nuevo) */}
+      <div className="bg-white rounded-3 shadow-sm border border-slate-100 p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1" style={{ maxWidth: '650px' }}>
+          <div className="position-relative flex-grow-1" style={{ minWidth: '220px' }}>
+            <FaSearch className="position-absolute start-0 top-50 translate-middle-y ms-3 text-muted" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, correo o DNI..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="form-control form-control-sm ps-5 rounded-pill border-slate-200"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          <div className="d-flex align-items-center gap-1.5">
+            <FaFilter className="text-muted small" />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="form-select form-select-sm rounded-pill border-slate-200 text-secondary"
+              style={{ fontSize: '0.85rem' }}
             >
-              <div className="d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="bg-white bg-opacity-20 text-white p-3 rounded-3 d-flex align-items-center justify-content-center shadow-sm"
-                    style={{ backdropFilter: 'blur(8px)', width: '44px', height: '44px' }}
-                  >
-                    <FaKey className="fs-4" />
-                  </div>
-                  <div>
-                    <h5 className="fw-bold mb-1 text-white">Cambiar Contraseña</h5>
-                    <p className="mb-0 text-white-50 small">
-                      {passwordUser.nombres} {passwordUser.apellidos} ({passwordUser.documento_identidad})
-                    </p>
-                  </div>
-                </div>
+              <option value="TODOS">Todos los roles</option>
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="form-select form-select-sm rounded-pill border-slate-200 text-secondary"
+            style={{ fontSize: '0.85rem' }}
+          >
+            <option value="TODOS">Todos los estados</option>
+            <option value="ACTIVO">Habilitados (Activos)</option>
+            <option value="INACTIVO">Deshabilitados (Inactivos)</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 shadow-sm"
+          style={{ backgroundColor: '#1e3a5f', borderColor: '#1e3a5f' }}
+        >
+          <FaUserPlus size={13} />
+          <span>Nuevo usuario</span>
+        </button>
+      </div>
+
+      {/* Tarjeta Contenedora Principal con Tabla de Solicitudes */}
+      <div className="bg-white rounded-4 shadow-sm border border-slate-100 p-3 sm:p-4 mb-4 overflow-hidden">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0" style={{ minWidth: '920px' }}>
+            <thead>
+              <tr className="border-bottom text-secondary" style={{ fontSize: '0.85rem' }}>
+                <th scope="col" className="pb-3 fw-bold ps-3" style={{ color: '#1e3a5f' }}>
+                  Usuarios
+                </th>
+                <th scope="col" className="pb-3 fw-bold" style={{ color: '#1e3a5f' }}>
+                  Correo electrónico
+                </th>
+                <th scope="col" className="pb-3 fw-bold text-center" style={{ color: '#1e3a5f', width: '170px' }}>
+                  Rol
+                </th>
+                <th scope="col" className="pb-3 fw-bold text-center" style={{ color: '#1e3a5f', width: '220px' }}>
+                  Especialidad
+                </th>
+                <th scope="col" className="pb-3 fw-bold text-center" style={{ color: '#1e3a5f', width: '140px' }}>
+                  Fecha de registro
+                </th>
+                <th scope="col" className="pb-3 fw-bold text-center" style={{ color: '#1e3a5f', width: '160px' }}>
+                  Permiso habilitado
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-5 text-muted">
+                    No se encontraron solicitudes ni usuarios coincidentes con el criterio de búsqueda.
+                  </td>
+                </tr>
+              ) : (
+                paginatedUsers.map((u) => {
+                  const isCurrentAdmin = u.id === currentUser?.id
+                  return (
+                    <tr key={u.id} className="border-bottom border-light">
+                      {/* Columna Usuarios */}
+                      <td className="ps-3 py-3">
+                        <div className="d-flex align-items-center gap-2.5">
+                          <div
+                            className="d-flex align-items-center justify-content-center rounded-circle fw-bold text-white shadow-sm flex-shrink-0"
+                            style={{
+                              width: '38px',
+                              height: '38px',
+                              backgroundColor: u.rol === 'PENDIENTE' ? '#f59e0b' : '#1e3a5f',
+                              fontSize: '0.85rem',
+                            }}
+                          >
+                            {getInitials(u.nombres, u.apellidos)}
+                          </div>
+                          <div>
+                            <div className="fw-semibold text-dark" style={{ fontSize: '0.9rem' }}>
+                              {u.nombres} {u.apellidos}
+                            </div>
+                            {isCurrentAdmin && (
+                              <span className="badge bg-light text-primary border" style={{ fontSize: '0.7rem' }}>
+                                En sesión
+                              </span>
+                            )}
+                            {u.rol === 'PENDIENTE' && (
+                              <span className="badge bg-warning text-dark border ms-1" style={{ fontSize: '0.7rem' }}>
+                                Pendiente
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Columna Correo electrónico */}
+                      <td className="py-3 text-secondary" style={{ fontSize: '0.875rem' }}>
+                        {u.correo || u.documento_identidad}
+                      </td>
+
+                      {/* Columna Rol (Selector directo) */}
+                      <td className="py-3 text-center">
+                        <select
+                          value={u.rol}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value as User['rol'])}
+                          disabled={updatingId === u.id}
+                          className="form-select form-select-sm rounded-pill text-secondary fw-medium px-3 mx-auto"
+                          style={{
+                            maxWidth: '160px',
+                            fontSize: '0.825rem',
+                            borderColor: u.rol === 'PENDIENTE' ? '#f59e0b' : '#e2e8f0',
+                            backgroundColor: u.rol === 'PENDIENTE' ? '#fffbeb' : '#ffffff',
+                          }}
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r.value} value={r.value}>
+                              {r.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Columna Especialidad (Selector directo) */}
+                      <td className="py-3 text-center">
+                        <select
+                          value={u.especialidad_medica || 'Sin especialidad'}
+                          onChange={(e) => handleSpecialtyChange(u.id, e.target.value)}
+                          disabled={updatingId === u.id}
+                          className="form-select form-select-sm rounded-pill text-secondary fw-medium px-3 mx-auto"
+                          style={{ maxWidth: '210px', fontSize: '0.825rem', borderColor: '#e2e8f0' }}
+                        >
+                          {SPECIALTIES.map((esp) => (
+                            <option key={esp} value={esp}>
+                              {esp}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Columna Fecha de registro */}
+                      <td className="py-3 text-center text-secondary small">
+                        {formatDate(u.created_at)}
+                      </td>
+
+                      {/* Columna Permiso habilitado (Toggle Switch) */}
+                      <td className="py-3 text-center">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={u.estado === 'ACTIVO'}
+                          onClick={() => handleToggleStatus(u)}
+                          disabled={updatingId === u.id}
+                          className="btn p-0 border-0 bg-transparent"
+                          title={u.estado === 'ACTIVO' ? 'Deshabilitar ingreso' : 'Habilitar ingreso'}
+                        >
+                          <div
+                            className="rounded-pill p-1 transition-all d-inline-flex align-items-center"
+                            style={{
+                              width: '46px',
+                              height: '26px',
+                              backgroundColor: u.estado === 'ACTIVO' ? '#22c55e' : '#cbd5e1',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                            }}
+                          >
+                            <div
+                              className="rounded-circle bg-white shadow-sm"
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                transform: u.estado === 'ACTIVO' ? 'translateX(20px)' : 'translateX(0px)',
+                                transition: 'transform 0.2s ease-in-out',
+                              }}
+                            />
+                          </div>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación Inferior (01 02 03 ... 04 05) */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-center align-items-center gap-2 mt-4 pt-3 border-top">
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => setCurrentPage(pageNum)}
+                className={`btn btn-sm rounded-circle fw-semibold d-flex align-items-center justify-content-center ${
+                  currentPage === pageNum ? 'btn-primary shadow-sm' : 'btn-light text-secondary'
+                }`}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  backgroundColor: currentPage === pageNum ? '#1e3a5f' : undefined,
+                  borderColor: currentPage === pageNum ? '#1e3a5f' : undefined,
+                  fontSize: '0.85rem',
+                }}
+              >
+                {pageNum.toString().padStart(2, '0')}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal para Crear Usuario Administrativo */}
+      {isCreateModalOpen && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', zIndex: 1055 }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-4 border-0 shadow">
+              <div className="modal-header border-bottom py-3 px-4">
+                <h5 className="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                  <FaUserPlus className="text-primary" />
+                  <span>Nuevo Usuario</span>
+                </h5>
                 <button
                   type="button"
-                  className="btn btn-sm text-white rounded-circle p-0 d-flex align-items-center justify-content-center border-0 opacity-75 opacity-100-hover"
-                  onClick={handleClosePasswordModal}
-                  style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.15)' }}
-                >
-                  <FaTimes />
-                </button>
+                  className="btn-close"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  disabled={savingUser}
+                />
               </div>
-            </div>
 
-            {/* Cuerpo del Formulario */}
-            <div className="p-4 text-start">
-              {pwdModalError && <div className="alert alert-danger border-0 shadow-sm mb-3">{pwdModalError}</div>}
+              <form onSubmit={handleCreateUser}>
+                <div className="modal-body p-4">
+                  {createModalError && (
+                    <div className="alert alert-danger py-2 px-3 small rounded-3 mb-3">
+                      {createModalError}
+                    </div>
+                  )}
 
-              <form onSubmit={handleChangePasswordSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="p-new" className="form-label fw-bold text-dark small mb-1">
-                    Nueva Contraseña <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-end-0 text-muted">
-                      <FaLock />
-                    </span>
-                    <input
-                      id="p-new"
-                      type="password"
-                      className="form-control border-start-0"
-                      placeholder="••••••••"
-                      value={pwdNew}
-                      onChange={(e) => setPwdNew(e.target.value)}
-                      required
-                    />
+                  <div className="row g-3">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Nombres *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="form-control form-control-sm rounded-3"
+                        value={newNombres}
+                        onChange={(e) => setNewNombres(e.target.value)}
+                        placeholder="Ej. Carlos"
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Apellidos *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="form-control form-control-sm rounded-3"
+                        value={newApellidos}
+                        onChange={(e) => setNewApellidos(e.target.value)}
+                        placeholder="Ej. Gómez"
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        DNI (8 dígitos) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={8}
+                        className="form-control form-control-sm rounded-3"
+                        value={newDni}
+                        onChange={(e) => setNewDni(e.target.value)}
+                        placeholder="12345678"
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Correo Electrónico
+                      </label>
+                      <input
+                        type="email"
+                        className="form-control form-control-sm rounded-3"
+                        value={newCorreo}
+                        onChange={(e) => setNewCorreo(e.target.value)}
+                        placeholder="carlos@clinica.com"
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Teléfono
+                      </label>
+                      <input
+                        type="tel"
+                        className="form-control form-control-sm rounded-3"
+                        value={newTelefono}
+                        onChange={(e) => setNewTelefono(e.target.value)}
+                        placeholder="+51 987 654 321"
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Rol Inicial *
+                      </label>
+                      <select
+                        className="form-select form-select-sm rounded-3"
+                        value={newRol}
+                        onChange={(e) => setNewRol(e.target.value as User['rol'])}
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Especialidad
+                      </label>
+                      <select
+                        className="form-select form-select-sm rounded-3"
+                        value={newEspecialidad}
+                        onChange={(e) => setNewEspecialidad(e.target.value)}
+                      >
+                        {SPECIALTIES.map((esp) => (
+                          <option key={esp} value={esp}>
+                            {esp}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Contraseña (mín 12 car.) *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        className="form-control form-control-sm rounded-3"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-semibold text-secondary">
+                        Confirmar Contraseña *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        className="form-control form-control-sm rounded-3"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label htmlFor="p-conf" className="form-label fw-bold text-dark small mb-1">
-                    Confirmar Nueva Contraseña <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-end-0 text-muted">
-                      <FaLock />
-                    </span>
-                    <input
-                      id="p-conf"
-                      type="password"
-                      className="form-control border-start-0"
-                      placeholder="••••••••"
-                      value={pwdConfirm}
-                      onChange={(e) => setPwdConfirm(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="d-flex justify-content-end gap-2 border-top pt-3">
+                <div className="modal-footer border-top py-2.5 px-4 d-flex justify-content-end gap-2">
                   <button
                     type="button"
-                    className="btn btn-light text-secondary px-4 rounded-pill fw-semibold border"
-                    onClick={handleClosePasswordModal}
+                    className="btn btn-sm btn-light rounded-pill px-3"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    disabled={savingUser}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary px-4 py-2 fw-bold rounded-pill shadow-sm d-flex align-items-center gap-2"
-                    disabled={savingPassword}
+                    className="btn btn-sm btn-primary rounded-pill px-4 shadow-sm"
+                    style={{ backgroundColor: '#1e3a5f', borderColor: '#1e3a5f' }}
+                    disabled={savingUser}
                   >
-                    {savingPassword ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <FaCheck /> Actualizar Contraseña
-                      </>
-                    )}
+                    {savingUser ? 'Guardando...' : 'Guardar Usuario'}
                   </button>
                 </div>
               </form>

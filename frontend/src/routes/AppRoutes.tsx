@@ -22,7 +22,8 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<Loading message="Cargando módulo..." />}>
       <Routes>
-      {/* Public Route */}
+      {/* Public Routes */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/register" element={<SignUp />} />
@@ -35,7 +36,6 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/pacientes" element={<PatientsManagementView />} />
         <Route path="/pacientes-gestion" element={<PatientsManagementView />} />
@@ -47,6 +47,8 @@ const AppRoutes = () => {
         <Route path="/triaje" element={<TriageConsoleView />} />
         <Route path="/admin-triaje" element={<TriageConsoleView />} />
         <Route path="/usuarios" element={<UsersManagementView />} />
+        <Route path="/solicitudes" element={<UsersManagementView />} />
+        <Route path="/solicitudes-acceso" element={<UsersManagementView />} />
         <Route path="/admin-usuarios" element={<UsersManagementView />} />
         <Route path="/configuracion" element={<StorageSettingsView />} />
         <Route path="/documentacion" element={<DocumentationView />} />

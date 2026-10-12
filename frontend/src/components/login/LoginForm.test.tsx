@@ -41,15 +41,15 @@ describe('LoginForm (US2)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('bloquea los campos DNI y contraseña mientras se inicia sesión', () => {
+  it('bloquea los campos Correo y contraseña mientras se inicia sesión', () => {
     render(<LoginForm {...defaultProps} isSubmitting={true} />)
-    expect(screen.getByLabelText(/DNI/i)).toBeDisabled()
+    expect(screen.getByLabelText(/Correo/i)).toBeDisabled()
     expect(screen.getByLabelText(/CONTRASEÑA/i)).toBeDisabled()
   })
 
   it('mantiene los campos habilitados cuando no se está enviando', () => {
     render(<LoginForm {...defaultProps} />)
-    expect(screen.getByLabelText(/DNI/i)).toBeEnabled()
+    expect(screen.getByLabelText(/Correo/i)).toBeEnabled()
     expect(screen.getByLabelText(/CONTRASEÑA/i)).toBeEnabled()
   })
 

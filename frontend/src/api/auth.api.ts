@@ -11,7 +11,7 @@ export interface User {
   apellidos: string;
   correo?: string;
   telefono?: string;
-  rol: "ADMINISTRADOR" | "COORDINADOR" | "OPERADOR" | "AUDITOR" | "SUPERVISOR";
+  rol: "ADMINISTRADOR" | "COORDINADOR" | "OPERADOR" | "AUDITOR" | "SUPERVISOR" | "PENDIENTE";
   especialidad_medica?: string;
   estado: "ACTIVO" | "INACTIVO";
   created_at?: string;
@@ -24,11 +24,16 @@ export interface LoginResponse {
   mensaje: string;
 }
 
-export async function loginUser(documento_identidad: string, password: string): Promise<LoginResponse> {
+export async function loginUser(identificador: string, password: string): Promise<LoginResponse> {
+  const isEmail = identificador.includes("@");
   return apiRequest<LoginResponse>("/auth/login", {
     method: "POST",
     auth: false,
-    body: JSON.stringify({ documento_identidad, password }),
+    body: JSON.stringify(
+      isEmail
+        ? { correo: identificador.trim(), password }
+        : { documento_identidad: identificador.trim(), password }
+    ),
   });
 }
 
