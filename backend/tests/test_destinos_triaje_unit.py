@@ -1,7 +1,6 @@
-import pytest
-from app.agent.state import AgentState, DecisionEnrutamientoState
 from app._generated.models import DecisionEnrutamiento as ModelDecisionEnrutamiento
 from app.agent.nodes.routing import _calcular_destino
+from app.agent.state import AgentState, DecisionEnrutamientoState
 
 
 def test_decision_enrutamiento_state_supports_farmacia_hospitalaria():
@@ -123,3 +122,42 @@ def test_calcular_destino_precedencia_discrepancia():
     )
     assert destino == "Cola_Revision_Ambigua"
     assert req_aud is True
+
+
+def test_calcular_destino_score_bajo_0_74_desvia_a_auditoria_humana():
+    """Verifica que score < 0.75 (ej. 0.74) fuerza desvío a Cola_Auditoria_Humana con requiere_auditoria_humana=True (T010)."""
+    destino, justif, notif, req_aud = _calcular_destino(
+        score=0.74,
+        nivel="Rutina",
+        diagnostico="Gastritis leve",
+        paciente_nombre="Pedro",
+    )
+    assert destino == "Cola_Auditoria_Humana"
+    assert req_aud is True
+    assert "0.74" in justif
+
+
+def test_calcular_destino_score_umbral_0_75_permite_flujo_normal():
+    """Verifica que score >= 0.75 (ej. 0.75) permite flujo ordinario sin retención por confianza (T011)."""
+    destino, justif, notif, req_aud = _calcular_destino(
+        score=0.75,
+        nivel="Rutina",
+        diagnostico="Control anual",
+        paciente_nombre="Pedro",
+    )
+    assert destino == "Cola_Rutina"
+    assert req_aud is False
+
+
+def test_calcular_destino_precedencia_urgencia_sobre_score_bajo():
+    """Verifica que nivel Urgente prevalece sobre score bajo (< 0.75) para emitir alerta inmediata (T012)."""
+    destino, justif, notif, req_aud = _calcular_destino(
+        score=0.60,
+        nivel="Urgente",
+        diagnostico="Dolor precordial agudo",
+        paciente_nombre="Rosa",
+    )
+    assert destino == "Cola_Emergencia_Medica"
+    assert notif is not None
+    assert notif["canal"] == "Alerta_Guardia_Medica"
+
