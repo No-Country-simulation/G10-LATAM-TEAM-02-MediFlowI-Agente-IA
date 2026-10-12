@@ -64,7 +64,7 @@ export default function StorageSettingsView() {
 
   if (!canManageSettings) {
     return (
-      <div className="container-fluid py-4 px-4 text-center">
+      <div className="clinical-page text-center">
         <div className="alert alert-danger rounded-4 p-4 shadow-sm max-w-xl mx-auto">
           <h5 className="fw-bold">Acceso Restringido (RBAC)</h5>
           <p className="mb-0">No posee el rol de ADMINISTRADOR necesario para modificar la configuración de almacenamiento.</p>
@@ -74,7 +74,7 @@ export default function StorageSettingsView() {
   }
 
   return (
-    <div className="container-fluid py-4 px-4">
+    <div className="clinical-page w-full">
       <div className="card border-0 shadow-lg rounded-4 overflow-hidden bg-white max-w-4xl mx-auto">
         {/* CABECERA CON GRADIENTE INSTITUCIONAL */}
         <div

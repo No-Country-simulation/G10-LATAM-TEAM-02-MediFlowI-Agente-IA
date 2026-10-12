@@ -218,7 +218,7 @@ export default function UsersManagementView() {
   if (errorMessage) return <ErrorMessage title="Error al cargar usuarios" message={errorMessage} onRetry={loadUsers} />
 
   return (
-    <div className="clinical-page min-h-screen py-4 px-3 sm:px-6 lg:px-8 bg-[#f5fbf7]">
+    <div className="clinical-page w-full">
       {/* Toast de notificación */}
       {toastMessage && (
         <div
