@@ -19,9 +19,6 @@ async def node_routing(state: AgentState) -> dict:
 
     score = state.clasificacion.score_confianza_clasificacion
     nivel = state.clasificacion.nivel_prioridad
-    discrepancia_identidad = bool(
-        state.metadata.get("discrepancia_identidad_detectada", False)
-    )
 
     tipo_doc = (
         getattr(state.clasificacion, "tipo_documento", None)
@@ -91,11 +88,12 @@ def _calcular_destino(
 ) -> tuple:
     """
     Lógica de decisión condicional:
-    - discrepancia_identidad → Cola_Revision_Ambigua + requiere_auditoria=True
-    - score < 0.5 → Cola_Auditoria_Humana
-    - score ≥ 0.5 + nivel Urgente → Cola_Emergencia_Medica + alerta
-    - score ≥ 0.5 + nivel Rutina → Cola_Rutina
-    - Ambiguo → Cola_Revision_Ambigua
+    - discrepancia_identidad → Cola_Revision_Ambigua + requiere_auditoria=True (Issue #29)
+    - Ambiguo → Cola_Revision_Ambigua + requiere_auditoria=True
+    - nivel Urgente → Cola_Emergencia_Medica + alerta (Precedencia clínica absoluta)
+    - score < 0.75 → Cola_Auditoria_Humana + requiere_auditoria=True (Issue #31)
+    - Receta_Medica / farmacoterapia → Farmacia_Hospitalaria (Issue #28)
+    - Rutina → Cola_Rutina
     """
     if discrepancia_identidad:
         return (
@@ -113,14 +111,6 @@ def _calcular_destino(
             True,
         )
 
-    if score < 0.5:
-        return (
-            "Cola_Auditoria_Humana",
-            f"Score de confianza bajo ({score:.2f}) o documento ambiguo. Requiere revisión humana.",
-            None,
-            True,
-        )
-
     if nivel == "Urgente":
         nombre = paciente_nombre or "Paciente desconocido"
         diag = diagnostico or "diagnóstico no especificado"
@@ -133,6 +123,14 @@ def _calcular_destino(
             f"Hallazgo de alta gravedad detectado: {diag}.",
             notificacion,
             False,
+        )
+
+    if score < 0.75:
+        return (
+            "Cola_Auditoria_Humana",
+            f"Score de confianza bajo ({score:.2f} < 0.75). Requiere revisión del Coordinador Médico.",
+            None,
+            True,
         )
 
     # Evaluación Farmacia
