@@ -1,0 +1,112 @@
+openapi: 3.1.0
+info:
+  title: MediFlow Multimodal Ingestion & Vision OCR Contract
+  version: 1.0.0
+  description: Contrato de interfaz para la ingesta de imágenes y documentos escaneados con visión multimodal y OCR fallback.
+
+paths:
+  /api/v1/triage/upload:
+    post:
+      summary: Ingesta y triaje de documentos físicos, escaneados o imágenes
+      description: |
+        Permite cargar documentos en formatos PDF (digitales o escaneados) e imágenes
+        médicas (JPEG, PNG, WebP). Procesa el archivo mediante PyMuPDF, Gemini Vision
+        o Tesseract OCR de contingencia.
+      operationId: uploadTriageDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - documento_id
+                - canal_origen
+                - archivo
+              properties:
+                documento_id:
+                  type: string
+                  example: "DOC-2026-IMG-001"
+                canal_origen:
+                  type: string
+                  example: "Consulta_Externa"
+                archivo:
+                  type: string
+                  format: binary
+                  description: Archivo en formato PDF, JPEG, PNG o WebP.
+      responses:
+        "200":
+          description: Documento procesado exitosamente o derivado a auditoría clínica.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TriageResponse"
+        "400":
+          description: Formato de archivo no admitido o documento corrupto.
+        "401":
+          description: No autenticado (Token JWT inválido o ausente).
+
+components:
+  schemas:
+    TriageResponse:
+      type: object
+      required:
+        - documento_id
+        - status
+        - datos_extraidos
+        - clasificacion
+        - decision_enrutamiento
+      properties:
+        documento_id:
+          type: string
+        status:
+          type: string
+          enum: [procesado, pendiente_auditoria, error]
+        error_mensaje:
+          type: string
+          nullable: true
+        datos_extraidos:
+          type: object
+          nullable: true
+          properties:
+            paciente:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  nullable: true
+                edad:
+                  type: integer
+                  nullable: true
+                documento_identidad:
+                  type: string
+                  nullable: true
+                historia_clinica:
+                  type: string
+                  nullable: true
+            diagnostico_principal:
+              type: string
+              nullable: true
+            cie10_sugerido:
+              type: string
+              nullable: true
+        clasificacion:
+          type: object
+          nullable: true
+          properties:
+            nivel_prioridad:
+              type: string
+              enum: [Urgente, Prioritario, Rutina, No_Urgente, Ambiguo]
+            especialidad:
+              type: string
+              nullable: true
+        decision_enrutamiento:
+          type: object
+          nullable: true
+          properties:
+            destino:
+              type: string
+            requiere_auditoria_humana:
+              type: boolean
+            motivo:
+              type: string

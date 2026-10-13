@@ -51,7 +51,7 @@ def build_graph(llm_service=None) -> Any:
     graph = StateGraph(AgentState)
 
     # ── Registrar nodos ──────────────────────────────────────────────────────
-    graph.add_node("ingestion", node_ingestion)
+    graph.add_node("ingestion", _wrap_with_llm(node_ingestion, llm_service))
     graph.add_node("extraction", _wrap_with_llm(node_extraction, llm_service))
     graph.add_node("classification", _wrap_with_llm(node_classification, llm_service))
     graph.add_node("confidence", node_confidence)

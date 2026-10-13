@@ -98,6 +98,7 @@ class AgentState(BaseModel):
 
     # ── Resultados por nodo ──────────────────────────────────────────────────
     texto_extraido: str | None = None  # Nodo: ingestion
+    metodo_extraccion: str | None = None  # Nodo: ingestion (TEXT_EXTRACTION | MULTIMODAL_VISION | LOCAL_OCR | FALLBACK_AUDIT)
     datos_extraidos: DatosExtraidosState = Field(  # Nodo: extraction
         default_factory=DatosExtraidosState
     )
