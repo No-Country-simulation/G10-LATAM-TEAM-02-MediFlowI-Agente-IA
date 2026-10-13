@@ -1,8 +1,12 @@
 import "../../styles/loader.css";
 
-const Loader = () => {
+interface LoaderProps {
+  size?: "xs" | "sm" | "md" | "lg";
+}
+
+const Loader = ({ size = "md" }: LoaderProps) => {
   return (
-    <div aria-live="assertive" role="alert" className="loader"></div>
+    <div aria-live="assertive" aria-hidden="true" role="alert" className={`loader loader--${size}`}></div>
   )
 }
 

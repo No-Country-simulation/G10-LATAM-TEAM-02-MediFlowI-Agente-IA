@@ -1,8 +1,26 @@
 .loader {
-  --size: 20px;
-  --border: 3px;
   --speed: 1s;
   --blur: var(--border);
+}
+
+.loader--xs {
+  --size: 10px;
+  --border: 2px;
+}
+
+.loader--sm {
+  --size: 15px;
+  --border: 2.5px;
+}
+
+.loader--md {
+  --size: 20px;
+  --border: 3px;
+}
+
+.loader--lg {
+  --size: 35px;
+  --border: 4px;
 }
 
 .loader {

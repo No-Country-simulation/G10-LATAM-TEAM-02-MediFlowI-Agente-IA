@@ -26,7 +26,7 @@ const MainLayout = () => {
       </div>
 
       {/* Barra superior compacta solo para pantallas móviles/tablets (< lg) */}
-      <header className="lg:hidden sticky top-0 z-30 bg-[#FAF9F5]/95 backdrop-blur-md border-b border-[#E8E6DF] px-4 py-3 flex items-center justify-between shadow-xs">
+      <header className="lg:hidden sticky top-0 z-10 bg-[#FAF9F5]/95 backdrop-blur-md border-b border-[#E8E6DF] px-4 py-3 flex items-center justify-between shadow-xs">
         <button
           type="button"
           onClick={toggleSidebar}
