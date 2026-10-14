@@ -110,7 +110,7 @@ const NewDocument = () => {
     }
   };
 
-  const userGreetingName = currentUser?.nombres ? `${currentUser.nombres}` : ", bienvenido a MediFlow";
+  const userGreetingName = currentUser?.nombres ? `Dr. ${currentUser.nombres}` : ", bienvenido a MediFlow";
 
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-80px)] py-4 sm:py-6 gap-2 md:gap-4 relative z-10">
