@@ -8,6 +8,7 @@ import structlog
 
 from app.agent.clinical_catalog import normalizar_tipo_documento
 from app.agent.state import AgentState, DecisionEnrutamientoState
+from app.core.alerts import MENSAJE_GUARDIA
 
 logger = structlog.get_logger(__name__)
 
@@ -107,11 +108,10 @@ def _calcular_destino(
         )
 
     if nivel == "Urgente":
-        nombre = paciente_nombre or "Paciente desconocido"
         diag = diagnostico or "diagnóstico no especificado"
         notificacion = {
             "canal": "Alerta_Guardia_Medica",
-            "mensaje": f"ALERTA URGENTE: {diag} detectado para {nombre}.",
+            "mensaje": MENSAJE_GUARDIA,
         }
         return (
             "Cola_Emergencia_Medica",

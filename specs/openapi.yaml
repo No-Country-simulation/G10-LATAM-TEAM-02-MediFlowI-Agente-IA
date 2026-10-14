@@ -26,6 +26,8 @@ servers:
 - url: https://mediflow.oci.example.com/api/v1
   description: Producción OCI
 tags:
+- name: alerts
+  description: Alertas de guardia en tiempo real, sin datos personales.
 - name: triage
   description: Procesamiento y clasificación de documentos clínicos
 - name: documents
@@ -43,6 +45,8 @@ tags:
 - name: metrics
   description: Agregados hospitalarios de documentos de triaje, de solo lectura.
 paths:
+  /alerts/stream:
+    $ref: ./paths/alerts.yaml#/alertsStream
   /metrics:
     $ref: ./paths/metrics.yaml#/metrics
   /health:
@@ -89,6 +93,8 @@ paths:
     $ref: ./paths/coordination.yaml#/coordinationAudit
 components:
   schemas:
+    AlertaGuardia:
+      $ref: ./components/schemas.yaml#/schemas/AlertaGuardia
     DistribucionPrioridadMetrics:
       $ref: ./components/schemas.yaml#/schemas/DistribucionPrioridadMetrics
     MetricsResponse:

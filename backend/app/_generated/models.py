@@ -7,7 +7,22 @@ from datetime import date
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, SecretStr
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel, SecretStr
+
+
+class AlertaGuardia(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: UUID = Field(
+        ...,
+        description='Identificador de trazabilidad, también usado como id del evento SSE.',
+    )
+    documento_id: str
+    episodio_id: UUID | None = None
+    prioridad: Literal['Urgente', 'Rutina', 'Ambiguo'] | None = None
+    fecha: AwareDatetime
+    mensaje: str
 
 
 class DistribucionPrioridadMetrics(BaseModel):
@@ -80,6 +95,52 @@ class DocumentoClinico(BaseModel):
     metadata: dict[str, Any] | None = Field(
         None, description='Metadatos adicionales del documento'
     )
+
+
+class PendingTriageItem(BaseModel):
+    documento_id: str = Field(..., examples=['DOC-2026-0001'])
+    episodio_id: UUID | None = None
+    fecha_ingesta: AwareDatetime
+    tiempo_espera_minutos: int | None = Field(None, examples=[25])
+    estado: str = Field(..., examples=['pendiente_auditoria'])
+    canal_origen: str | None = Field(None, examples=['Admision'])
+    especialidad_sugerida: str | None = Field(None, examples=['Cardiologia'])
+    nivel_prioridad: str | None = Field(None, examples=['Urgente'])
+    confianza_ia: float | None = Field(None, examples=[0.42])
+    motivo_hitl: str | None = None
+    diagnostico_preliminar: str | None = None
+    codigo_cie10: str | None = None
+    paciente: dict[str, Any] | None = None
+
+
+class ResolveTriageRequest(BaseModel):
+    decision: Literal['aprobar', 'reclasificar', 'rechazar']
+    justificacion_clinica: str = Field(..., max_length=2000, min_length=5)
+    categoria_destino: str | None = None
+    prioridad_sugerida: str | None = None
+
+
+class ResolveTriageResponse(BaseModel):
+    id: str
+    documento_id: str
+    episodio_id: str | None = None
+    coordinador_id: str
+    decision: str
+    justificacion_clinica: str
+    nuevo_estado: str
+    created_at: AwareDatetime
+    mensaje: str | None = None
+
+
+class AuditEventItem(BaseModel):
+    id: str
+    documento_id: str
+    episodio_id: str | None = None
+    usuario_id: str | None = None
+    evento: str
+    descripcion: str
+    metadata: dict[str, Any] | None = None
+    created_at: AwareDatetime
 
 
 class Paciente(BaseModel):

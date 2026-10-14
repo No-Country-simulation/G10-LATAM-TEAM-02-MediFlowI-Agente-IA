@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.api.v1 import (
+    alerts,
     auth,
     coordination,
     documents,
@@ -116,6 +117,7 @@ def create_app() -> FastAPI:
 
     # ── Routers ───────────────────────────────────────────────────────────────
     api_prefix = "/api/v1"
+    app.include_router(alerts.router, prefix=api_prefix)
     app.include_router(health.router)  # GET /health
     app.include_router(health.router, prefix=api_prefix)  # GET /api/v1/health
     app.include_router(triage.router, prefix=api_prefix)  # POST /api/v1/triage

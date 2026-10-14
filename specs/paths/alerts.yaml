@@ -1,0 +1,43 @@
+alertsStream:
+  get:
+    tags: [alerts]
+    operationId: recibirAlertasGuardia
+    summary: Recibir alertas críticas de guardia por SSE
+    description: |
+      Solo MEDICO, COORDINADOR y ADMINISTRADOR con Authorization Bearer.
+      Cada evento ALERTA_GUARDIA_EMITIDA contiene JSON con el esquema AlertaGuardia.
+      Se publica después de confirmar documento y trazabilidad en PostgreSQL,
+      únicamente si el destino final es Cola_Emergencia_Medica.
+      Comentarios de mantenimiento cada 15 segundos; la sesión y el rol se
+      comprueban antes de cada envío y mantenimiento. Si dejan de ser válidos,
+      se cierra el flujo. No se aceptan tokens mediante parámetros de la URL.
+      Difusión en un solo proceso, sin reproducción de eventos históricos.
+      Cada cliente tiene una cola limitada; un cliente lento se desconecta.
+      El id identifica el registro persistido, no implica soporte Last-Event-ID.
+      Usar fetch con Authorization o un cliente SSE que permita cabeceras.
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: Flujo SSE persistente; data de cada evento sigue AlertaGuardia.
+        headers:
+          Cache-Control:
+            schema: {type: string}
+            description: no-cache, no-transform
+          X-Accel-Buffering:
+            schema: {type: string}
+            description: no
+        content:
+          text/event-stream:
+            schema: {type: string}
+            example: |
+              id: 00000000-0000-4000-8000-000000000001
+              event: ALERTA_GUARDIA_EMITIDA
+              data: {"id":"00000000-0000-4000-8000-000000000001","documento_id":"DOC-PRUEBA","episodio_id":null,"prioridad":"Urgente","fecha":"2026-10-14T12:00:00Z","mensaje":"Documento crítico pendiente de atención del equipo de guardia."}
+
+      '401':
+        $ref: ../components/responses.yaml#/responses/Unauthorized
+      '403':
+        description: Rol sin autorización para recibir alertas de guardia.
+      '503':
+        $ref: ../components/responses.yaml#/responses/ServiceUnavailable

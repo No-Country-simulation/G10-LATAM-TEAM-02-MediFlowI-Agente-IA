@@ -1,5 +1,7 @@
 import os
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -37,6 +39,20 @@ async def _fake_active_session(token: str):
     return TEST_SESSIONS.get(token)
 
 
+async def _fake_alert(documento_id, usuario_id):
+    from app._generated.models import AlertaGuardia
+    from app.core.alerts import MENSAJE_GUARDIA
+
+    return AlertaGuardia(
+        id=uuid4(),
+        documento_id=documento_id,
+        episodio_id=None,
+        prioridad="Urgente",
+        fecha=datetime.now(UTC),
+        mensaje=MENSAJE_GUARDIA,
+    )
+
+
 @pytest.fixture(autouse=True)
 def isolated_local_storage(tmp_path, monkeypatch):
     """Los documentos sintéticos de pytest nunca se mezclan con archivos del usuario."""
@@ -59,6 +75,10 @@ def mock_postgres_for_tests(request):
         return
 
     with (
+        patch(
+            "app.repositories.alert_repository.AlertRepository.registrar_alerta",
+            side_effect=_fake_alert,
+        ),
         patch(
             "app.repositories.postgres_storage.PostgresStorageRepository.guardar_resultado"
         ) as mock_save,
