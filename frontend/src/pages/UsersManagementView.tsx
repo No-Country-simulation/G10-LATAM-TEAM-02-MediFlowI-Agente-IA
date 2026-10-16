@@ -232,7 +232,7 @@ export default function UsersManagementView() {
       )}
 
       {/* Tabs superiores tipo Píldora (Enrutamiento, Historial, Solicitudes) */}
-      <div className="d-flex justify-content-center align-items-center gap-4 mb-4">
+      {/* <div className="d-flex justify-content-center align-items-center gap-4 mb-4">
         <Link
           to="/triaje"
           className="text-decoration-none fw-semibold text-secondary small hover:text-dark transition-colors"
@@ -251,19 +251,19 @@ export default function UsersManagementView() {
         >
           Solicitudes
         </span>
-      </div>
+      </div> */}
 
       {/* Encabezado principal */}
-      <div className="text-center mb-5">
+      <div className="flex items-center flex-col text-center mt-2 mb-5 gap-2 sm:gap-4">
         <h1
           className="display-6 fw-bold tracking-tight mb-2"
-          style={{ fontFamily: "'Quicksand', sans-serif", color: '#1e3a5f' }}
+          style={{ fontFamily: "'Montserrat', sans-serif", color: '#1e3a5f' }}
         >
           Solicitudes de acceso
         </h1>
         <p
           className="text-secondary fw-normal fs-6 mx-auto"
-          style={{ fontFamily: "'Montserrat', sans-serif", maxWidth: '620px', color: '#556987' }}
+          style={{ maxWidth: '620px', color: '#556987' }}
         >
           A continuación se listan todas las solicitudes de acceso que han sido recibidas para utilizar MediFlow
         </p>
@@ -284,7 +284,7 @@ export default function UsersManagementView() {
             />
           </div>
 
-          <div className="d-flex align-items-center gap-1.5">
+          <div className="d-flex align-items-center gap-1.5 min-w-[200px]">
             <FaFilter className="text-muted small" />
             <select
               value={roleFilter}
@@ -326,7 +326,7 @@ export default function UsersManagementView() {
 
       {/* Tarjeta Contenedora Principal con Tabla de Solicitudes */}
       <div className="bg-white rounded-4 shadow-sm border border-slate-100 p-3 sm:p-4 mb-4 overflow-hidden">
-        <div className="table-responsive">
+        <div className="table-responsive rounded-4">
           <table className="table table-hover align-middle mb-0" style={{ minWidth: '920px' }}>
             <thead>
               <tr className="border-bottom text-secondary" style={{ fontSize: '0.85rem' }}>
@@ -492,9 +492,8 @@ export default function UsersManagementView() {
                 key={pageNum}
                 type="button"
                 onClick={() => setCurrentPage(pageNum)}
-                className={`btn btn-sm rounded-circle fw-semibold d-flex align-items-center justify-content-center ${
-                  currentPage === pageNum ? 'btn-primary shadow-sm' : 'btn-light text-secondary'
-                }`}
+                className={`btn btn-sm rounded-circle fw-semibold d-flex align-items-center justify-content-center ${currentPage === pageNum ? 'btn-primary shadow-sm' : 'btn-light text-secondary'
+                  }`}
                 style={{
                   width: '34px',
                   height: '34px',

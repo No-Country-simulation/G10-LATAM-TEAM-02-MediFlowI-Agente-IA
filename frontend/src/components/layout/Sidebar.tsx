@@ -119,9 +119,8 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-[250px] bg-[#FAF9F5] border-r border-[#E8E6DF] flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 bottom-0 left-0 z-50 w-[250px] bg-[#FAF9F5] border-r border-[#E8E6DF] flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
         style={{
           boxShadow: "0 0 20px rgba(0, 0, 0, 0.02)",
         }}
@@ -139,7 +138,7 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
               <img
                 src={logo}
                 alt="MediFlow"
-                className="h-20 sm:h-22 w-auto max-w-[200px] object-contain transition-transform group-hover:scale-105 duration-200 drop-shadow-xs"
+                className="h-20 sm:h-32 w-auto max-w-[200px] object-contain transition-transform group-hover:scale-105 duration-200 drop-shadow-xs"
               />
             </NavLink>
           </div>
@@ -151,10 +150,9 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
                 to="/dashboard"
                 end
                 className={({ isActive }) =>
-                  `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all no-underline ${
-                    isActive
-                      ? "bg-[#EDEBE6] text-[#1E293B] font-semibold shadow-xs"
-                      : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
+                  `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all no-underline ${isActive
+                    ? "bg-[#EDEBE6] text-[#1E293B] font-semibold shadow-xs"
+                    : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
                   }`
                 }
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
@@ -168,16 +166,15 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
             </div>
           ) : (
             <>
-              {/* Botón "+ Nuevo enrutamiento" destacado en barra beige */}
+              {/* Botón "+ Nuevo triaje" destacado en barra beige */}
               {canCreateRouting && (
                 <div className="w-full px-3 mb-2.5">
                   <NavLink
                     to="/documentos/nuevo"
                     className={({ isActive }) =>
-                      `w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-[13px] font-semibold tracking-wide transition-all no-underline ${
-                        isActive
-                          ? "bg-[#EDEBE6] text-[#1E293B] border border-[#DDD9D0] shadow-xs"
-                          : "bg-[#EDEBE6] text-[#2C3E50] hover:bg-[#E4E0D6] border border-[#DDD9D0]"
+                      `w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-[13px] font-semibold tracking-wide transition-all no-underline ${isActive
+                        ? "bg-[#EDEBE6] text-[#1E293B] border border-[#DDD9D0] shadow-xs"
+                        : "bg-[#EDEBE6] text-[#2C3E50] hover:bg-[#E4E0D6] border border-[#DDD9D0]"
                       }`
                     }
                     style={{ fontFamily: "'Montserrat', sans-serif" }}
@@ -186,7 +183,7 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
                     }}
                   >
                     <LuPlus size={16} className="text-[#1E293B] stroke-[2.5] shrink-0" />
-                    <span className="truncate">Nuevo enrutamiento</span>
+                    <span className="truncate">Nuevo triaje</span>
                   </NavLink>
                 </div>
               )}
@@ -199,10 +196,9 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
                     to={mod.path}
                     end={mod.exact}
                     className={({ isActive }) =>
-                      `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] leading-tight transition-all no-underline ${
-                        isActive
-                          ? "bg-[#EDEBE6] text-[#1E293B] font-semibold shadow-xs"
-                          : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
+                      `w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] leading-tight transition-all no-underline ${isActive
+                        ? "bg-[#EDEBE6] text-[#1E293B] font-semibold shadow-xs"
+                        : "text-[#4B5563] hover:bg-[#F3F1EC] hover:text-[#1E293B]"
                       }`
                     }
                     style={{ fontFamily: "'Montserrat', sans-serif" }}

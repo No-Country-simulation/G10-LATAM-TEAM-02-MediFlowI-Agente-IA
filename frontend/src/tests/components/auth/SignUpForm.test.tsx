@@ -208,14 +208,14 @@ describe('SignUpForm', () => {
     render(<SignUpForm />);
 
     const passwordInput = screen.getAllByPlaceholderText(/••••••••••••/i)[0];
-    const toggleButton = screen.getByLabelText(/Ver contraseña/i);
+    const toggleButton = screen.getAllByLabelText(/Ver contraseña/i)[0];
 
     expect(passwordInput).toHaveAttribute('type', 'password');
 
     fireEvent.click(toggleButton);
     expect(passwordInput).toHaveAttribute('type', 'text');
 
-    const hideButton = screen.getByLabelText(/Ocultar contraseña/i);
+    const hideButton = screen.getAllByLabelText(/Ocultar contraseña/i)[0];
     fireEvent.click(hideButton);
     expect(passwordInput).toHaveAttribute('type', 'password');
   });

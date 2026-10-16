@@ -12,7 +12,7 @@ const PriorityBadge = ({ priority = "NORMAL" }: { priority?: string }) => {
 
   if (normPriority === "PRIORITARIO" || normPriority === "AMBIGUO") {
     return (
-      <span className="badge bg-warning bg-opacity-15 text-warning border border-warning-subtle px-2.5 py-1 rounded-pill fw-bold text-nowrap">
+      <span className="badge bg-[#F7D9A4] bg-opacity-15 text-warning border border-warning-subtle px-2.5 py-1 rounded-pill fw-bold text-nowrap">
         ● AMBIGUO
       </span>
     );

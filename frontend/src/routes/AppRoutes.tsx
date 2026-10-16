@@ -20,42 +20,47 @@ const PatientsManagementView = lazy(() => import('../pages/PatientsManagementVie
 
 const AppRoutes = () => {
   return (
-    <Suspense fallback={<Loading message="Cargando módulo..." />}>
+    <Suspense fallback={
+      <div className="d-flex items-center align-items-center vh-100 vw-100">
+        <Loading message="Cargando módulo..." />
+      </div>
+    }
+    >
       <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/register" element={<SignUp />} />
+        {/* Public Routes */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/register" element={<SignUp />} />
 
-      {/* Protected Routes */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/pacientes" element={<PatientsManagementView />} />
-        <Route path="/pacientes-gestion" element={<PatientsManagementView />} />
-        <Route path="/documentos" element={<Documents />} />
-        <Route path="/documentos/nuevo" element={<NewDocument />} />
-        <Route path="/documentos/:id" element={<DocumentDetail />} />
-        <Route path="/auditoria" element={<Audit />} />
-        <Route path="/auditoria/:id" element={<AuditDetail />} />
-        <Route path="/triaje" element={<TriageConsoleView />} />
-        <Route path="/admin-triaje" element={<TriageConsoleView />} />
-        <Route path="/usuarios" element={<UsersManagementView />} />
-        <Route path="/solicitudes" element={<UsersManagementView />} />
-        <Route path="/solicitudes-acceso" element={<UsersManagementView />} />
-        <Route path="/admin-usuarios" element={<UsersManagementView />} />
-        <Route path="/configuracion" element={<StorageSettingsView />} />
-        <Route path="/documentacion" element={<DocumentationView />} />
-      </Route>
+        {/* Protected Routes */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/pacientes" element={<PatientsManagementView />} />
+          <Route path="/pacientes-gestion" element={<PatientsManagementView />} />
+          <Route path="/documentos" element={<Documents />} />
+          <Route path="/documentos/nuevo" element={<NewDocument />} />
+          <Route path="/documentos/:id" element={<DocumentDetail />} />
+          <Route path="/auditoria" element={<Audit />} />
+          <Route path="/auditoria/:id" element={<AuditDetail />} />
+          <Route path="/triaje" element={<TriageConsoleView />} />
+          <Route path="/admin-triaje" element={<TriageConsoleView />} />
+          <Route path="/usuarios" element={<UsersManagementView />} />
+          <Route path="/solicitudes" element={<UsersManagementView />} />
+          <Route path="/solicitudes-acceso" element={<UsersManagementView />} />
+          <Route path="/admin-usuarios" element={<UsersManagementView />} />
+          <Route path="/configuracion" element={<StorageSettingsView />} />
+          <Route path="/documentacion" element={<DocumentationView />} />
+        </Route>
 
-      {/* Catch-all fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Catch-all fallback */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
   );

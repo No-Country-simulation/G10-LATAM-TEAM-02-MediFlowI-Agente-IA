@@ -1,3 +1,5 @@
+import Loader from "./Loader";
+
 interface LoadingProps { message?: string }
 
 const Loading = ({ message = "Cargando información..." }: LoadingProps) => {
@@ -5,10 +7,10 @@ const Loading = ({ message = "Cargando información..." }: LoadingProps) => {
     <div className="clinical-state" role="status" aria-live="polite" aria-busy="true">
       <div className="clinical-state__content">
         <div className="clinical-state__icon">
-          <div className="spinner-border spinner-border-sm" aria-hidden="true" />
+          <Loader size="lg" />
         </div>
-        <h2 className="clinical-state__title">Preparando información</h2>
-        <p className="clinical-state__message">{message}</p>
+        <h2 className="text-2xl font-bold text-[var(--primary)]">Preparando información</h2>
+        <p className="text-lg font-medium">{message}</p>
         <span className="visually-hidden">Cargando</span>
       </div>
     </div>

@@ -1,19 +1,51 @@
-import { useCallback, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useCallback, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import Loading from "../components/common/Loading";
 import EmptyState from "../components/common/EmptyState";
 import ErrorMessage from "../components/common/ErrorMessage";
 import { auditApi } from "../api/auditApi";
-import { formatConfidence } from "../utils/formatConfidence";
 import { formatDateShort } from "../utils/formatDate";
-import { FaUserCheck, FaClipboardList, FaExclamationTriangle } from "react-icons/fa";
-import PageHeader from "../components/common/PageHeader";
-import type { ClinicalDocument } from '../types/documents'
+import { getAuditConfidenceBadge } from "../utils/auditConfidence";
+import { useAuth } from "../hooks/useAuth";
+import { NAV_PILLS, type TriageModalTab } from "../types/triageModal.types";
+import cn from "../utils/cn";
+import type { ClinicalDocument } from "../types/documents";
 
-const Audit = () => {
+const Audit: React.FC = () => {
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+
   const [audits, setAudits] = useState<ClinicalDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Navegación por píldoras
+  const [activePill, setActivePill] = useState<TriageModalTab>("solicitudes");
+
+  // Paginación visual
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // Control RBAC de píldoras
+  const userRole = currentUser?.rol || "OPERADOR";
+  const visiblePills = NAV_PILLS.filter((pill) =>
+    pill.rolesPermitidos.includes(
+      userRole as "ADMINISTRADOR" | "OPERADOR" | "AUDITOR" | "SUPERVISOR"
+    )
+  );
+
+  const handlePillClick = (pillId: TriageModalTab, route: string) => {
+    setActivePill(pillId);
+    if (pillId === "enrutamiento") {
+      navigate("/documentos/nuevo");
+    } else if (pillId === "historial") {
+      navigate("/documentos");
+    } else if (route && route !== "/auditoria") {
+      navigate(route);
+    }
+  };
 
   const fetchAudits = useCallback(async () => {
     setLoading(true);
@@ -29,69 +61,167 @@ const Audit = () => {
   }, []);
 
   useEffect(() => {
-    queueMicrotask(() => void fetchAudits());
+    void fetchAudits();
   }, [fetchAudits]);
 
   if (loading) return <Loading message="Cargando casos de auditoría humana..." />;
   if (error) return <ErrorMessage title="Error de Auditoría" message={error} onRetry={fetchAudits} />;
 
-  return (
-    <div className="clinical-page audit-page">
-      <PageHeader
-        eyebrow="Human-in-the-Loop"
-        title="Auditoría clínica"
-        description="Revisa documentos con baja confianza, inconsistencias o información incompleta."
-        icon={<FaClipboardList />}
-      />
+  const totalPages = Math.max(1, Math.ceil(audits.length / itemsPerPage));
+  const paginatedAudits = audits.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-      <div className="clinical-surface">
-        <div className="card-body p-0">
-          {!audits.length ? (
-            <EmptyState
-              title="No hay documentos pendientes de auditoría"
-              message="Actualmente todos los documentos han sido triados automáticamente con alta confianza o ya han sido auditados."
-            />
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-hover clinical-data-table">
-                <caption className="visually-hidden">Documentos pendientes de auditoría humana</caption>
-                <thead className="table-light">
-                  <tr>
-                    <th>ID</th>
-                    <th>Documento</th>
-                    <th>Confianza</th>
-                    <th>Motivo de Derivación</th>
-                    <th>Fecha</th>
-                    <th className="text-center">Acción</th>
+  return (
+    <div className="w-full flex flex-col items-center min-h-[calc(100vh-80px)] py-4 sm:py-6 px-4 md:px-8 gap-2 sm:gap-4 relative z-10">
+      {/* ── BARRA SUPERIOR DE PÍLDORAS (RBAC) ── */}
+      <nav
+        aria-label="Navegación de consola"
+        className={cn(
+          "p-1 mb-6 sm:mb-8",
+          "inline-flex items-center",
+          "bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-full shadow-xs"
+        )}
+      >
+        {visiblePills.map((pill) => {
+          const isActive = activePill === pill.id;
+          return (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => handlePillClick(pill.id, pill.route)}
+              className={cn(
+                "text-xs sm:text-sm font-semibold",
+                "px-4 sm:px-6 py-1.5 rounded-full transition-all cursor-pointer border-0",
+                isActive
+                  ? "bg-slate-100/90 text-[#1f2041] shadow-2xs font-bold"
+                  : "bg-transparent text-slate-500 hover:text-slate-800"
+              )}
+            >
+              {pill.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* ── TÍTULO PRINCIPAL DE LA VISTA ── */}
+      <header className="flex flex-col items-center text-center max-w-3xl mb-8">
+        <h1
+          className="text-3xl sm:text-4xl md:text-[40px] font-bold text-[#1f2041] tracking-tight mb-2"
+          style={{ fontFamily: '"Montserrat", sans-serif' }}
+        >
+          Solicitudes de auditoría clínica
+        </h1>
+      </header>
+
+      {/* ── TARJETA BLANCA PRINCIPAL CON TABLA ── */}
+      <section className="w-full max-w-6xl bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/70 transition-all flex flex-col gap-6">
+        {!audits.length ? (
+          <EmptyState
+            title="No hay documentos pendientes de auditoría"
+            message="Actualmente todos los documentos han sido triados automáticamente con alta confianza o ya han sido auditados."
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <caption className="sr-only">Documentos pendientes de auditoría clínica</caption>
+                <thead>
+                  <tr className="border-b border-slate-200/80">
+                    <th scope="col" className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th scope="col" className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Documento
+                    </th>
+                    <th scope="col" className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Confianza
+                    </th>
+                    <th scope="col" className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Motivo de Derivación
+                    </th>
+                    <th scope="col" className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Fecha
+                    </th>
+                    <th scope="col" className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">
+                      Visualizar
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {audits.map((item) => {
-                    const conf = formatConfidence(item.clasificacion?.score_confianza);
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedAudits.map((item) => {
+                    const conf = getAuditConfidenceBadge(item.clasificacion?.score_confianza);
                     const motivo =
                       item.decision_enrutamiento?.motivo_auditoria ||
                       "Confianza baja o datos incompletos detectados";
 
                     return (
-                      <tr key={item.documento_id}>
-                        <td className="fw-bold text-primary">{item.documento_id}</td>
-                        <td className="fw-medium text-dark">{item.nombre_archivo}</td>
-                        <td>
-                          <span className={`badge ${conf.badgeClass}`}>{conf.formattedText} ({conf.level})</span>
+                      <tr
+                        key={item.documento_id}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
+                        {/* 1. ID */}
+                        <td className="py-4 px-4 text-sm font-bold text-[#2C5282] whitespace-nowrap">
+                          {item.documento_id}
                         </td>
-                        <td>
-                          <span className="d-flex align-items-center text-dark small">
-                            <FaExclamationTriangle className="text-warning me-1 flex-shrink-0" />
-                            {motivo}
+
+                        {/* 2. Documento */}
+                        <td className="py-4 px-4 text-sm font-semibold text-slate-800 max-w-xs truncate" title={item.nombre_archivo}>
+                          {item.nombre_archivo}
+                        </td>
+
+                        {/* 3. Confianza */}
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          <span
+                            data-testid="confidence-badge"
+                            data-tier={conf.tier}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-2xs",
+                              conf.badgeClass
+                            )}
+                            style={{ color: conf.colorVar }}
+                          >
+                            <span
+                              className={cn("w-2 h-2 rounded-full flex-shrink-0", conf.dotClass)}
+                              style={{ backgroundColor: conf.colorVar }}
+                            />
+                            <span>{conf.percentage}%</span>
                           </span>
                         </td>
-                        <td className="small text-muted">{formatDateShort(item.fecha_creacion)}</td>
-                        <td className="text-center">
+
+                        {/* 4. Motivo de Derivación */}
+                        <td className="py-4 px-4 text-xs text-slate-600 max-w-md">
+                          <div className="flex items-center gap-1.5">
+                            <FontAwesomeIcon
+                              icon={faTriangleExclamation}
+                              className="text-amber-500 flex-shrink-0 text-sm"
+                            />
+                            <span className="line-clamp-2">{motivo}</span>
+                          </div>
+                        </td>
+
+                        {/* 5. Fecha */}
+                        <td className="py-4 px-4 text-xs text-slate-400 whitespace-nowrap">
+                          {formatDateShort(item.fecha_creacion)}
+                        </td>
+
+                        {/* 6. Acción / Visualizar */}
+                        <td className="py-4 px-4 text-center whitespace-nowrap">
                           <Link
                             to={`/auditoria/${item.documento_id}`}
-                            className="btn btn-warning text-dark btn-sm px-3"
+                            className={cn(
+                              "inline-flex items-center justify-center gap-2 px-3.5 py-1.5",
+                              "border border-slate-300 rounded-lg text-xs font-semibold no-underline",
+                              "text-slate-700 bg-[#FFFFFF] transition-all duration-200 cursor-pointer",
+                              "hover:bg-[var(--primary)] hover:border-[var(--primary)] hover:text-white group shadow-2xs"
+                            )}
                           >
-                            <FaUserCheck className="me-1" /> Revisar
+                            <FontAwesomeIcon
+                              icon={faEye}
+                              className="text-slate-600 group-hover:text-white transition-colors"
+                            />
+                            <span>Revisar</span>
                           </Link>
                         </td>
                       </tr>
@@ -100,9 +230,33 @@ const Audit = () => {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-      </div>
+
+            {/* ── CONTROL DE PAGINACIÓN VISUAL ── */}
+            <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100">
+              {Array.from({ length: totalPages }, (_, idx) => {
+                const pageNumber = idx + 1;
+                const formattedNumber = String(pageNumber).padStart(2, "0");
+                const isCurrent = currentPage === pageNumber;
+                return (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className={cn(
+                      "text-xs font-medium px-2.5 py-1 rounded-md transition-all cursor-pointer border",
+                      isCurrent
+                        ? "border-slate-400 bg-slate-50 text-[#1f2041] font-bold shadow-2xs"
+                        : "border-transparent text-slate-400 hover:text-slate-700"
+                    )}
+                  >
+                    {formattedNumber}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
 };
