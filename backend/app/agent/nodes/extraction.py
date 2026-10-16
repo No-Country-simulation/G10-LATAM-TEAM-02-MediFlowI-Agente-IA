@@ -9,7 +9,13 @@ import json
 import structlog
 
 from app.agent.clinical_catalog import validar_y_completar_cie10
-from app.agent.state import AgentState, DatosExtraidosState, MedicoSolicitanteState, PacienteState
+from app.agent.state import (
+    AgentState,
+    DatosExtraidosState,
+    MedicamentoPrescritoState,
+    MedicoSolicitanteState,
+    PacienteState,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -17,6 +23,7 @@ _EXTRACTION_PROMPT = """
 Eres un sistema de extracción de datos clínicos de alta precisión.
 Analiza el siguiente documento clínico y extrae ÚNICAMENTE la información presente.
 Si un campo no está en el texto, devuelve null para ese campo.
+Si no hay medicamentos prescritos en el texto, devuelve una lista vacía [] para "medicamentos".
 
 Devuelve SOLO un JSON válido con esta estructura (sin texto adicional):
 {{
@@ -34,7 +41,15 @@ Devuelve SOLO un JSON válido con esta estructura (sin texto adicional):
   "estudio_realizado": null,
   "diagnostico_principal": null,
   "cie10_sugerido": null,
-  "hallazgos_clave": []
+  "hallazgos_clave": [],
+  "medicamentos": [
+    {{
+      "medicamento": "Nombre del fármaco",
+      "dosis": "Dosis y unidad (o null)",
+      "frecuencia": "Pauta/frecuencia (o null)",
+      "via_administracion": "Vía anatómica (o null)"
+    }}
+  ]
 }}
 
 Documento a analizar:
@@ -133,7 +148,21 @@ def _consolidar_datos(
     acumulado: DatosExtraidosState,
     nuevo: DatosExtraidosState,
 ) -> DatosExtraidosState:
-    """Conserva el primer valor clínico encontrado y combina los hallazgos."""
+    """Conserva el primer valor clínico encontrado, combina hallazgos y deduplica medicamentos."""
+    vistos: set[tuple[str, str, str, str]] = set()
+    medicamentos_unificados: list[MedicamentoPrescritoState] = []
+
+    for med in acumulado.medicamentos + nuevo.medicamentos:
+        clave = (
+            med.medicamento.strip().lower(),
+            (med.dosis or "").strip().lower(),
+            (med.frecuencia or "").strip().lower(),
+            (med.via_administracion or "").strip().lower(),
+        )
+        if clave not in vistos:
+            vistos.add(clave)
+            medicamentos_unificados.append(med)
+
     return DatosExtraidosState(
         paciente=acumulado.paciente or nuevo.paciente,
         medico_solicitante=acumulado.medico_solicitante or nuevo.medico_solicitante,
@@ -142,6 +171,7 @@ def _consolidar_datos(
         cie10_sugerido=acumulado.cie10_sugerido or nuevo.cie10_sugerido,
         cie10_descripcion=acumulado.cie10_descripcion or nuevo.cie10_descripcion,
         hallazgos_clave=list(dict.fromkeys(acumulado.hallazgos_clave + nuevo.hallazgos_clave)),
+        medicamentos=medicamentos_unificados,
     )
 
 
@@ -190,6 +220,25 @@ def _parsear_respuesta(raw: object) -> DatosExtraidosState:
     paciente_data = data.get("paciente") or {}
     medico_data = data.get("medico_solicitante") or {}
 
+    medicamentos_raw = data.get("medicamentos")
+    medicamentos: list[MedicamentoPrescritoState] = []
+    if isinstance(medicamentos_raw, list):
+        for item in medicamentos_raw:
+            if isinstance(item, dict):
+                nombre_med = item.get("medicamento")
+                if isinstance(nombre_med, str) and nombre_med.strip():
+                    dosis = item.get("dosis")
+                    frecuencia = item.get("frecuencia")
+                    via = item.get("via_administracion")
+                    medicamentos.append(
+                        MedicamentoPrescritoState(
+                            medicamento=nombre_med.strip(),
+                            dosis=dosis.strip() if isinstance(dosis, str) and dosis.strip() else None,
+                            frecuencia=frecuencia.strip() if isinstance(frecuencia, str) and frecuencia.strip() else None,
+                            via_administracion=via.strip() if isinstance(via, str) and via.strip() else None,
+                        )
+                    )
+
     return DatosExtraidosState(
         paciente=PacienteState(**paciente_data)
         if isinstance(paciente_data, dict) and paciente_data
@@ -203,4 +252,5 @@ def _parsear_respuesta(raw: object) -> DatosExtraidosState:
         hallazgos_clave=data.get("hallazgos_clave")
         if isinstance(data.get("hallazgos_clave"), list)
         else [],
+        medicamentos=medicamentos,
     )

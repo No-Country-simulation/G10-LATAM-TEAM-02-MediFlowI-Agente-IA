@@ -117,6 +117,8 @@ components:
       $ref: ./components/schemas.yaml#/schemas/MedicoSolicitante
     DatosExtraidos:
       $ref: ./components/schemas.yaml#/schemas/DatosExtraidos
+    MedicamentoPrescrito:
+      $ref: ./components/schemas.yaml#/schemas/MedicamentoPrescrito
     Notificacion:
       $ref: ./components/schemas.yaml#/schemas/Notificacion
     DecisionEnrutamiento:

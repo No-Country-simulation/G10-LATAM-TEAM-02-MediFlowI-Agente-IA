@@ -6,7 +6,7 @@ clasificación y score de confianza. Genera alertas para urgencias.
 
 import structlog
 
-from app.agent.clinical_catalog import normalizar_tipo_documento
+from app.agent.clinical_catalog import es_medicamento_controlado, normalizar_tipo_documento
 from app.agent.state import AgentState, DecisionEnrutamientoState
 from app.core.alerts import MENSAJE_GUARDIA
 
@@ -24,7 +24,16 @@ async def node_routing(state: AgentState) -> dict:
     discrepancia_identidad = bool(state.metadata.get("discrepancia_identidad_detectada", False))
 
     tipo_doc = state.clasificacion.tipo_documento or state.clasificacion.categoria_documento
-    meds_controlados = state.metadata.get("medicamentos_controlados", False)
+    meds_controlados = bool(state.metadata.get("medicamentos_controlados", False))
+
+    tiene_medicamentos = False
+    if state.datos_extraidos and state.datos_extraidos.medicamentos:
+        tiene_medicamentos = len(state.datos_extraidos.medicamentos) > 0
+        if not meds_controlados:
+            for med in state.datos_extraidos.medicamentos:
+                if es_medicamento_controlado(med.medicamento):
+                    meds_controlados = True
+                    break
 
     destino, justificacion, notificacion, requiere_auditoria = _calcular_destino(
         score=score,
@@ -36,6 +45,7 @@ async def node_routing(state: AgentState) -> dict:
         tipo_documento=tipo_doc,
         medicamentos_controlados=meds_controlados,
         discrepancia_identidad=discrepancia_identidad,
+        tiene_medicamentos=tiene_medicamentos,
     )
 
     if state.metadata.get("cie10_codigos_invalidos"):
@@ -81,6 +91,7 @@ def _calcular_destino(
     tipo_documento: str | None = None,
     medicamentos_controlados: bool = False,
     discrepancia_identidad: bool = False,
+    tiene_medicamentos: bool = False,
 ) -> tuple:
     """
     Lógica de decisión condicional:
@@ -88,7 +99,7 @@ def _calcular_destino(
     - Ambiguo → Cola_Revision_Ambigua + requiere_auditoria=True
     - nivel Urgente → Cola_Emergencia_Medica + alerta (Precedencia clínica absoluta)
     - score < 0.75 → Cola_Auditoria_Humana + requiere_auditoria=True (Issue #31)
-    - Receta_Medica / farmacoterapia → Farmacia_Hospitalaria (Issue #28)
+    - Receta_Medica / prescripciones / farmacoterapia → Farmacia_Hospitalaria (Issue #28 / R3)
     - Rutina → Cola_Rutina
     """
     if discrepancia_identidad:
@@ -130,8 +141,10 @@ def _calcular_destino(
 
     # Evaluación Farmacia
     diag_lower = (diagnostico or "").lower()
-    es_farmacia = normalizar_tipo_documento(tipo_documento) == "Receta Médica" or (
-        "farmacoterapia" in diag_lower and "descompensación aguda" not in diag_lower
+    es_farmacia = (
+        normalizar_tipo_documento(tipo_documento) == "Receta Médica"
+        or tiene_medicamentos
+        or ("farmacoterapia" in diag_lower and "descompensación aguda" not in diag_lower)
     )
 
     if es_farmacia:

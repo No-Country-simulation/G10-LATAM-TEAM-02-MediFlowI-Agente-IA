@@ -35,6 +35,13 @@ class MedicoSolicitanteState(BaseModel):
     matricula: str | None = None
 
 
+class MedicamentoPrescritoState(BaseModel):
+    medicamento: str
+    dosis: str | None = None
+    frecuencia: str | None = None
+    via_administracion: str | None = None
+
+
 class DatosExtraidosState(BaseModel):
     paciente: PacienteState | None = None
     medico_solicitante: MedicoSolicitanteState | None = None
@@ -43,6 +50,7 @@ class DatosExtraidosState(BaseModel):
     cie10_sugerido: str | None = None
     cie10_descripcion: str | None = None
     hallazgos_clave: list[str] = Field(default_factory=list)
+    medicamentos: list[MedicamentoPrescritoState] = Field(default_factory=list)
 
 
 class ClasificacionState(BaseModel):

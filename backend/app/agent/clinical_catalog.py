@@ -129,3 +129,41 @@ def normalizar_tipo_documento(valor: object) -> str:
 
 
 CATALOGO_PARA_PROMPT = " | ".join(TIPOS_DOCUMENTO_CLINICO)
+
+MEDICAMENTOS_CONTROLADOS: frozenset[str] = frozenset(
+    {
+        "morfina",
+        "fentanilo",
+        "fentanil",
+        "oxicodona",
+        "metadona",
+        "tramadol",
+        "buprenorfina",
+        "clonazepam",
+        "alprazolam",
+        "lorazepam",
+        "diazepam",
+        "midazolam",
+        "fenobarbital",
+        "metilfenidato",
+        "codeina",
+        "codeína",
+        "petidina",
+        "meperidina",
+        "ketamina",
+    }
+)
+
+
+def es_medicamento_controlado(nombre: str | None) -> bool:
+    """Verifica si el nombre del fármaco o principio activo corresponde a una sustancia controlada."""
+    if not nombre or not isinstance(nombre, str):
+        return False
+    texto_norm = _clave(nombre)
+    tokens = set(texto_norm.split())
+    for ctrl in MEDICAMENTOS_CONTROLADOS:
+        ctrl_norm = _clave(ctrl)
+        if ctrl_norm in tokens or ctrl_norm in texto_norm:
+            return True
+    return False
+

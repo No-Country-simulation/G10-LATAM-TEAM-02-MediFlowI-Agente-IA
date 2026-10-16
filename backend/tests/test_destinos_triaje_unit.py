@@ -161,3 +161,38 @@ def test_calcular_destino_precedencia_urgencia_sobre_score_bajo():
     assert notif is not None
     assert notif["canal"] == "Alerta_Guardia_Medica"
 
+
+def test_calcular_destino_con_medicamentos_prescritos_deriva_a_farmacia():
+    """T006 [US1] Verifica que la presencia de medicamentos prescritos derive a Farmacia_Hospitalaria."""
+    destino, justif, notif, req_aud = _calcular_destino(
+        score=0.90,
+        nivel="Rutina",
+        diagnostico="Faringitis bacteriana",
+        paciente_nombre="Carlos",
+        tipo_documento="Informe Clínico",  # Tipo genérico pero con medicamentos activos
+        medicamentos_controlados=False,
+        discrepancia_identidad=False,
+        tiene_medicamentos=True,
+    )
+    assert destino == "Farmacia_Hospitalaria"
+    assert req_aud is False
+    assert "Farmacia_Hospitalaria" in justif
+
+
+def test_enrutamiento_medicamentos_controlados_activa_auditoria():
+    """T015 [US3] Verifica que la presencia de medicamentos controlados active auditoría en Farmacia."""
+    destino, justif, notif, req_aud = _calcular_destino(
+        score=0.95,
+        nivel="Rutina",
+        diagnostico="Dolor neuropático crónico",
+        paciente_nombre="Laura",
+        tipo_documento="Receta Médica",
+        medicamentos_controlados=True,
+        discrepancia_identidad=False,
+        tiene_medicamentos=True,
+    )
+    assert destino == "Farmacia_Hospitalaria"
+    assert req_aud is True
+    assert "controlados" in justif.lower() or "narcóticos" in justif.lower()
+
+

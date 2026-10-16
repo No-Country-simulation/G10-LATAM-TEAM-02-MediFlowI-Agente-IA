@@ -287,3 +287,134 @@ async def test_ejecutar_triage_con_llm_multimodal_lista():
     assert resultado.clasificacion.score_confianza_clasificacion >= 0.80
     assert not resultado.error_mensaje
 
+
+def test_parsear_respuesta_extrae_medicamentos_prescritos():
+    """T005 [US1] Verifica que _parsear_respuesta deserialice correctamente la lista de medicamentos."""
+    from app.agent.nodes.extraction import _parsear_respuesta
+
+    payload_json = """{
+        "paciente": {"nombre": "Juan Pérez", "edad": 45},
+        "diagnostico_principal": "Faringoamigdalitis aguda",
+        "cie10_sugerido": "J03.9",
+        "medicamentos": [
+            {
+                "medicamento": "Amoxicilina",
+                "dosis": "500 mg",
+                "frecuencia": "cada 8 horas",
+                "via_administracion": "oral"
+            },
+            {
+                "medicamento": "Paracetamol",
+                "dosis": "500 mg",
+                "frecuencia": "cada 8 horas",
+                "via_administracion": "oral"
+            }
+        ]
+    }"""
+
+    datos = _parsear_respuesta(payload_json)
+    assert len(datos.medicamentos) == 2
+    assert datos.medicamentos[0].medicamento == "Amoxicilina"
+    assert datos.medicamentos[0].dosis == "500 mg"
+    assert datos.medicamentos[0].frecuencia == "cada 8 horas"
+    assert datos.medicamentos[0].via_administracion == "oral"
+    assert datos.medicamentos[1].medicamento == "Paracetamol"
+
+
+def test_consolidar_datos_combina_medicamentos_sin_duplicados():
+    """T010 [US2] Verifica que _consolidar_datos combine listas de medicamentos eliminando duplicados exactos."""
+    from app.agent.nodes.extraction import _consolidar_datos
+    from app.agent.state import DatosExtraidosState, MedicamentoPrescritoState
+
+    acumulado = DatosExtraidosState(
+        medicamentos=[
+            MedicamentoPrescritoState(
+                medicamento="Amoxicilina",
+                dosis="500 mg",
+                frecuencia="cada 8 horas",
+                via_administracion="oral",
+            ),
+            MedicamentoPrescritoState(
+                medicamento="Ibuprofeno",
+                dosis="400 mg",
+                frecuencia="cada 8 horas",
+                via_administracion="oral",
+            ),
+        ]
+    )
+
+    nuevo = DatosExtraidosState(
+        medicamentos=[
+            MedicamentoPrescritoState(
+                medicamento="amoxicilina",  # Duplicado con distinta capitalización
+                dosis="500 mg",
+                frecuencia="cada 8 horas",
+                via_administracion="oral",
+            ),
+            MedicamentoPrescritoState(
+                medicamento="Omeprazol",  # Fármaco nuevo
+                dosis="20 mg",
+                frecuencia="cada 24 horas",
+                via_administracion="oral",
+            ),
+        ]
+    )
+
+    consolidado = _consolidar_datos(acumulado, nuevo)
+    assert len(consolidado.medicamentos) == 3
+    nombres = [m.medicamento for m in consolidado.medicamentos]
+    assert nombres == ["Amoxicilina", "Ibuprofeno", "Omeprazol"]
+
+
+def test_medicamentos_tolerancia_valores_parciales_y_nulos():
+    """T011 [US2] Verifica que se capturen medicamentos cuando faltan dosis, frecuencia o vía."""
+    from app.agent.nodes.extraction import _parsear_respuesta
+
+    payload_json = """{
+        "medicamentos": [
+            {
+                "medicamento": "Aspirina",
+                "dosis": null,
+                "frecuencia": null,
+                "via_administracion": null
+            },
+            {
+                "medicamento": "Metformina 850mg",
+                "dosis": "850 mg"
+            },
+            {
+                "medicamento": "   ",
+                "dosis": "100 mg"
+            },
+            {
+                "otra_clave": "no es medicamento"
+            }
+        ]
+    }"""
+
+    datos = _parsear_respuesta(payload_json)
+    # Debe filtrar los inválidos (sin nombre o con espacios) y conservar los dos válidos
+    assert len(datos.medicamentos) == 2
+    assert datos.medicamentos[0].medicamento == "Aspirina"
+    assert datos.medicamentos[0].dosis is None
+    assert datos.medicamentos[0].frecuencia is None
+    assert datos.medicamentos[0].via_administracion is None
+    assert datos.medicamentos[1].medicamento == "Metformina 850mg"
+    assert datos.medicamentos[1].dosis == "850 mg"
+
+
+def test_documento_sin_medicamentos_retorna_lista_vacia():
+    """T014 [US3] Verifica que documentos sin prescripciones inicialicen medicamentos como lista vacía."""
+    from app.agent.nodes.extraction import _parsear_respuesta
+
+    payload_json = """{
+        "estudio_realizado": "Radiografía de Tórax",
+        "diagnostico_principal": "Campos pulmonares normales",
+        "hallazgos_clave": ["Sin condensaciones"]
+    }"""
+
+    datos = _parsear_respuesta(payload_json)
+    assert datos.medicamentos == []
+    assert isinstance(datos.medicamentos, list)
+
+
