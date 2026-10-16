@@ -85,6 +85,9 @@ class TriageService:
             llm_service=self._llm_service,
         )
 
+        if resultado.metodo_extraccion:
+            resultado.metadata["metodo_extraccion"] = resultado.metodo_extraccion
+
         paciente = resultado.datos_extraidos.paciente
         if paciente and (paciente.documento_identidad or paciente.historia_clinica):
             from app.repositories.patient_repository import resolver_paciente_por_identificadores

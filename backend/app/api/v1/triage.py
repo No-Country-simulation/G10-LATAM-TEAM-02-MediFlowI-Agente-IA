@@ -21,7 +21,13 @@ from app.services.triage_service import TriageService
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/triage", tags=["triage"])
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
-ALLOWED_UPLOAD_MIME_TYPES = {"application/pdf", "image/jpeg", "image/jpg", "image/png"}
+ALLOWED_UPLOAD_MIME_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+}
 
 
 def _detectar_tipo_archivo(contenido: bytes) -> str | None:
@@ -31,6 +37,8 @@ def _detectar_tipo_archivo(contenido: bytes) -> str | None:
     if contenido.startswith(b"\x89PNG\r\n\x1a\n"):
         return "IMAGEN"
     if contenido.startswith(b"\xff\xd8\xff"):
+        return "IMAGEN"
+    if len(contenido) >= 12 and contenido[:4] == b"RIFF" and contenido[8:12] == b"WEBP":
         return "IMAGEN"
     return None
 

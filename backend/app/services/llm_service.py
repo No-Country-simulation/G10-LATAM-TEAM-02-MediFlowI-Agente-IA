@@ -5,6 +5,8 @@ Abstracción sobre el cliente LLM que permite cambiar entre
 Google Gemini, OpenAI u otros sin modificar los nodos del agente.
 """
 
+from typing import Any
+
 import structlog
 
 from app.core.config import Settings
@@ -99,6 +101,67 @@ class LLMService:
 
         respuesta = await self._client.ainvoke([HumanMessage(content=prompt)])
         return self._normalizar_contenido(getattr(respuesta, "content", respuesta))
+
+    async def completar_multimodal(
+        self, prompt: str, imagenes: list[dict[str, str] | str]
+    ) -> str:
+        """
+        Envía un prompt junto con una o más imágenes (Base64) al LLM multimodal.
+
+        Args:
+            prompt: Instrucción o prompt clínico a procesar
+            imagenes: Lista de imágenes, donde cada elemento puede ser:
+                - dict con {"data_base64": "...", "mime_type": "image/jpeg"}
+                - o str con cadena Base64 directa (o data URI)
+
+        Returns:
+            Texto de respuesta del LLM (transcripción clínica).
+
+        Raises:
+            LLMUnavailableError: Si el LLM no está configurado
+            RuntimeError: Si ocurre un error durante la llamada
+        """
+        if self._provider == "mock":
+            return self._respuesta_mock_multimodal(prompt, imagenes)
+        if self._provider == "unavailable" or self._client is None:
+            raise LLMUnavailableError(
+                "No hay un proveedor LLM configurado para procesar el documento."
+            )
+
+        from langchain_core.messages import HumanMessage
+
+        content_parts: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+        for img in imagenes:
+            if isinstance(img, dict):
+                mime = img.get("mime_type", "image/jpeg")
+                b64 = img.get("data_base64") or img.get("data", "")
+                url = f"data:{mime};base64,{b64}"
+            elif isinstance(img, str):
+                if img.startswith("data:"):
+                    url = img
+                else:
+                    url = f"data:image/jpeg;base64,{img}"
+            else:
+                continue
+
+            content_parts.append({"type": "image_url", "image_url": {"url": url}})
+
+        respuesta = await self._client.ainvoke([HumanMessage(content=content_parts)])
+        return self._normalizar_contenido(getattr(respuesta, "content", respuesta))
+
+    def _respuesta_mock_multimodal(
+        self, prompt: str, imagenes: list[dict[str, str] | str]
+    ) -> str:
+        """Respuesta mock para procesamiento multimodal en pruebas controladas."""
+        return (
+            "DOCUMENTO CLÍNICO FOTOGRAFIADO / ESCANEADO\n"
+            "Paciente: Juan Pérez\n"
+            "Edad: 45 años\n"
+            "DNI: 12345678\n"
+            "Diagnóstico: Faringoamigdalitis aguda\n"
+            "CIE-10: J03.9\n"
+            "Indicaciones: Amoxicilina 500mg cada 8 horas por 7 días."
+        )
 
     @staticmethod
     def _normalizar_contenido(content: object) -> str:

@@ -1,56 +1,189 @@
 """
 Nodo: ingestion
 Responsabilidad: Extraer texto plano del documento de entrada.
-Soporta: texto directo, PDF (PyMuPDF), imagen (Gemini Vision).
+Soporta:
+  1. Texto directo (sin procesamiento)
+  2. PDF digital con capa de texto (PyMuPDF)
+  3. PDF escaneado sin capa de texto (< 50 chars): Rasterización en memoria + Gemini Vision con fallback a Tesseract OCR
+  4. Imagen médica (PNG, JPG, WebP): Gemini Vision multimodal con fallback a Tesseract OCR
 """
 
 import base64
 import io
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 from app.agent.state import AgentState
 
+if TYPE_CHECKING:
+    from app.services.llm_service import LLMService
+
 logger = structlog.get_logger(__name__)
 
+_PROMPT_VISION_TRANSCRIPCION = (
+    "Eres un asistente clínico experto en transcripción de documentos médicos hospitalarios.\n"
+    "Analiza minuciosamente la imagen médica o documento escaneado adjunto (receta médica, volante, "
+    "informe de laboratorio, epicrisis u orden de atención).\n"
+    "Transcribe TODO el texto legible que aparece en el documento con máxima precisión y fidelidad:\n"
+    "- Datos del paciente (nombre, edad, documento de identidad, historia clínica)\n"
+    "- Datos del médico tratante (nombre, matrícula, especialidad)\n"
+    "- Diagnósticos principales y secundarios\n"
+    "- Indicaciones clínicas, medicamentos, dosis, posología y frecuencia\n"
+    "- Estudios o procedimientos solicitados y fechas\n\n"
+    "Devuelve ÚNICAMENTE el texto transcrito de forma clara y estructurada, sin comentarios adicionales ni preámbulos."
+)
 
-async def node_ingestion(state: AgentState) -> dict:
+
+def _detectar_mime_imagen(image_bytes: bytes) -> str:
+    """Detecta el tipo MIME de la imagen a partir de sus firmas binarias."""
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
+
+
+async def node_ingestion(state: AgentState, llm_service: "LLMService | None" = None) -> dict:
     """
-    Extrae texto del documento según su tipo.
+    Extrae texto del documento según su tipo, priorizando extracción digital y visión multimodal.
     Retorna un dict con los campos a actualizar en el AgentState.
     """
-    logger.info("nodo.ingestion.inicio", documento_id=state.documento_id)
-    texto_extraido = None
+    logger.info(
+        "nodo.ingestion.inicio",
+        documento_id=state.documento_id,
+        tipo_archivo=state.tipo_archivo,
+    )
+    texto_extraido = ""
+    metodo_extraccion = "TEXT_EXTRACTION"
 
     try:
         if state.documento_texto:
-            # Caso más simple: texto ya disponible
+            # Caso 1: Texto plano directo
             texto_extraido = state.documento_texto.strip()
+            metodo_extraccion = "TEXT_EXTRACTION"
 
         elif state.tipo_archivo == "PDF" and state.documento_base64:
-            texto_extraido = _extraer_texto_pdf(state.documento_base64)
+            # Caso 2: Documento PDF (digital o escaneado)
+            pdf_bytes = base64.b64decode(state.documento_base64)
+            texto_digital = _extraer_texto_pdf_pymupdf(pdf_bytes)
+
+            if texto_digital and len(texto_digital.strip()) >= 50:
+                texto_extraido = texto_digital.strip()
+                metodo_extraccion = "TEXT_EXTRACTION"
+            else:
+                # PDF escaneado (< 50 caracteres): intentar Vision multimodal
+                logger.info(
+                    "nodo.ingestion.pdf_escaneado_detectado",
+                    longitud_texto_embebido=len(texto_digital or ""),
+                )
+                exito_vision = False
+                if llm_service and getattr(llm_service, "disponible", False):
+                    try:
+                        imgs_b64 = _rasterizar_pdf_a_imagenes(pdf_bytes, max_paginas=3)
+                        if imgs_b64:
+                            payload_imgs = [
+                                {"mime_type": "image/jpeg", "data_base64": img_b64}
+                                for img_b64 in imgs_b64
+                            ]
+                            texto_vision = await llm_service.completar_multimodal(
+                                prompt=_PROMPT_VISION_TRANSCRIPCION,
+                                imagenes=payload_imgs,
+                            )
+                            if texto_vision and texto_vision.strip():
+                                texto_extraido = texto_vision.strip()
+                                metodo_extraccion = "MULTIMODAL_VISION"
+                                exito_vision = True
+                    except Exception as exc:
+                        logger.warning("nodo.ingestion.pdf_vision_fallo", error=str(exc))
+
+                if not exito_vision:
+                    # Fallback a OCR local
+                    try:
+                        texto_ocr = _extraer_texto_pdf_ocr(pdf_bytes)
+                        if texto_ocr and texto_ocr.strip():
+                            texto_extraido = texto_ocr.strip()
+                            metodo_extraccion = "LOCAL_OCR"
+                        elif texto_digital and texto_digital.strip():
+                            texto_extraido = texto_digital.strip()
+                            metodo_extraccion = "TEXT_EXTRACTION"
+                        else:
+                            raise RuntimeError("No se detectó texto legible en el PDF escaneado.")
+                    except Exception as exc:
+                        if texto_digital and texto_digital.strip():
+                            texto_extraido = texto_digital.strip()
+                            metodo_extraccion = "TEXT_EXTRACTION"
+                        else:
+                            raise RuntimeError(f"Fallo en OCR de PDF escaneado: {exc}") from exc
 
         elif state.tipo_archivo == "IMAGEN" and state.documento_base64:
-            texto_extraido = _extraer_texto_imagen(state.documento_base64)
+            # Caso 3: Imagen médica (JPEG, PNG, WebP)
+            image_bytes = base64.b64decode(state.documento_base64, validate=True)
+            from PIL import Image, UnidentifiedImageError
+
+            try:
+                with Image.open(io.BytesIO(image_bytes)) as source:
+                    source.verify()
+            except (ValueError, UnidentifiedImageError) as exc:
+                raise RuntimeError("La imagen recibida no es válida o está dañada.") from exc
+
+            mime = _detectar_mime_imagen(image_bytes)
+            exito_vision = False
+
+            # Estrategia primaria: Gemini Vision Multimodal
+            if llm_service and getattr(llm_service, "disponible", False):
+                try:
+                    texto_vision = await llm_service.completar_multimodal(
+                        prompt=_PROMPT_VISION_TRANSCRIPCION,
+                        imagenes=[{"mime_type": mime, "data_base64": state.documento_base64}],
+                    )
+                    if texto_vision and texto_vision.strip():
+                        texto_extraido = texto_vision.strip()
+                        metodo_extraccion = "MULTIMODAL_VISION"
+                        exito_vision = True
+                except Exception as exc:
+                    logger.warning("nodo.ingestion.imagen_vision_fallo", error=str(exc))
+
+            if not exito_vision:
+                # Estrategia secundaria: Tesseract OCR local
+                try:
+                    texto_ocr = _extraer_texto_imagen_ocr(state.documento_base64)
+                    if texto_ocr and texto_ocr.strip():
+                        texto_extraido = texto_ocr.strip()
+                        metodo_extraccion = "LOCAL_OCR"
+                    else:
+                        raise RuntimeError("El OCR no detectó texto legible en la imagen.")
+                except Exception as ocr_exc:
+                    raise RuntimeError(f"Fallo en OCR de la imagen: {ocr_exc}") from ocr_exc
 
         else:
             texto_extraido = ""
+            metodo_extraccion = "FALLBACK_AUDIT"
 
         logger.info(
             "nodo.ingestion.completado",
             documento_id=state.documento_id,
             caracteres=len(texto_extraido or ""),
+            metodo=metodo_extraccion,
         )
 
         return {
             "texto_extraido": texto_extraido,
+            "metodo_extraccion": metodo_extraccion,
             "nodos_ejecutados": state.nodos_ejecutados + ["ingestion"],
         }
 
     except Exception as exc:
-        logger.error("nodo.ingestion.error", documento_id=state.documento_id, error=str(exc))
+        logger.error(
+            "nodo.ingestion.error",
+            documento_id=state.documento_id,
+            error=str(exc),
+        )
         return {
             "texto_extraido": "",
+            "metodo_extraccion": "FALLBACK_AUDIT",
             "error_mensaje": f"Error en ingestion: {exc}",
             "nodos_ejecutados": state.nodos_ejecutados + ["ingestion"],
         }
@@ -78,6 +211,29 @@ def _extraer_texto_pdf_pymupdf(pdf_bytes: bytes) -> str:
         raise RuntimeError(f"No se pudo extraer texto del PDF: {exc}") from exc
 
 
+def _rasterizar_pdf_a_imagenes(pdf_bytes: bytes, max_paginas: int = 3) -> list[str]:
+    """Renderiza páginas del PDF en memoria a imágenes JPEG codificadas en Base64."""
+    try:
+        import fitz
+
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        imagenes_base64 = []
+        paginas_a_procesar = min(len(doc), max_paginas)
+
+        for i in range(paginas_a_procesar):
+            page = doc[i]
+            # Matriz 2x2 para resolución óptima (~144 DPI)
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+            img_bytes = pix.tobytes("jpeg")
+            imagenes_base64.append(base64.b64encode(img_bytes).decode("utf-8"))
+
+        doc.close()
+        return imagenes_base64
+    except Exception as exc:
+        logger.warning("nodo.ingestion.rasterizacion_fallo", error=str(exc))
+        return []
+
+
 def _extraer_texto_pdf_ocr(pdf_bytes: bytes) -> str:
     """Renderiza cada página y aplica Tesseract al PDF que no tiene capa textual."""
     try:
@@ -102,7 +258,7 @@ def _extraer_texto_pdf_ocr(pdf_bytes: bytes) -> str:
         raise RuntimeError(f"No se pudo realizar OCR del PDF: {exc}") from exc
 
 
-def _extraer_texto_imagen(base64_content: str) -> str:
+def _extraer_texto_imagen_ocr(base64_content: str) -> str:
     """Valida una imagen y extrae su texto con Tesseract en español."""
     try:
         import pytesseract
@@ -127,3 +283,7 @@ def _extraer_texto_imagen(base64_content: str) -> str:
     if not texto:
         raise RuntimeError("El OCR no detectó texto legible en la imagen.")
     return texto
+
+
+# Alias para retrocompatibilidad
+_extraer_texto_imagen = _extraer_texto_imagen_ocr
