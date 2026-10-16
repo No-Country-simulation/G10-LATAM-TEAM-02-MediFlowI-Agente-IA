@@ -1,4 +1,33 @@
 schemas:
+  ClasificacionFusionVision:
+    type: object
+    additionalProperties: false
+    description: Clasificación del pase multimodal interno; confianza calculada posteriormente por las reglas existentes.
+    required: [tipo_documento, especialidad, nivel_prioridad, razon_prioridad]
+    properties:
+      tipo_documento:
+        type: string
+        minLength: 1
+      especialidad:
+        type: [string, 'null']
+      nivel_prioridad:
+        type: string
+        enum: [Urgente, Rutina, Ambiguo]
+      razon_prioridad:
+        type: string
+  ResultadoFusionVision:
+    type: object
+    additionalProperties: false
+    description: Respuesta interna de Gemini Vision, no un nuevo endpoint. Se valida antes de reutilizarla en los cinco nodos.
+    required: [texto_extraido, datos_extraidos, clasificacion]
+    properties:
+      texto_extraido:
+        type: string
+        minLength: 1
+      datos_extraidos:
+        $ref: '#/schemas/DatosExtraidos'
+      clasificacion:
+        $ref: '#/schemas/ClasificacionFusionVision'
   AlertaGuardia:
     type: object
     additionalProperties: false
@@ -348,6 +377,15 @@ schemas:
     - datos_extraidos
     - decision_enrutamiento
     properties:
+      metodo_extraccion:
+        description: Método registrado por la ingesta, también persistido en metadata.
+        anyOf:
+          - type: string
+            enum: [TEXT_EXTRACTION, MULTIMODAL_VISION, LOCAL_OCR, FALLBACK_AUDIT]
+          - type: 'null'
+      documento_base64:
+        type: 'null'
+        description: El contenido binario se libera del estado al terminar ingesta; el original se conserva por el servicio de almacenamiento.
       status:
         type: string
         enum:

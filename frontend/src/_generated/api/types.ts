@@ -563,6 +563,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Clasificación del pase multimodal interno; confianza calculada posteriormente por las reglas existentes. */
+        ClasificacionFusionVision: {
+            tipo_documento: string;
+            especialidad: string | null;
+            /** @enum {string} */
+            nivel_prioridad: "Urgente" | "Rutina" | "Ambiguo";
+            razon_prioridad: string;
+        };
+        /** @description Respuesta interna de Gemini Vision, no un nuevo endpoint. Se valida antes de reutilizarla en los cinco nodos. */
+        ResultadoFusionVision: {
+            texto_extraido: string;
+            datos_extraidos: components["schemas"]["DatosExtraidos"];
+            clasificacion: components["schemas"]["ClasificacionFusionVision"];
+        };
         /** @description Datos del evento confirmado en PostgreSQL; sin nombre, DNI ni diagnóstico. */
         AlertaGuardia: {
             /**
@@ -729,6 +743,31 @@ export interface components {
              */
             cie10_descripcion?: string | null;
             hallazgos_clave?: string[] | null;
+            /** @description Lista de medicamentos prescritos extraídos estructuradamente del documento. */
+            medicamentos?: components["schemas"]["MedicamentoPrescrito"][] | null;
+        };
+        /** @description Medicamento prescrito en la receta médica o pauta farmacológica. */
+        MedicamentoPrescrito: {
+            /**
+             * @description Nombre del fármaco prescrito (genérico o comercial).
+             * @example Paracetamol
+             */
+            medicamento: string;
+            /**
+             * @description Dosis administrada y unidad de medida.
+             * @example 500 mg
+             */
+            dosis?: string | null;
+            /**
+             * @description Pauta o intervalo de administración.
+             * @example cada 8 horas
+             */
+            frecuencia?: string | null;
+            /**
+             * @description Vía anatómica de administración.
+             * @example oral
+             */
+            via_administracion?: string | null;
         };
         /** @description Mensaje emitido para comunicar una urgencia. */
         Notificacion: {
@@ -767,6 +806,10 @@ export interface components {
         };
         /** @description Resultado del procesamiento clínico y su decisión de enrutamiento. */
         ResultadoTriaje: {
+            /** @description Método registrado por la ingesta, también persistido en metadata. */
+            metodo_extraccion?: ("TEXT_EXTRACTION" | "MULTIMODAL_VISION" | "LOCAL_OCR" | "FALLBACK_AUDIT") | null;
+            /** @description El contenido binario se libera del estado al terminar ingesta; el original se conserva por el servicio de almacenamiento. */
+            documento_base64?: null;
             /**
              * @example procesado
              * @enum {string}
@@ -1188,7 +1231,7 @@ export interface operations {
                     canal_origen?: string;
                     /**
                      * Format: binary
-                     * @description PDF, JPG o PNG de hasta 10 MB; se valida la firma binaria.
+                     * @description PDF, JPG, PNG o WebP de hasta 10 MB; se valida la firma binaria.
                      */
                     archivo: string;
                 };

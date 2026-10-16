@@ -9,6 +9,7 @@ import json
 import structlog
 
 from app.agent.clinical_catalog import validar_y_completar_cie10
+from app.agent.fusion import ContextoTriaje
 from app.agent.state import (
     AgentState,
     DatosExtraidosState,
@@ -66,12 +67,26 @@ def dividir_texto_en_bloques(texto: str, max_chars: int = 4_000) -> list[str]:
     return [texto[indice : indice + max_chars] for indice in range(0, len(texto), max_chars)]
 
 
-async def node_extraction(state: AgentState, llm_service=None) -> dict:
+async def node_extraction(
+    state: AgentState,
+    llm_service=None,
+    fusion_context: ContextoTriaje | None = None,
+) -> dict:
     """
     Extrae entidades clínicas del texto usando el LLM.
     llm_service se inyecta desde el grafo al compilarlo.
     """
     logger.info("nodo.extraction.inicio", documento_id=state.documento_id)
+
+    if (
+        fusion_context
+        and fusion_context.fusion_intentada
+        and fusion_context.fusion_resultado is None
+    ):
+        return {
+            "datos_extraidos": DatosExtraidosState(),
+            "nodos_ejecutados": state.nodos_ejecutados + ["extraction"],
+        }
 
     texto = state.texto_extraido or state.documento_texto or ""
 
@@ -83,12 +98,17 @@ async def node_extraction(state: AgentState, llm_service=None) -> dict:
         }
 
     try:
-        bloques = dividir_texto_en_bloques(texto)
+        fusion = fusion_context.fusion_resultado if fusion_context else None
+        bloques = [None] if fusion else dividir_texto_en_bloques(texto)
         datos = DatosExtraidosState()
         codigos_invalidos: list[str] = []
         for bloque in bloques:
-            prompt = _EXTRACTION_PROMPT.format(texto=bloque)
-            datos_bloque = _parsear_respuesta(await _llamar_llm(prompt, llm_service))
+            if fusion:
+                # Reutiliza el parser y todas las validaciones existentes, sin otro LLM.
+                datos_bloque = _parsear_respuesta(fusion.datos_extraidos.model_dump_json())
+            else:
+                prompt = _EXTRACTION_PROMPT.format(texto=bloque)
+                datos_bloque = _parsear_respuesta(await _llamar_llm(prompt, llm_service))
             codigo_original = datos_bloque.cie10_sugerido
             if codigo_original is not None:
                 validacion = validar_y_completar_cie10(codigo_original)
@@ -233,9 +253,15 @@ def _parsear_respuesta(raw: object) -> DatosExtraidosState:
                     medicamentos.append(
                         MedicamentoPrescritoState(
                             medicamento=nombre_med.strip(),
-                            dosis=dosis.strip() if isinstance(dosis, str) and dosis.strip() else None,
-                            frecuencia=frecuencia.strip() if isinstance(frecuencia, str) and frecuencia.strip() else None,
-                            via_administracion=via.strip() if isinstance(via, str) and via.strip() else None,
+                            dosis=dosis.strip()
+                            if isinstance(dosis, str) and dosis.strip()
+                            else None,
+                            frecuencia=frecuencia.strip()
+                            if isinstance(frecuencia, str) and frecuencia.strip()
+                            else None,
+                            via_administracion=via.strip()
+                            if isinstance(via, str) and via.strip()
+                            else None,
                         )
                     )
 

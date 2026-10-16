@@ -83,7 +83,7 @@ triageUpload:
               archivo:
                 type: string
                 format: binary
-                description: PDF, JPG o PNG de hasta 10 MB; se valida la firma binaria.
+                description: PDF, JPG, PNG o WebP de hasta 10 MB; se valida la firma binaria.
     responses:
       '200':
         $ref: ../components/responses.yaml#/responses/TriageSuccess

@@ -10,6 +10,16 @@ from uuid import UUID
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel, SecretStr
 
 
+class ClasificacionFusionVision(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tipo_documento: str = Field(..., min_length=1)
+    especialidad: str | None = None
+    nivel_prioridad: Literal['Urgente', 'Rutina', 'Ambiguo']
+    razon_prioridad: str
+
+
 class AlertaGuardia(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -156,22 +166,23 @@ class MedicoSolicitante(BaseModel):
     matricula: str | None = Field(None, examples=['145892'])
 
 
-class DatosExtraidos(BaseModel):
-    paciente: Paciente | None = None
-    medico_solicitante: MedicoSolicitante | None = None
-    estudio_realizado: str | None = Field(
-        None, examples=['Tomografia de Torax con contraste']
+class MedicamentoPrescrito(BaseModel):
+    medicamento: str = Field(
+        ...,
+        description='Nombre del fármaco prescrito (genérico o comercial).',
+        examples=['Paracetamol'],
     )
-    diagnostico_principal: str | None = Field(
-        None, examples=['Tromboembolismo Pulmonar Agudo (TEP)']
+    dosis: str | None = Field(
+        None, description='Dosis administrada y unidad de medida.', examples=['500 mg']
     )
-    cie10_sugerido: str | None = Field(None, examples=['I26.9'])
-    cie10_descripcion: str | None = Field(
+    frecuencia: str | None = Field(
         None,
-        description='Descripción nosológica del catálogo CIE-10 versionado, separada del diagnóstico original.',
-        examples=['Embolia pulmonar sin mención de corazón pulmonar agudo'],
+        description='Pauta o intervalo de administración.',
+        examples=['cada 8 horas'],
     )
-    hallazgos_clave: list[str] | None = None
+    via_administracion: str | None = Field(
+        None, description='Vía anatómica de administración.', examples=['oral']
+    )
 
 
 class Notificacion(BaseModel):
@@ -346,7 +357,40 @@ class Clasificacion(BaseModel):
     score_confianza_clasificacion: float = Field(..., examples=[0.99], ge=0.0, le=1.0)
 
 
+class DatosExtraidos(BaseModel):
+    paciente: Paciente | None = None
+    medico_solicitante: MedicoSolicitante | None = None
+    estudio_realizado: str | None = Field(
+        None, examples=['Tomografia de Torax con contraste']
+    )
+    diagnostico_principal: str | None = Field(
+        None, examples=['Tromboembolismo Pulmonar Agudo (TEP)']
+    )
+    cie10_sugerido: str | None = Field(None, examples=['I26.9'])
+    cie10_descripcion: str | None = Field(
+        None,
+        description='Descripción nosológica del catálogo CIE-10 versionado, separada del diagnóstico original.',
+        examples=['Embolia pulmonar sin mención de corazón pulmonar agudo'],
+    )
+    hallazgos_clave: list[str] | None = None
+    medicamentos: list[MedicamentoPrescrito] | None = Field(
+        None,
+        description='Lista de medicamentos prescritos extraídos estructuradamente del documento.',
+    )
+
+
 class ResultadoTriaje(BaseModel):
+    metodo_extraccion: (
+        Literal['TEXT_EXTRACTION', 'MULTIMODAL_VISION', 'LOCAL_OCR', 'FALLBACK_AUDIT']
+        | None
+    ) = Field(
+        None,
+        description='Método registrado por la ingesta, también persistido en metadata.',
+    )
+    documento_base64: None = Field(
+        None,
+        description='El contenido binario se libera del estado al terminar ingesta; el original se conserva por el servicio de almacenamiento.',
+    )
     status: Literal[
         'recibido',
         'procesando',
@@ -398,3 +442,12 @@ class ErrorResponse(BaseModel):
 class ListaDocumentosResponse(BaseModel):
     total: int
     items: list[ResultadoTriaje]
+
+
+class ResultadoFusionVision(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    texto_extraido: str = Field(..., min_length=1)
+    datos_extraidos: DatosExtraidos
+    clasificacion: ClasificacionFusionVision

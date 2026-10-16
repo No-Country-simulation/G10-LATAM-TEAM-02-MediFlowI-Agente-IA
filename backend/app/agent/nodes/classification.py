@@ -9,6 +9,7 @@ import json
 import structlog
 
 from app.agent.clinical_catalog import CATALOGO_PARA_PROMPT, normalizar_tipo_documento
+from app.agent.fusion import ContextoTriaje
 from app.agent.nodes.extraction import dividir_texto_en_bloques
 from app.agent.state import AgentState, ClasificacionState
 
@@ -61,9 +62,26 @@ def consolidar_clasificaciones(bloques: list[ClasificacionState]) -> Clasificaci
     return bloques[0]
 
 
-async def node_classification(state: AgentState, llm_service=None) -> dict:
+async def node_classification(
+    state: AgentState,
+    llm_service=None,
+    fusion_context: ContextoTriaje | None = None,
+) -> dict:
     """Clasifica el documento y determina nivel de prioridad."""
     logger.info("nodo.classification.inicio", documento_id=state.documento_id)
+
+    if fusion_context and fusion_context.fusion_intentada:
+        fusion = fusion_context.fusion_resultado
+        fusion_context.fusion_resultado = None
+        clasificacion = (
+            _parsear_respuesta(fusion.clasificacion.model_dump_json())
+            if fusion
+            else ClasificacionState(tipo_documento="Desconocido", nivel_prioridad="Ambiguo")
+        )
+        return {
+            "clasificacion": clasificacion,
+            "nodos_ejecutados": state.nodos_ejecutados + ["classification"],
+        }
 
     texto = state.texto_extraido or state.documento_texto or ""
     diagnostico = state.datos_extraidos.diagnostico_principal or "No determinado"
