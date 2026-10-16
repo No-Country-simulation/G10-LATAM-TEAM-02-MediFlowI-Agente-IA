@@ -230,7 +230,42 @@ schemas:
         - 'null'
         items:
           type: string
+      medicamentos:
+        type:
+        - array
+        - 'null'
+        items:
+          $ref: '#/schemas/MedicamentoPrescrito'
+        description: Lista de medicamentos prescritos extraídos estructuradamente del documento.
     description: Datos clínicos que actualmente extrae el agente.
+  MedicamentoPrescrito:
+    type: object
+    required:
+      - medicamento
+    properties:
+      medicamento:
+        type: string
+        description: Nombre del fármaco prescrito (genérico o comercial).
+        example: Paracetamol
+      dosis:
+        type:
+          - string
+          - 'null'
+        description: Dosis administrada y unidad de medida.
+        example: 500 mg
+      frecuencia:
+        type:
+          - string
+          - 'null'
+        description: Pauta o intervalo de administración.
+        example: cada 8 horas
+      via_administracion:
+        type:
+          - string
+          - 'null'
+        description: Vía anatómica de administración.
+        example: oral
+    description: Medicamento prescrito en la receta médica o pauta farmacológica.
   Notificacion:
     type: object
     properties:

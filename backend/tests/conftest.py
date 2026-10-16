@@ -160,3 +160,46 @@ def coordinador_bearer_headers():
 def medico_bearer_headers():
     return {"Authorization": "Bearer test-medico-token", "Content-Type": "application/json"}
 
+
+@pytest.fixture
+def receta_medica_texto():
+    """Receta médica ambulatoria estándar con dos fármacos y pauta completa."""
+    return (
+        "RECETA MÉDICA HOSPITALARIA\n"
+        "Paciente: Juan Pérez  Edad: 45 años  DNI: 12345678\n"
+        "Médico: Dra. Elena Morales  Matrícula: MN-98432\n"
+        "Diagnóstico: Faringoamigdalitis aguda bacteriana (J03.9)\n"
+        "Indicaciones farmacológicas:\n"
+        "1. Amoxicilina 500 mg cada 8 horas vía oral por 7 días.\n"
+        "2. Paracetamol 500 mg cada 8 horas vía oral si presenta dolor o fiebre.\n"
+    )
+
+
+@pytest.fixture
+def receta_controlados_texto():
+    """Receta médica con medicamentos controlados/narcóticos sujeta a fiscalización."""
+    return (
+        "RECETA MÉDICA DE ESTUPEFACIENTES Y PSICOFÁRMACOS\n"
+        "Paciente: Roberto Gómez  Edad: 60 años  DNI: 87654321\n"
+        "Médico: Dr. Carlos Santana  Matrícula: MN-55441\n"
+        "Diagnóstico: Dolor oncológico severo\n"
+        "Rp.\n"
+        "1. Morfina 10 mg cada 4 horas vía subcutánea.\n"
+        "2. Clonazepam 2 mg cada 24 horas vía oral antes de dormir.\n"
+    )
+
+
+@pytest.fixture
+def informe_sin_medicamentos_texto():
+    """Informe radiológico diagnóstico sin ninguna prescripción farmacológica."""
+    return (
+        "INFORME RADIOLÓGICO DE TÓRAX\n"
+        "Paciente: María Lopez  Edad: 38 años  DNI: 45678912\n"
+        "Médico Solicitante: Dr. Fernando Ruiz  Matrícula: MN-12345\n"
+        "Estudio: Radiografía de tórax PA y lateral\n"
+        "Hallazgos: Campos pulmonares bien ventilados. Silueta cardíaca dentro de límites normales. "
+        "No se observan infiltrados ni consolidaciones pleuropulmonares activas.\n"
+        "Conclusión: Estudio radiográfico de tórax sin hallazgos patológicos agudos.\n"
+    )
+
+

@@ -1,0 +1,69 @@
+# OpenAPI 3.1 Contract Diff / Extension: Medicamentos Prescritos
+# Feature: 011-prescription-medication-extraction
+
+components:
+  schemas:
+    MedicamentoPrescrito:
+      type: object
+      required:
+        - medicamento
+      properties:
+        medicamento:
+          type: string
+          description: Nombre del principio activo o especialidad farmacéutica prescrita.
+          example: Paracetamol
+        dosis:
+          type:
+            - string
+            - 'null'
+          description: Dosis administrada y unidad de medida.
+          example: 500 mg
+        frecuencia:
+          type:
+            - string
+            - 'null'
+          description: Pauta temporal o intervalo de administración.
+          example: cada 8 horas
+        via_administracion:
+          type:
+            - string
+            - 'null'
+          description: Vía anatómica de administración farmacológica.
+          example: oral
+      description: Registro estructurado de un medicamento prescrito en una receta o documento clínico.
+
+    # Ampliación del esquema existente DatosExtraidos:
+    DatosExtraidos:
+      type: object
+      properties:
+        paciente:
+          $ref: '#/schemas/Paciente'
+        medico_solicitante:
+          $ref: '#/schemas/MedicoSolicitante'
+        estudio_realizado:
+          type:
+            - string
+            - 'null'
+        diagnostico_principal:
+          type:
+            - string
+            - 'null'
+        cie10_sugerido:
+          type:
+            - string
+            - 'null'
+        cie10_descripcion:
+          type:
+            - string
+            - 'null'
+        hallazgos_clave:
+          type:
+            - array
+            - 'null'
+          items:
+            type: string
+        medicamentos:
+          type: array
+          items:
+            $ref: '#/schemas/MedicamentoPrescrito'
+          description: Lista de medicamentos prescritos extraídos estructuradamente del documento.
