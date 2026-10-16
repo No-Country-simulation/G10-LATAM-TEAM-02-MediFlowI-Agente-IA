@@ -251,3 +251,30 @@ def test_metrics_http_errors_match_contract(contract, client, bearer_headers, mo
     assert_response(contract, "/metrics", "get", response)
     if kind != "calculation-unavailable":
         reader.assert_not_awaited()
+
+
+@pytest.mark.parametrize("prioridad", ["Urgente", None])
+def test_alerta_guardia_payload_minimo_coincide_con_contrato(contract, prioridad):
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from app._generated.models import AlertaGuardia
+    from app.core.alerts import MENSAJE_GUARDIA
+
+    alerta = AlertaGuardia(
+        id=uuid4(), documento_id="DOC-SINTETICO", episodio_id=None,
+        prioridad=prioridad, fecha=datetime.now(UTC), mensaje=MENSAJE_GUARDIA,
+    )
+    validator = Draft202012Validator({
+        "$ref": "#/components/schemas/AlertaGuardia", "components": contract["components"],
+    })
+    payload = alerta.model_dump(mode="json")
+    validator.validate(payload)
+    assert not validator.is_valid({**payload, "diagnostico": "dato privado"})
+    with pytest.raises(ValidationError):
+        AlertaGuardia.model_validate({**payload, "diagnostico": "dato privado"})
+
+
+def test_stream_declarado_en_openapi_runtime(client):
+    operation = client.get("/openapi.json").json()["paths"]["/api/v1/alerts/stream"]["get"]
+    assert "text/event-stream" in operation["responses"]["200"]["content"]

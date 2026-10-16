@@ -91,11 +91,18 @@ G10-LATAM-TEAM-02-MediFlowI-Agente-IA/
 
 ```
 Documento → [ingestion] → [extraction] → [classification] → [confidence]
-          → Cola_Emergencia_Medica  (score > 0.8 + Urgente)
-          → Cola_Rutina             (score > 0.8 + Rutina)
-          → Cola_Auditoria_Humana   (score < 0.5 o Ambiguo)
-          → OCI Object Storage
+          → [routing] o [forzar_auditoria si hay error crítico]
+          → AgentState → TriageService → PostgreSQL + archivos LOCAL/OCI
 ```
+
+El grafo decide entre emergencia, rutina, farmacia y revisión humana. El servicio
+coordina después pacientes, episodios y persistencia; el modo LOCAL/OCI se elige
+manualmente. La [guía de LangGraph](Docs/GUIA_LANGGRAPH.md) describe los nodos,
+el estado compartido, las condiciones actuales de enrutamiento y sus límites.
+
+El [despacho de alertas de guardia por SSE](Docs/IA-08_ALERTAS_GUARDIA_SSE.md)
+publica las emergencias después de confirmar documento y trazabilidad en
+PostgreSQL. El acceso está limitado a médico, coordinador y administrador.
 
 ### Flujo SDD (Spec-Driven Development)
 

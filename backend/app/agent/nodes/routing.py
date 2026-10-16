@@ -6,7 +6,9 @@ clasificación y score de confianza. Genera alertas para urgencias.
 
 import structlog
 
+from app.agent.clinical_catalog import normalizar_tipo_documento
 from app.agent.state import AgentState, DecisionEnrutamientoState
+from app.core.alerts import MENSAJE_GUARDIA
 
 logger = structlog.get_logger(__name__)
 
@@ -19,16 +21,10 @@ async def node_routing(state: AgentState) -> dict:
 
     score = state.clasificacion.score_confianza_clasificacion
     nivel = state.clasificacion.nivel_prioridad
+    discrepancia_identidad = bool(state.metadata.get("discrepancia_identidad_detectada", False))
 
-    tipo_doc = (
-        getattr(state.clasificacion, "tipo_documento", None)
-        or getattr(state.clasificacion, "categoria_documento", None)
-        if state.clasificacion
-        else None
-    )
-    
-    meds_controlados = state.metadata.get("medicamentos_controlados", False) if state.metadata else False
-    discrepancia = state.metadata.get("discrepancia_identidad_detectada", False) if state.metadata else False
+    tipo_doc = state.clasificacion.tipo_documento or state.clasificacion.categoria_documento
+    meds_controlados = state.metadata.get("medicamentos_controlados", False)
 
     destino, justificacion, notificacion, requiere_auditoria = _calcular_destino(
         score=score,
@@ -39,7 +35,7 @@ async def node_routing(state: AgentState) -> dict:
         else None,
         tipo_documento=tipo_doc,
         medicamentos_controlados=meds_controlados,
-        discrepancia_identidad=discrepancia
+        discrepancia_identidad=discrepancia_identidad,
     )
 
     if state.metadata.get("cie10_codigos_invalidos"):
@@ -112,11 +108,10 @@ def _calcular_destino(
         )
 
     if nivel == "Urgente":
-        nombre = paciente_nombre or "Paciente desconocido"
         diag = diagnostico or "diagnóstico no especificado"
         notificacion = {
             "canal": "Alerta_Guardia_Medica",
-            "mensaje": f"ALERTA URGENTE: {diag} detectado para {nombre}.",
+            "mensaje": MENSAJE_GUARDIA,
         }
         return (
             "Cola_Emergencia_Medica",
@@ -135,9 +130,8 @@ def _calcular_destino(
 
     # Evaluación Farmacia
     diag_lower = (diagnostico or "").lower()
-    es_farmacia = (
-        tipo_documento == "Receta_Medica" or
-        ("farmacoterapia" in diag_lower and "descompensación aguda" not in diag_lower)
+    es_farmacia = normalizar_tipo_documento(tipo_documento) == "Receta Médica" or (
+        "farmacoterapia" in diag_lower and "descompensación aguda" not in diag_lower
     )
 
     if es_farmacia:
@@ -163,4 +157,3 @@ def _calcular_destino(
         None,
         False,
     )
-

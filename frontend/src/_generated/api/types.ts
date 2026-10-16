@@ -4,6 +4,36 @@
  */
 
 export interface paths {
+    "/alerts/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recibir alertas críticas de guardia por SSE
+         * @description Solo MEDICO, COORDINADOR y ADMINISTRADOR con Authorization Bearer.
+         *     Cada evento ALERTA_GUARDIA_EMITIDA contiene JSON con el esquema AlertaGuardia.
+         *     Se publica después de confirmar documento y trazabilidad en PostgreSQL,
+         *     únicamente si el destino final es Cola_Emergencia_Medica.
+         *     Comentarios de mantenimiento cada 15 segundos; la sesión y el rol se
+         *     comprueban antes de cada envío y mantenimiento. Si dejan de ser válidos,
+         *     se cierra el flujo. No se aceptan tokens mediante parámetros de la URL.
+         *     Difusión en un solo proceso, sin reproducción de eventos históricos.
+         *     Cada cliente tiene una cola limitada; un cliente lento se desconecta.
+         *     El id identifica el registro persistido, no implica soporte Last-Event-ID.
+         *     Usar fetch con Authorization o un cliente SSE que permita cabeceras.
+         */
+        get: operations["recibirAlertasGuardia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metrics": {
         parameters: {
             query?: never;
@@ -469,10 +499,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/coordination/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bandeja de triajes pendientes de auditoría HITL
+         * @description Retorna la lista de triajes retenidos que requieren revisión médica humana (exclusivo COORDINADOR y ADMINISTRADOR).
+         */
+        get: operations["obtenerTriajesPendientesAuditoria"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/coordination/resolve/{documento_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolución médica de triaje HITL
+         * @description Registra el dictamen médico formal, reasignación y justificación clínica de un caso en revisión.
+         */
+        post: operations["resolverTriajeAuditoria"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/coordination/audit/{documento_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historial de eventos y trazabilidad del documento
+         * @description Retorna la bitácora inmutable de eventos hospitalarios y auditorías para un documento.
+         */
+        get: operations["obtenerHistorialAuditoriaDocumento"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Datos del evento confirmado en PostgreSQL; sin nombre, DNI ni diagnóstico. */
+        AlertaGuardia: {
+            /**
+             * Format: uuid
+             * @description Identificador de trazabilidad, también usado como id del evento SSE.
+             */
+            id: string;
+            documento_id: string;
+            /** Format: uuid */
+            episodio_id: string | null;
+            prioridad: ("Urgente" | "Rutina" | "Ambiguo") | null;
+            /** Format: date-time */
+            fecha: string;
+            mensaje: string;
+        };
         /** @description Conteos de documentos únicos elegibles por prioridad vigente, no pacientes ni porcentajes. */
         DistribucionPrioridadMetrics: {
             /** @description Documentos Urgente; presentación roja. */
@@ -536,6 +641,60 @@ export interface components {
              * @example 0.99
              */
             score_confianza_clasificacion: number;
+        };
+        PendingTriageItem: {
+            /** @example DOC-2026-0001 */
+            documento_id: string;
+            /** Format: uuid */
+            episodio_id?: string | null;
+            /** Format: date-time */
+            fecha_ingesta: string;
+            /** @example 25 */
+            tiempo_espera_minutos?: number;
+            /** @example pendiente_auditoria */
+            estado: string;
+            /** @example Admision */
+            canal_origen?: string;
+            /** @example Cardiologia */
+            especialidad_sugerida?: string | null;
+            /** @example Urgente */
+            nivel_prioridad?: string | null;
+            /** @example 0.42 */
+            confianza_ia?: number | null;
+            motivo_hitl?: string | null;
+            diagnostico_preliminar?: string | null;
+            codigo_cie10?: string | null;
+            paciente?: Record<string, never> | null;
+        };
+        ResolveTriageRequest: {
+            /** @enum {string} */
+            decision: "aprobar" | "reclasificar" | "rechazar";
+            justificacion_clinica: string;
+            categoria_destino?: string | null;
+            prioridad_sugerida?: string | null;
+        };
+        ResolveTriageResponse: {
+            id: string;
+            documento_id: string;
+            episodio_id?: string | null;
+            coordinador_id: string;
+            decision: string;
+            justificacion_clinica: string;
+            nuevo_estado: string;
+            /** Format: date-time */
+            created_at: string;
+            mensaje?: string;
+        };
+        AuditEventItem: {
+            id: string;
+            documento_id: string;
+            episodio_id?: string | null;
+            usuario_id?: string | null;
+            evento: string;
+            descripcion: string;
+            metadata?: Record<string, never>;
+            /** Format: date-time */
+            created_at: string;
         };
         /** @description Identificación del paciente extraída del documento. */
         Paciente: {
@@ -881,6 +1040,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    recibirAlertasGuardia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Flujo SSE persistente; data de cada evento sigue AlertaGuardia. */
+            200: {
+                headers: {
+                    /** @description no-cache, no-transform */
+                    "Cache-Control"?: string;
+                    /** @description no */
+                    "X-Accel-Buffering"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example id: 00000000-0000-4000-8000-000000000001
+                     *     event: ALERTA_GUARDIA_EMITIDA
+                     *     data: {"id":"00000000-0000-4000-8000-000000000001","documento_id":"DOC-PRUEBA","episodio_id":null,"prioridad":"Urgente","fecha":"2026-10-14T12:00:00Z","mensaje":"Documento crítico pendiente de atención del equipo de guardia."}
+                     */
+                    "text/event-stream": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Rol sin autorización para recibir alertas de guardia. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     obtenerMetricasTriaje: {
         parameters: {
             query?: never;
@@ -1721,6 +1918,160 @@ export interface operations {
                 };
             };
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    obtenerTriajesPendientesAuditoria: {
+        parameters: {
+            query?: {
+                /** @description Filtro opcional por especialidad */
+                especialidad?: string;
+                /** @description Filtro por tiempo mínimo de espera en minutos */
+                minutos_espera?: number;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de triajes pendientes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingTriageItem"][];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado (requiere rol COORDINADOR o ADMINISTRADOR) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Base de datos no disponible */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resolverTriajeAuditoria: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador único del documento de triaje */
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveTriageRequest"];
+            };
+        };
+        responses: {
+            /** @description Resolución médica registrada exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolveTriageResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado (requiere rol COORDINADOR o ADMINISTRADOR) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Documento de triaje no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error de validación en los campos de entrada */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Base de datos no disponible */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    obtenerHistorialAuditoriaDocumento: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador único del documento de triaje */
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historial de eventos del documento */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventItem"][];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado (requiere rol COORDINADOR o ADMINISTRADOR) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Base de datos no disponible */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }

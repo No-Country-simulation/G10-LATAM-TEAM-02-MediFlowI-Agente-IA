@@ -7,7 +7,7 @@ Estructura:
           → [conditional] → routing → END
 
 NOTA: Este archivo es MANUAL. No está en _generated/.
-El grafo refleja el flujo definido en ARQUITECTURA-SDD.md.
+El flujo y sus límites están documentados en Docs/GUIA_LANGGRAPH.md.
 """
 
 import functools
@@ -68,6 +68,7 @@ def build_graph(llm_service=None) -> Any:
                 justificacion_enrutamiento="Error crítico en procesamiento. Derivado a auditoría.",
             ),
             "status": "pendiente_auditoria",
+            "nodos_ejecutados": state.nodos_ejecutados + ["forzar_auditoria"],
         }
 
     graph.add_node("forzar_auditoria", nodo_forzar_auditoria)

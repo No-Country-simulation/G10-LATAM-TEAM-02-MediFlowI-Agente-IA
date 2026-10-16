@@ -1,10 +1,15 @@
 // AUTO-GENERADO desde specs/openapi.yaml. NO EDITAR.
 import type { components } from './types'
 export type * from './types'
+export type AlertaGuardia = components['schemas']['AlertaGuardia']
 export type DistribucionPrioridadMetrics = components['schemas']['DistribucionPrioridadMetrics']
 export type MetricsResponse = components['schemas']['MetricsResponse']
 export type DocumentoClinico = components['schemas']['DocumentoClinico']
 export type Clasificacion = components['schemas']['Clasificacion']
+export type PendingTriageItem = components['schemas']['PendingTriageItem']
+export type ResolveTriageRequest = components['schemas']['ResolveTriageRequest']
+export type ResolveTriageResponse = components['schemas']['ResolveTriageResponse']
+export type AuditEventItem = components['schemas']['AuditEventItem']
 export type Paciente = components['schemas']['Paciente']
 export type MedicoSolicitante = components['schemas']['MedicoSolicitante']
 export type DatosExtraidos = components['schemas']['DatosExtraidos']

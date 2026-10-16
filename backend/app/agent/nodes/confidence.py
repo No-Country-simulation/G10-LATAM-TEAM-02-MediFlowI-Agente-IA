@@ -9,7 +9,7 @@ from typing import Any
 
 import structlog
 
-from app.agent.state import AgentState, ClasificacionState, DatosExtraidosState
+from app.agent.state import AgentState, DatosExtraidosState
 
 logger = structlog.get_logger(__name__)
 
@@ -99,12 +99,8 @@ async def node_confidence(state: AgentState) -> dict[str, Any]:
         error_mensaje=state.error_mensaje,
     )
 
-    clasificacion_actualizada = ClasificacionState(
-        tipo_documento=state.clasificacion.tipo_documento,
-        categoria_documento=state.clasificacion.categoria_documento,
-        especialidad=state.clasificacion.especialidad,
-        nivel_prioridad=state.clasificacion.nivel_prioridad,
-        score_confianza_clasificacion=score_final,
+    clasificacion_actualizada = state.clasificacion.model_copy(
+        update={"score_confianza_clasificacion": score_final},
     )
 
     metadata_actualizada = dict(state.metadata)

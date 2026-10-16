@@ -12,6 +12,7 @@ from app.agent.state import AgentState
 from app.core.config import Settings
 from app.repositories.oci_storage import StoragePersistenceError
 from app.repositories.postgres_storage import DatabaseUnavailableError, PostgresStorageRepository
+from app.services.alert_service import AlertService
 from app.services.llm_service import LLMUnavailableError
 
 logger = structlog.get_logger(__name__)
@@ -24,6 +25,7 @@ def aplicar_asociacion_paciente(resultado: AgentState, resolucion: dict) -> None
     if estado == "asociado":
         resultado.metadata["paciente_id"] = str(resolucion["paciente"]["id"])
     elif estado == "conflicto":
+        resultado.decision_enrutamiento.notificacion_generada = None
         resultado.decision_enrutamiento.destino_principal = "Cola_Revision_Ambigua"
         resultado.decision_enrutamiento.requiere_auditoria_humana = True
         resultado.decision_enrutamiento.justificacion_enrutamiento = (
@@ -39,7 +41,12 @@ class TriageService:
     """
 
     def __init__(
-        self, settings: Settings, llm_service=None, oci_storage=None, postgres_storage=None
+        self,
+        settings: Settings,
+        llm_service=None,
+        oci_storage=None,
+        postgres_storage=None,
+        alert_service=None,
     ):
         from app.repositories.oci_storage import OCIStorageRepository
 
@@ -47,6 +54,7 @@ class TriageService:
         self._llm_service = llm_service
         self._oci_storage = oci_storage or OCIStorageRepository(settings)
         self._postgres_storage = postgres_storage or PostgresStorageRepository(settings)
+        self._alert_service = alert_service if alert_service is not None else AlertService()
 
     async def procesar_documento(
         self,
@@ -168,6 +176,11 @@ class TriageService:
             logger.error("triage_service.postgres.error", documento_id=documento_id, error=str(exc))
             raise
 
+        # El grafo solo prepara la alerta. Tras resolver identidad y persistir el
+        # documento, PostgreSQL confirma el evento antes de enviarlo a SSE.
+        if resultado.decision_enrutamiento.destino_principal == "Cola_Emergencia_Medica":
+            await self._alert_service.emitir(documento_id, usuario_registro_id)
+
         if storage_error is not None:
             raise StoragePersistenceError(
                 "PostgreSQL registró el fallo, pero el archivo físico no pudo persistirse."
@@ -211,11 +224,11 @@ class TriageService:
             return
 
         try:
+            from app.repositories.audit_repository import AuditRepository
             from app.repositories.episode_repository import (
                 create_episode,
                 get_active_episode_by_patient,
             )
-            from app.repositories.audit_repository import AuditRepository
 
             episodio_activo = await get_active_episode_by_patient(paciente_id)
             if episodio_activo:

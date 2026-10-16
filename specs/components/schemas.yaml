@@ -1,4 +1,29 @@
 schemas:
+  AlertaGuardia:
+    type: object
+    additionalProperties: false
+    required: [id, documento_id, episodio_id, prioridad, fecha, mensaje]
+    description: Datos del evento confirmado en PostgreSQL; sin nombre, DNI ni diagnóstico.
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Identificador de trazabilidad, también usado como id del evento SSE.
+      documento_id:
+        type: string
+      episodio_id:
+        type: [string, 'null']
+        format: uuid
+      prioridad:
+        anyOf:
+          - type: string
+            enum: [Urgente, Rutina, Ambiguo]
+          - type: 'null'
+      fecha:
+        type: string
+        format: date-time
+      mensaje:
+        type: string
   DistribucionPrioridadMetrics:
     type: object
     additionalProperties: false
