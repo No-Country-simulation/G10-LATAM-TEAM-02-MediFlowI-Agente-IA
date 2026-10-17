@@ -16,8 +16,10 @@ from typing import Any
 
 import structlog
 from langgraph.graph import END, StateGraph
+from langgraph.runtime import Runtime
 
 from app.agent.edges.conditional import decidir_post_confidence
+from app.agent.fusion import ContextoTriaje
 from app.agent.nodes.classification import node_classification
 from app.agent.nodes.confidence import node_confidence
 from app.agent.nodes.extraction import node_extraction
@@ -28,32 +30,30 @@ from app.agent.state import AgentState
 logger = structlog.get_logger(__name__)
 
 
-def _wrap_with_llm(node_fn, llm_service):
-    """Wrappea nodos que requieren llm_service via functools.partial."""
+def _wrap_with_context(node_fn):
+    """Inyecta el cliente y la fusión por solicitud, nunca mediante una clausura global."""
 
-    @functools.wraps(node_fn)
-    async def wrapper(state: AgentState) -> dict:
-        return await node_fn(state, llm_service=llm_service)
+    async def wrapper(state: AgentState, runtime: Runtime[ContextoTriaje]) -> dict:
+        context = runtime.context if runtime.context is not None else ContextoTriaje()
+        return await node_fn(state, llm_service=context.llm_service, fusion_context=context)
 
     return wrapper
 
 
-def build_graph(llm_service=None) -> Any:
+@functools.cache
+def build_graph() -> Any:
     """
     Construye y compila el grafo LangGraph de MediFlow.
-
-    Args:
-        llm_service: Instancia obligatoria para los nodos clínicos con IA.
 
     Returns:
         Grafo compilado listo para invocar.
     """
-    graph = StateGraph(AgentState)
+    graph = StateGraph(AgentState, context_schema=ContextoTriaje)
 
     # ── Registrar nodos ──────────────────────────────────────────────────────
-    graph.add_node("ingestion", _wrap_with_llm(node_ingestion, llm_service))
-    graph.add_node("extraction", _wrap_with_llm(node_extraction, llm_service))
-    graph.add_node("classification", _wrap_with_llm(node_classification, llm_service))
+    graph.add_node("ingestion", _wrap_with_context(node_ingestion))
+    graph.add_node("extraction", _wrap_with_context(node_extraction))
+    graph.add_node("classification", _wrap_with_context(node_classification))
     graph.add_node("confidence", node_confidence)
     graph.add_node("routing", node_routing)
 
@@ -119,7 +119,7 @@ async def ejecutar_triage(
     Returns:
         AgentState con todos los resultados del grafo
     """
-    inicio = time.time()
+    inicio = time.perf_counter()
 
     estado_inicial = AgentState(
         documento_id=documento_id,
@@ -130,14 +130,17 @@ async def ejecutar_triage(
         metadata=metadata or {},
     )
 
-    graph = build_graph(llm_service=llm_service)
+    graph = build_graph()
 
     logger.info("agente.triage.inicio", documento_id=documento_id)
 
-    resultado_raw: dict[str, Any] = await graph.ainvoke(estado_inicial.model_dump())
+    resultado_raw: dict[str, Any] = await graph.ainvoke(
+        estado_inicial.model_dump(),
+        context=ContextoTriaje(llm_service),
+    )
     resultado = AgentState(**resultado_raw)
 
-    tiempo_ms = int((time.time() - inicio) * 1000)
+    tiempo_ms = int((time.perf_counter() - inicio) * 1000)
     resultado.tiempo_procesamiento_ms = tiempo_ms
 
     logger.info(

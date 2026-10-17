@@ -10,6 +10,10 @@ persistidos y la intervención humana se realiza mediante los endpoints HITL.
 Esta guía describe el código integrado desde `develop` en `b175a3f` y las
 correcciones locales de integración del catálogo, conservación del estado y
 trazabilidad del terminal de error. No cambia umbrales ni precedencias clínicas.
+El trabajo local de IA-09 se actualizó el 16 de octubre sobre develop `482da50`,
+con la ingesta multimodal, medicamentos y enrutamiento de Farmacia incorporados
+por el equipo. La [comparación de integración](IA-09_COMPARACION_DEVELOP_20261016.md)
+describe qué cambió desde la base inicial de esta guía.
 
 ## Recorrido
 
@@ -36,14 +40,22 @@ existía para errores críticos; no procesa otro análisis clínico.
 
 | Nodo | Responsabilidad | Salida principal |
 | --- | --- | --- |
-| `ingestion` | Texto directo, lectura PDF y OCR Tesseract en español para imágenes o PDF sin texto | `texto_extraido`, errores |
-| `extraction` | Extraer entidades por bloques, validar CIE-10 y cotejar identificadores de paciente | `datos_extraidos`, `metadata` |
-| `classification` | Clasificar bloques y consolidar su prioridad usando el catálogo canónico | `clasificacion` |
+| `ingestion` | Texto/PDF; en IA-09 local, fusión Gemini Vision para imágenes y limpieza Base64 | `texto_extraido`, errores y contexto efímero de fusión |
+| `extraction` | Entidades y medicamentos por bloques o fusión; validar CIE-10, identidad y deduplicar prescripciones | `datos_extraidos`, `metadata` |
+| `classification` | Clasificar bloques o reutilizar fusión y normalizar el catálogo canónico | `clasificacion` |
 | `confidence` | Ajustar el score con las señales ya implementadas, conservando los demás campos | `clasificacion` copiada |
 | `routing` | Resolver destino, revisión humana y notificación usando los resultados anteriores | `decision_enrutamiento`, `status` |
 | `forzar_auditoria` | Terminar ante el error crítico definido por la arista condicional | Auditoría humana y traza del terminal |
 
 ## Estado compartido y actualizaciones
+
+El trabajo local [IA-09: Pipeline Fusion](IA-09_PIPELINE_FUSION.md) mantiene este
+recorrido y reutiliza el grafo compilado. Para imágenes se añade un contexto de
+ejecución por documento, separado del estado persistible y de los metadatos del
+cliente. Tras optimizar el esquema JSON y usar razonamiento low en Fusion, la
+medición con Gemini Flash Lite obtuvo un p95 de 3,657 s en 20 ejecuciones
+sintéticas. Las pausas entre documentos respetan la cuota y quedan fuera del
+grafo medido; este resultado no acredita rendimiento bajo carga.
 
 `backend/app/agent/state.py` define los modelos Pydantic que viajan por el grafo.
 Cada nodo devuelve un diccionario con los campos que actualiza; los campos no

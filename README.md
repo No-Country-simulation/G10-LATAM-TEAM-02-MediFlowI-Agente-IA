@@ -104,6 +104,12 @@ El [despacho de alertas de guardia por SSE](Docs/IA-08_ALERTAS_GUARDIA_SSE.md)
 publica las emergencias después de confirmar documento y trazabilidad en
 PostgreSQL. El acceso está limitado a médico, coordinador y administrador.
 
+El trabajo local de [IA-09: Pipeline Fusion](Docs/IA-09_PIPELINE_FUSION.md)
+consolida el análisis de imágenes en una invocación Gemini Vision. El objetivo
+de p95 menor de ocho segundos se alcanzó en la medición local con Gemini
+Flash Lite: **3,657 s** en 20 ejecuciones sintéticas, con razonamiento low y
+pausas entre documentos para respetar la cuota. No acredita rendimiento bajo carga.
+
 ### Flujo SDD (Spec-Driven Development)
 
 ```

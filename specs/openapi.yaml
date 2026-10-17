@@ -93,6 +93,10 @@ paths:
     $ref: ./paths/coordination.yaml#/coordinationAudit
 components:
   schemas:
+    ClasificacionFusionVision:
+      $ref: ./components/schemas.yaml#/schemas/ClasificacionFusionVision
+    ResultadoFusionVision:
+      $ref: ./components/schemas.yaml#/schemas/ResultadoFusionVision
     AlertaGuardia:
       $ref: ./components/schemas.yaml#/schemas/AlertaGuardia
     DistribucionPrioridadMetrics:

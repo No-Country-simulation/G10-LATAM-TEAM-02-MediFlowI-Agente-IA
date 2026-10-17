@@ -41,6 +41,8 @@ class LLMService:
                     model=self._settings.gemini_model,
                     google_api_key=g_key,
                     temperature=0.1,  # Baja temperatura para extracción estructurada
+                    timeout=30,
+                    max_retries=2,
                 )
                 self._provider = "gemini"
                 logger.info(
@@ -103,7 +105,7 @@ class LLMService:
         return self._normalizar_contenido(getattr(respuesta, "content", respuesta))
 
     async def completar_multimodal(
-        self, prompt: str, imagenes: list[dict[str, str] | str]
+        self, prompt: str, imagenes: list[dict[str, str] | str], *, fusion: bool = False
     ) -> str:
         """
         Envía un prompt junto con una o más imágenes (Base64) al LLM multimodal.
@@ -146,12 +148,21 @@ class LLMService:
 
             content_parts.append({"type": "image_url", "image_url": {"url": url}})
 
-        respuesta = await self._client.ainvoke([HumanMessage(content=content_parts)])
+        options: dict[str, Any] = {}
+        if fusion:
+            from app.agent.fusion import esquema_fusion
+
+            options = {
+                "response_mime_type": "application/json",
+                "response_json_schema": esquema_fusion(),
+            }
+            if self._settings.gemini_model.removeprefix("models/").startswith("gemini-3"):
+                # Nivel autorizado para Fusion; no altera llamadas de texto/PDF.
+                options.update(thinking_level="low", include_thoughts=False)
+        respuesta = await self._client.ainvoke([HumanMessage(content=content_parts)], **options)
         return self._normalizar_contenido(getattr(respuesta, "content", respuesta))
 
-    def _respuesta_mock_multimodal(
-        self, prompt: str, imagenes: list[dict[str, str] | str]
-    ) -> str:
+    def _respuesta_mock_multimodal(self, prompt: str, imagenes: list[dict[str, str] | str]) -> str:
         """Respuesta mock para procesamiento multimodal en pruebas controladas."""
         return (
             "DOCUMENTO CLÍNICO FOTOGRAFIADO / ESCANEADO\n"
@@ -161,6 +172,18 @@ class LLMService:
             "Diagnóstico: Faringoamigdalitis aguda\n"
             "CIE-10: J03.9\n"
             "Indicaciones: Amoxicilina 500mg cada 8 horas por 7 días."
+        )
+
+    async def completar_imagen(self, prompt: str, imagen_base64: str) -> str:
+        """Un ainvoke de Gemini con texto e imagen JPEG, sin fallback a otro proveedor."""
+        if self._provider != "gemini" or self._client is None:
+            raise LLMUnavailableError(
+                "La fusión de imagen requiere un proveedor Gemini disponible."
+            )
+        return await self.completar_multimodal(
+            prompt=prompt,
+            imagenes=[{"mime_type": "image/jpeg", "data_base64": imagen_base64}],
+            fusion=True,
         )
 
     @staticmethod
@@ -178,14 +201,14 @@ class LLMService:
                 elif isinstance(parte, dict) and "text" in parte:
                     partes.append(str(parte["text"]))
                 elif hasattr(parte, "text"):
-                    partes.append(str(getattr(parte, "text")))
+                    partes.append(str(parte.text))
                 elif parte is not None:
                     partes.append(str(parte))
             return "".join(partes)
         if isinstance(content, dict) and "text" in content:
             return str(content["text"])
         if hasattr(content, "text"):
-            return str(getattr(content, "text"))
+            return str(content.text)
         return str(content)
 
     def _respuesta_mock(self, prompt: str) -> str:
@@ -205,7 +228,9 @@ class LLMService:
             cuerpo = prompt_lower.split("documento a analizar:")[1]
 
         # Extraer identificadores si están presentes en el texto
-        dni_match = re.search(r"(?:dni|documento(?:\s+de\s+identidad)?)\s*[:#]?\s*([0-9a-z\-]+)", cuerpo)
+        dni_match = re.search(
+            r"(?:dni|documento(?:\s+de\s+identidad)?)\s*[:#]?\s*([0-9a-z\-]+)", cuerpo
+        )
         hc_match = re.search(r"(?:hc|historia\s+cl[íi]nica)\s*[:#]?\s*([0-9a-z\-]+)", cuerpo)
         dni_extraido = dni_match.group(1).upper() if dni_match else None
         hc_extraida = hc_match.group(1).upper() if hc_match else None
