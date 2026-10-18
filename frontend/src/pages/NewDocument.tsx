@@ -155,7 +155,7 @@ const NewDocument = () => {
           style={{ fontFamily: "'Quicksand', sans-serif" }}
         >
           Bienvenido/a al panel de control. Para comenzar el análisis del documento, arrastre y suelte el
-          archivo en el área indicada o presione el botón para examinar sus archivos.
+          archivo en el área indicada o presione el botón para examinar sus archivos
         </p>
       </header>
 
@@ -179,7 +179,7 @@ const NewDocument = () => {
               Ejecutar nuevo análisis
             </h2>
             <span className="text-xs text-slate-400 mt-0.5">
-              Formatos soportados: PDF, PNG, JPG, JPEG, JSON (Máx. 10 MB)
+              Formatos soportados: PDF, PNG, JPG, JPEG, JSON, WebP (Máx. 10 MB)
             </span>
           </div>
 
@@ -207,7 +207,7 @@ const NewDocument = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.png,.jpg,.jpeg,.json"
+          accept=".pdf,.png,.jpg,.jpeg,.json,.webp"
           onChange={handleFileChange}
           className="hidden"
           disabled={isProcessing}
