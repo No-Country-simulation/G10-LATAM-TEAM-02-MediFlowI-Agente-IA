@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
     },
     {
       path: "/documentos",
-      label: "Historial de enrutamiento",
+      label: "Historial de triajes",
       icon: <LuFolder size={16} className="shrink-0" />,
       exact: true,
     },
