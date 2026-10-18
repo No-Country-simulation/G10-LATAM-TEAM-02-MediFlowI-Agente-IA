@@ -9,7 +9,7 @@ interface DocumentUploaderProps {
   isProcessing?: boolean
 }
 
-const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const CHANNELS = [
@@ -38,8 +38,8 @@ const DocumentUploader = ({ onProcess, onCancel, isProcessing = false }: Documen
       return false;
     }
 
-    if (!ALLOWED_TYPES.includes(selectedFile.type) && !selectedFile.name.match(/\.(pdf|jpg|jpeg|png)$/i)) {
-      setErrorMessage("El formato del archivo no está permitido. Solo se permiten PDF, JPG y PNG.");
+    if (!ALLOWED_TYPES.includes(selectedFile.type) && !selectedFile.name.match(/\.(pdf|jpg|jpeg|png|webp)$/i)) {
+      setErrorMessage("El formato del archivo no está permitido. Solo se permiten PDF, JPG, PNG y WebP.");
       return false;
     }
 
@@ -118,7 +118,7 @@ const DocumentUploader = ({ onProcess, onCancel, isProcessing = false }: Documen
       <div className="clinical-surface__header">
         <div>
           <h2 className="clinical-surface__title">Archivo y procedencia</h2>
-          <p className="clinical-surface__hint">Formatos admitidos: PDF, JPG y PNG, hasta 10 MB.</p>
+          <p className="clinical-surface__hint">Formatos admitidos: PDF, JPG, PNG y WebP, hasta 10 MB.</p>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ const DocumentUploader = ({ onProcess, onCancel, isProcessing = false }: Documen
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
               className="d-none"
               disabled={isProcessing}
             />
