@@ -155,7 +155,7 @@ const NewDocument = () => {
           style={{ fontFamily: "'Quicksand', sans-serif" }}
         >
           Bienvenido/a al panel de control. Para comenzar el análisis del documento, arrastre y suelte el
-          archivo en el área indicada o presione el botón para examinar sus archivos.
+          archivo en el área indicada o presione el botón para examinar sus archivos
         </p>
       </header>
 
