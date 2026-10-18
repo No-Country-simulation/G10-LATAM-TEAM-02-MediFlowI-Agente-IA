@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import DocumentViewer from '../../../components/documents/DocumentViewer';
 import DocumentUploader from '../../../components/documents/DocumentUploader';
 import { BrowserRouter } from 'react-router-dom';
@@ -32,12 +32,12 @@ describe('DocumentViewer - Soporte de Imágenes WebP', () => {
     expect(img).toHaveStyle({ transform: 'scale(1)' });
     expect(screen.getByText('100%')).toBeInTheDocument();
 
-    const zoomInBtn = screen.getByRole('button', { name: /Acercar imagen/i });
+    const zoomInBtn = screen.getByRole('button', { name: /Acercar documento/i });
     fireEvent.click(zoomInBtn);
     expect(img).toHaveStyle({ transform: 'scale(1.25)' });
     expect(screen.getByText('125%')).toBeInTheDocument();
 
-    const zoomOutBtn = screen.getByRole('button', { name: /Alejar imagen/i });
+    const zoomOutBtn = screen.getByRole('button', { name: /Alejar documento/i });
     fireEvent.click(zoomOutBtn);
     expect(img).toHaveStyle({ transform: 'scale(1)' });
     expect(screen.getByText('100%')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('DocumentViewer - Soporte de Imágenes WebP', () => {
     expect(newImg).toHaveAttribute('src', 'https://hospital.local/imagen2.webp');
   });
 
-  it('permite alternar entre tamaño normal y pantalla completa', () => {
+  it('permite alternar entre tamaño normal y pantalla completa', async () => {
     render(
       <DocumentViewer
         fileName="estudio.webp"
@@ -110,10 +110,14 @@ describe('DocumentViewer - Soporte de Imágenes WebP', () => {
     );
 
     const expandBtn = screen.getByRole('button', { name: /Pantalla completa/i });
-    fireEvent.click(expandBtn);
+    await act(async () => {
+      fireEvent.click(expandBtn);
+    });
     expect(screen.getByRole('button', { name: /Reducir tamaño/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir tamaño/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Reducir tamaño/i }));
+    });
     expect(screen.getByRole('button', { name: /Pantalla completa/i })).toBeInTheDocument();
   });
 
@@ -122,6 +126,143 @@ describe('DocumentViewer - Soporte de Imágenes WebP', () => {
 
     expect(screen.getByText(/Imagen Médica \(JPG\/PNG\/WebP\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/analisis\.webp/i).length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('DocumentViewer - US1: Visualización Fluida de PDFs con Skeleton Loader', () => {
+  it('muestra el Skeleton Loader animado al cargar un archivo PDF', () => {
+    render(
+      <DocumentViewer
+        fileName="expediente_clinico.pdf"
+        fileUrl="https://hospital.local/expediente.pdf"
+      />
+    );
+
+    const skeleton = screen.getByRole('status', { name: /Cargando documento clínico/i });
+    expect(skeleton).toBeInTheDocument();
+    expect(screen.getByText(/Preparando vista del documento clínico/i)).toBeInTheDocument();
+  });
+
+  it('oculta el Skeleton Loader y muestra el PDF embebido tras emitirse el evento de carga', () => {
+    render(
+      <DocumentViewer
+        fileName="informe_triaje.pdf"
+        fileUrl="https://hospital.local/informe.pdf"
+      />
+    );
+
+    const iframeOrObject = screen.getByTitle(/Vista previa del documento PDF/i);
+    expect(iframeOrObject).toBeInTheDocument();
+
+    // Disparar evento load en el visor embebido
+    fireEvent.load(iframeOrObject);
+
+    // El skeleton loader debe haberse ocultado
+    expect(screen.queryByRole('status', { name: /Cargando documento clínico/i })).not.toBeInTheDocument();
+  });
+
+  it('reinicia el estado de carga y muestra el Skeleton Loader al cambiar a otro documento PDF', () => {
+    const { rerender } = render(
+      <DocumentViewer
+        fileName="doc1.pdf"
+        fileUrl="https://hospital.local/doc1.pdf"
+      />
+    );
+
+    const viewer = screen.getByTitle(/Vista previa del documento PDF/i);
+    fireEvent.load(viewer);
+    expect(screen.queryByRole('status', { name: /Cargando documento clínico/i })).not.toBeInTheDocument();
+
+    // Rerender con nuevo documento
+    rerender(
+      <DocumentViewer
+        fileName="doc2.pdf"
+        fileUrl="https://hospital.local/doc2.pdf"
+      />
+    );
+
+    expect(screen.getByRole('status', { name: /Cargando documento clínico/i })).toBeInTheDocument();
+  });
+});
+
+describe('DocumentViewer - US2: Controles de Zoom y Pantalla Completa', () => {
+  it('habilita controles de zoom interactivo en documentos PDF', () => {
+    render(
+      <DocumentViewer
+        fileName="diagnostico.pdf"
+        fileUrl="https://hospital.local/diagnostico.pdf"
+      />
+    );
+
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    const zoomInBtn = screen.getByRole('button', { name: /Acercar documento/i });
+    const zoomOutBtn = screen.getByRole('button', { name: /Alejar documento/i });
+    const resetBtn = screen.getByRole('button', { name: /Restablecer tamaño original/i });
+
+    // Incrementar zoom
+    fireEvent.click(zoomInBtn);
+    expect(screen.getByText('125%')).toBeInTheDocument();
+
+    // Restablecer zoom
+    fireEvent.click(resetBtn);
+    expect(screen.getByText('100%')).toBeInTheDocument();
+
+    // Decrementar zoom
+    fireEvent.click(zoomOutBtn);
+    expect(screen.getByText('75%')).toBeInTheDocument();
+  });
+
+  it('soporta alternancia de pantalla completa invocando la Fullscreen API', async () => {
+    const onFullScreenChangeMock = vi.fn();
+    render(
+      <DocumentViewer
+        fileName="prescripcion.pdf"
+        fileUrl="https://hospital.local/prescripcion.pdf"
+        onFullScreenChange={onFullScreenChangeMock}
+      />
+    );
+
+    const fullscreenBtn = screen.getByRole('button', { name: /Pantalla completa/i });
+    await act(async () => {
+      fireEvent.click(fullscreenBtn);
+    });
+
+    expect(screen.getByRole('button', { name: /Reducir tamaño/i })).toBeInTheDocument();
+  });
+});
+
+describe('DocumentViewer - US3: Descarga Directa y Manejo de Errores de Contingencia', () => {
+  it('proporciona un botón de descarga directa del archivo PDF original con el nombre correspondiente', () => {
+    render(
+      <DocumentViewer
+        fileName="estudio_tomografia.pdf"
+        fileUrl="https://hospital.local/estudio_tomografia.pdf"
+      />
+    );
+
+    const downloadBtn = screen.getByRole('link', { name: /Descargar archivo original/i });
+    expect(downloadBtn).toBeInTheDocument();
+    expect(downloadBtn).toHaveAttribute('href', 'https://hospital.local/estudio_tomografia.pdf');
+    expect(downloadBtn).toHaveAttribute('download', 'estudio_tomografia.pdf');
+  });
+
+  it('muestra la tarjeta de contingencia clínica con opciones de descarga si falla el renderizado embebido', () => {
+    render(
+      <DocumentViewer
+        fileName="fallo_render.pdf"
+        fileUrl="https://hospital.local/fallo_render.pdf"
+      />
+    );
+
+    const viewer = screen.getByTitle(/Vista previa del documento PDF/i);
+    fireEvent.error(viewer);
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Error de visualización del documento/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Descargar documento original/i })).toHaveAttribute(
+      'href',
+      'https://hospital.local/fallo_render.pdf'
+    );
   });
 });
 
@@ -147,4 +288,3 @@ describe('DocumentUploader - Admisión de Formato WebP', () => {
     expect(screen.getByText(/tomografia\.webp/i)).toBeInTheDocument();
   });
 });
-
