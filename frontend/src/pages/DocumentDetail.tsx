@@ -86,7 +86,9 @@ const DocumentDetail = () => {
       <div className="row g-4">
         {/* Left Column: Document Original */}
         <div className="col-12 col-lg-5">
-          <DocumentViewer fileName={doc.nombre_archivo} fileUrl={doc.url_archivo} />
+          <div className="lg:sticky lg:top-4">
+            <DocumentViewer fileName={doc.nombre_archivo} fileUrl={doc.url_archivo} />
+          </div>
         </div>
 
         {/* Right Column: Extracted Data & OCR Tabs */}

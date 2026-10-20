@@ -74,6 +74,7 @@ export function normalizeBackendDocument(item: BackendDocument): ClinicalDocumen
           }))
         : [],
     },
+    url_archivo: (item as any).url_archivo || `/api/v1/documents/${item.documento_id}/file`,
     texto_ocr: item.texto_extraido || item.texto_ocr || '',
     decision_enrutamiento: {
       destino: (decision.destino_principal || 'Cola_Rutina').replace(/_/g, ' ').replace('Cola ', ''),

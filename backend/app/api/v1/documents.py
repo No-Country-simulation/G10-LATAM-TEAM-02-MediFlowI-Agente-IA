@@ -4,15 +4,19 @@ MediFlow — Endpoints GET /documents y PATCH /documents/{id}
 Consulta de documentos procesados y registro de decisiones de auditoría humana (HITL).
 """
 
+import mimetypes
+from pathlib import Path
 from typing import Literal
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from app.agent.clinical_catalog import normalizar_tipo_documento, validar_y_completar_cie10
 from app.core.config import Settings, get_settings
 from app.core.security import require_current_user, require_roles
+from app.repositories.oci_storage import LOCAL_STORAGE_DIR, OCIStorageRepository
 from app.repositories.postgres_storage import PostgresStorageRepository
 
 logger = structlog.get_logger(__name__)
@@ -59,6 +63,9 @@ def _tipo_documento_publico(value: object) -> str:
 
 def _format_document_row(row: dict) -> dict:
     """Convierte una fila canónica de PostgreSQL al contrato público de triaje."""
+    doc_id = row.get("documento_id")
+    url_archivo = f"/api/v1/documents/{doc_id}/file" if doc_id else None
+
     if isinstance(row.get("clasificacion"), dict):
         doc = dict(row)
         doc["clasificacion"] = dict(row["clasificacion"])
@@ -72,17 +79,20 @@ def _format_document_row(row: dict) -> dict:
         if "medicamentos" not in doc["datos_extraidos"]:
             meta = _as_json_value(row.get("metadata"), {})
             doc["datos_extraidos"]["medicamentos"] = meta.get("medicamentos", [])
+        if "url_archivo" not in doc or not doc["url_archivo"]:
+            doc["url_archivo"] = url_archivo
         return doc
 
     created_at = _serialize_temporal(row.get("created_at"))
 
     return {
         "status": row.get("status") or "pendiente_auditoria",
-        "documento_id": row.get("documento_id"),
+        "documento_id": doc_id,
         "tipo_archivo": row.get("tipo_archivo"),
         "canal_origen": row.get("canal_origen") or "",
         "texto_extraido": row.get("texto_extraido") or "",
         "nombre_archivo": row.get("nombre_original"),
+        "url_archivo": url_archivo,
         "clasificacion": {
             "tipo_documento": _tipo_documento_publico(row.get("tipo_documento")),
             "especialidad": row.get("especialidad") or "General",
@@ -214,6 +224,99 @@ async def obtener_documento(
         detail={
             "error": "DOCUMENTO_NO_ENCONTRADO",
             "mensaje": f"No se encontró el documento '{documento_id}'.",
+        },
+    )
+
+
+@router.get("/{documento_id}/file", summary="Obtener archivo original del documento clínico")
+async def obtener_archivo_documento(
+    documento_id: str,
+    token: str | None = None,
+    authorization: str | None = Header(None),
+    settings: Settings = Depends(get_settings),
+):
+    """
+    Retorna el archivo binario original (PDF, PNG, JPG, WebP) persistido
+    para renderizado embebido en DocumentViewer o descarga directa.
+    """
+    pg = PostgresStorageRepository(settings=settings)
+    row = await pg.obtener_por_id(documento_id)
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "DOCUMENTO_NO_ENCONTRADO",
+                "mensaje": f"No se encontró el documento '{documento_id}'.",
+            },
+        )
+
+    nombre_original = row.get("nombre_original") or f"{documento_id}.pdf"
+    archivo_original_rel = row.get("archivo_original")
+
+    # Resolver tipo MIME
+    mime_type, _ = mimetypes.guess_type(nombre_original)
+    if not mime_type:
+        tipo = (row.get("tipo_archivo") or "").upper()
+        if "PDF" in tipo:
+            mime_type = "application/pdf"
+        elif "IMAGEN" in tipo or "PNG" in tipo:
+            mime_type = "image/png"
+        else:
+            mime_type = "application/octet-stream"
+
+    storage_mode = (row.get("storage_provider") or "LOCAL").upper()
+
+    # 1. Intentar desde almacenamiento LOCAL
+    candidatos_locales = []
+    if archivo_original_rel:
+        candidatos_locales.append(LOCAL_STORAGE_DIR / archivo_original_rel)
+
+    dir_recibidos = LOCAL_STORAGE_DIR / "recibidos" / documento_id
+    if dir_recibidos.exists():
+        for f in dir_recibidos.iterdir():
+            if f.is_file():
+                candidatos_locales.append(f)
+
+    for local_path in candidatos_locales:
+        if local_path.exists() and local_path.is_file():
+            return FileResponse(
+                path=str(local_path),
+                media_type=mime_type,
+                filename=nombre_original,
+                headers={
+                    "Content-Disposition": f'inline; filename="{nombre_original}"',
+                    "Cache-Control": "public, max-age=3600",
+                },
+            )
+
+    # 2. Si el modo es OCI y no está local, intentar descargarlo de OCI
+    if storage_mode == "OCI":
+        oci_repo = OCIStorageRepository(settings=settings, storage_mode="OCI")
+        try:
+            ruta_objeto = archivo_original_rel or f"recibidos/{documento_id}/original.pdf"
+            contenido_bytes = await oci_repo.obtener_documento(ruta_objeto)
+            if contenido_bytes:
+                raw_bytes = (
+                    contenido_bytes
+                    if isinstance(contenido_bytes, bytes)
+                    else contenido_bytes.encode("utf-8")
+                )
+                return Response(
+                    content=raw_bytes,
+                    media_type=mime_type,
+                    headers={
+                        "Content-Disposition": f'inline; filename="{nombre_original}"',
+                        "Cache-Control": "public, max-age=3600",
+                    },
+                )
+        except Exception as exc:
+            logger.error("api.documents.file_oci_error", documento_id=documento_id, error=str(exc))
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={
+            "error": "ARCHIVO_NO_ENCONTRADO",
+            "mensaje": f"El archivo original para '{documento_id}' no está disponible.",
         },
     )
 
