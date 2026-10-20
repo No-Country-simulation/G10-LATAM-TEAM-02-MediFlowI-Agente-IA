@@ -65,17 +65,17 @@ def test_user_password_policy_applies_to_create_and_update():
 
 @pytest.mark.asyncio
 async def test_login_success():
-    """Verifica inicio de sesión exitoso con DNI de 8 cifras y contraseña correcta."""
-    with patch("app.api.v1.auth.get_user_by_document", new_callable=AsyncMock) as mock_get:
+    """Verifica inicio de sesión exitoso con correo electrónico y contraseña correcta."""
+    with patch("app.api.v1.auth.get_user_by_email", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = MOCK_ADMIN_USER
 
         response = client.post(
-            "/api/v1/auth/login", json={"documento_identidad": "12345678", "password": "admin"}
+            "/api/v1/auth/login", json={"correo": "admin@mediflow.local", "password": "admin"}
         )
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
-        assert data["user"]["documento_identidad"] == "12345678"
+        assert data["user"]["correo"] == "admin@mediflow.local"
         assert data["user"]["rol"] == "ADMINISTRADOR"
 
 
@@ -96,10 +96,20 @@ async def test_login_with_email_success():
 
 
 @pytest.mark.asyncio
-async def test_login_invalid_dni_format():
-    """Verifica rechazo si el documento de identidad no contiene 8 cifras."""
+async def test_login_rejects_dni():
+    """Verifica rechazo cuando se intenta iniciar sesión con documento de identidad en lugar de correo."""
     response = client.post(
-        "/api/v1/auth/login", json={"documento_identidad": "12345", "password": "admin"}
+        "/api/v1/auth/login", json={"documento_identidad": "12345678", "password": "admin"}
+    )
+    assert response.status_code == 422
+    assert "no está permitido" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_login_invalid_email_format():
+    """Verifica rechazo si el formato del correo electrónico es inválido."""
+    response = client.post(
+        "/api/v1/auth/login", json={"correo": "correo-no-valido", "password": "admin"}
     )
     assert response.status_code == 422
 
@@ -107,12 +117,12 @@ async def test_login_invalid_dni_format():
 @pytest.mark.asyncio
 async def test_login_wrong_password():
     """Verifica rechazo cuando la contraseña es incorrecta."""
-    with patch("app.api.v1.auth.get_user_by_document", new_callable=AsyncMock) as mock_get:
+    with patch("app.api.v1.auth.get_user_by_email", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = MOCK_ADMIN_USER
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"documento_identidad": "12345678", "password": "wrong_password"},
+            json={"correo": "admin@mediflow.local", "password": "wrong_password"},
         )
         assert response.status_code == 401
         assert "incorrecta" in response.json()["detail"].lower()

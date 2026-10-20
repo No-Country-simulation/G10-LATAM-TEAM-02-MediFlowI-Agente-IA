@@ -31,11 +31,6 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 class LoginRequest(BaseModel):
-    documento_identidad: str | None = Field(
-        None,
-        description="Número de documento de identidad de 8 cifras (DNI)",
-        json_schema_extra={"example": "12345678"},
-    )
     correo: str | None = Field(
         None,
         description="Correo electrónico del usuario",
@@ -49,19 +44,21 @@ class LoginRequest(BaseModel):
     password: str = Field(
         ..., description="Contraseña del usuario", json_schema_extra={"example": "admin"}
     )
+    documento_identidad: str | None = Field(
+        None,
+        description="No permitido. El inicio de sesión se realiza exclusivamente con correo electrónico.",
+    )
 
-    @field_validator("documento_identidad")
+    @field_validator("correo", "email")
     @classmethod
-    def validate_documento_identidad(cls, v: str | None) -> str | None:
+    def validate_email_format(cls, v: str | None) -> str | None:
         if v is None:
             return None
-        v_clean = v.strip()
+        v_clean = v.strip().lower()
         if not v_clean:
             return None
-        if "@" in v_clean:
-            return v_clean
-        if not re.match(r"^\d{8}$", v_clean):
-            raise ValueError("El documento de identidad debe ser un número exacto de 8 cifras.")
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v_clean):
+            raise ValueError("El correo electrónico no tiene un formato válido.")
         return v_clean
 
 
@@ -168,23 +165,21 @@ async def login(req: LoginRequest):
 
     Valida que el usuario exista, esté activo y la contraseña sea correcta.
     """
-    correo_identificador = req.correo or req.email
-    doc_identificador = req.documento_identidad
-
-    if doc_identificador and "@" in doc_identificador and not correo_identificador:
-        correo_identificador = doc_identificador
-        doc_identificador = None
-
-    user = None
-    if correo_identificador:
-        user = await get_user_by_email(correo_identificador.strip())
-    elif doc_identificador:
-        user = await get_user_by_document(doc_identificador.strip())
-    else:
+    if req.documento_identidad and not (req.correo or req.email):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Debe ingresar su correo electrónico o su documento de identidad.",
+            detail="El inicio de sesión con documento de identidad no está permitido. Por favor use su correo electrónico.",
         )
+
+    correo_identificador = req.correo or req.email
+
+    if not correo_identificador:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Debe ingresar su correo electrónico.",
+        )
+
+    user = await get_user_by_email(correo_identificador.strip().lower())
 
     if not user:
         raise HTTPException(

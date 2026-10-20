@@ -30,7 +30,6 @@ import {
   FaExclamationTriangle,
   FaLink,
 } from 'react-icons/fa'
-import '../App.css'
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
@@ -359,128 +358,118 @@ export default function PatientsManagementView() {
       )}
 
       {/* Tarjetas KPI */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3 d-flex align-items-center">
-              <div className="rounded-3 p-3 bg-primary bg-opacity-10 text-primary me-3">
-                <FaUserInjured size={24} />
-              </div>
-              <div>
-                <span className="text-muted small fw-medium d-block">Total Pacientes</span>
-                <h3 className="fw-bold mb-0 text-dark">{patients.length}</h3>
-              </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
+          <div className="card-body p-3 d-flex align-items-center">
+            <div className="rounded-3 p-3 bg-primary bg-opacity-10 text-primary me-3">
+              <FaUserInjured size={24} />
+            </div>
+            <div>
+              <span className="text-muted small fw-medium d-block">Total Pacientes</span>
+              <h3 className="fw-bold mb-0 text-dark">{patients.length}</h3>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3 d-flex align-items-center">
-              <div className="rounded-3 p-3 bg-info bg-opacity-10 text-info me-3">
-                <FaHashtag size={24} />
-              </div>
-              <div>
-                <span className="text-muted small fw-medium d-block">Con Historia Clínica</span>
-                <h3 className="fw-bold mb-0 text-dark">
-                  {patients.filter((p) => p.historia_clinica).length}
-                </h3>
-              </div>
+        <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
+          <div className="card-body p-3 d-flex align-items-center">
+            <div className="rounded-3 p-3 bg-info bg-opacity-10 text-info me-3">
+              <FaHashtag size={24} />
+            </div>
+            <div>
+              <span className="text-muted small fw-medium d-block">Con Historia Clínica</span>
+              <h3 className="fw-bold mb-0 text-dark">
+                {patients.filter((p) => p.historia_clinica).length}
+              </h3>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3 d-flex align-items-center">
-              <div className="rounded-3 p-3 bg-success bg-opacity-10 text-success me-3">
-                <FaFolderOpen size={24} />
-              </div>
-              <div>
-                <span className="text-muted small fw-medium d-block">Vínculos Documentales</span>
-                <h3 className="fw-bold mb-0 text-dark">Activos</h3>
-              </div>
+        <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
+          <div className="card-body p-3 d-flex align-items-center">
+            <div className="rounded-3 p-3 bg-success bg-opacity-10 text-success me-3">
+              <FaFolderOpen size={24} />
+            </div>
+            <div>
+              <span className="text-muted small fw-medium d-block">Vínculos Documentales</span>
+              <h3 className="fw-bold mb-0 text-dark">Activos</h3>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3 d-flex align-items-center">
-              <div className="rounded-3 p-3 bg-warning bg-opacity-10 text-warning me-3">
-                <FaRobot size={24} />
-              </div>
-              <div>
-                <span className="text-muted small fw-medium d-block">Detección IA (RF-09)</span>
-                <h3 className="fw-bold mb-0 text-dark">Habilitado</h3>
-              </div>
+        <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
+          <div className="card-body p-3 d-flex align-items-center">
+            <div className="rounded-3 p-3 bg-warning bg-opacity-10 text-warning me-3">
+              <FaRobot size={24} />
+            </div>
+            <div>
+              <span className="text-muted small fw-medium d-block">Detección IA (RF-09)</span>
+              <h3 className="fw-bold mb-0 text-dark">Habilitado</h3>
             </div>
           </div>
         </div>
       </div>
 
       {/* Barra de Búsqueda (RF-07) */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body p-3">
-          <div className="row g-2 align-items-center">
-            <div className="col-12 col-md-8 col-lg-6">
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0">
-                  <FaSearch className="text-muted" />
-                </span>
-                <input
-                  type="text"
-                  className="form-control bg-light border-start-0 ps-0"
-                  placeholder="Buscar paciente por DNI, Historia Clínica o Nombres/Apellidos..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                />
-                {searchTerm && (
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => {
-                      setSearchTerm('')
-                      loadPatients('')
-                    }}
-                  >
-                    Limpiar
-                  </button>
-                )}
-              </div>
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 mb-4">
+        <div className="row g-2 align-items-center">
+          <div className="col-12 col-md-8 col-lg-6">
+            <div className="input-group">
+              <span className="input-group-text bg-slate-50 border border-slate-200 border-end-0 text-slate-400">
+                <FaSearch />
+              </span>
+              <input
+                type="text"
+                className="form-control bg-slate-50 border border-slate-200 border-start-0 ps-0 text-slate-800 placeholder-slate-400 text-sm focus:bg-white focus:border-indigo-500"
+                placeholder="Buscar paciente por DNI, Historia Clínica o Nombres/Apellidos..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              {searchTerm && (
+                <button
+                  className="btn btn-outline-secondary border-slate-200 text-slate-600 hover:bg-slate-100"
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('')
+                    loadPatients('')
+                  }}
+                >
+                  Limpiar
+                </button>
+              )}
             </div>
-            <div className="col-12 col-md-4 col-lg-6 text-md-end text-muted small">
-              <span className="badge bg-light text-dark border me-2">RF-07</span> Búsqueda por DNI, HC o Nombres
-            </div>
+          </div>
+          <div className="col-12 col-md-4 col-lg-6 text-md-end text-slate-500 small">
+            <span className="badge bg-slate-100 text-slate-700 border border-slate-200 me-2 font-semibold">RF-07</span> Búsqueda por DNI, HC o Nombres
           </div>
         </div>
       </div>
 
       {/* Tabla de Pacientes */}
-      <div className="card border-0 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden mb-4">
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th className="ps-3">Documento / DNI</th>
-                <th>Historia Clínica</th>
-                <th>Paciente</th>
-                <th>F. Nacimiento / Sexo</th>
-                <th>Contacto</th>
-                <th className="text-end pe-3">Acciones</th>
+          <table className="table table-hover align-middle mb-0 clinical-data-table w-full">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
+              <tr className="text-secondary small text-uppercase fw-bold text-xs">
+                <th className="ps-4 py-3 text-slate-600">Documento / DNI</th>
+                <th className="py-3 text-slate-600">Historia Clínica</th>
+                <th className="py-3 text-slate-600">Paciente</th>
+                <th className="py-3 text-slate-600">F. Nacimiento / Sexo</th>
+                <th className="py-3 text-slate-600">Contacto</th>
+                <th className="text-end pe-4 py-3 text-slate-600">Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4">
+                  <td colSpan={6} className="text-center py-4 bg-white text-slate-600">
                     <div className="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                     Cargando pacientes...
                   </td>
                 </tr>
               ) : patients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-muted">
+                  <td colSpan={6} className="text-center py-4 text-slate-500 bg-white">
                     No se encontraron pacientes registrados con el criterio especificado.
                   </td>
                 </tr>
@@ -566,7 +555,7 @@ export default function PatientsManagementView() {
       {/* MODAL 1: REGISTRAR PACIENTE (RF-06) */}
       {showCreateModal && (
         <div className="modal fade show d-block modal-backdrop-custom" tabIndex={-1}>
-          <div className="modal-dialog modal-dialog-centered modal-lg">
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div className="modal-content shadow border-0">
               <div className="modal-header modal-header-mediflow text-white">
                 <h5 className="modal-title d-flex align-items-center gap-2">
@@ -724,7 +713,7 @@ export default function PatientsManagementView() {
       {/* MODAL 2: EDITAR PACIENTE */}
       {showEditModal && selectedPatient && (
         <div className="modal fade show d-block modal-backdrop-custom" tabIndex={-1}>
-          <div className="modal-dialog modal-dialog-centered modal-lg">
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div className="modal-content shadow border-0">
               <div className="modal-header modal-header-mediflow text-white">
                 <h5 className="modal-title d-flex align-items-center gap-2">
@@ -871,7 +860,7 @@ export default function PatientsManagementView() {
       {/* MODAL 3: ÁRBOL / HISTORIAL DE DOCUMENTOS DEL PACIENTE (RF-08 & RF-09) */}
       {showDocsModal && selectedPatient && (
         <div className="modal fade show d-block modal-backdrop-custom" tabIndex={-1}>
-          <div className="modal-dialog modal-dialog-centered modal-xl">
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
             <div className="modal-content shadow border-0">
               <div className="modal-header modal-header-mediflow">
                 <h5 className="modal-title text-white d-flex align-items-center gap-2 mb-0">

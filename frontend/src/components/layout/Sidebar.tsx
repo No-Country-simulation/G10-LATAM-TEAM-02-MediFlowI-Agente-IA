@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { fetchUsers } from "../../api/auth.api";
 import logo from "../../assets/login/logo.png";
 import {
   LuPlus,
@@ -14,6 +16,7 @@ import {
   LuHouse,
   LuChevronUp,
   LuLogOut,
+  LuX,
 } from "react-icons/lu";
 
 interface SidebarProps {
@@ -30,8 +33,9 @@ interface NavItemConfig {
 }
 
 const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
+  const [pendingCount, setPendingCount] = useState<number>(0);
 
   const handleLogout = () => {
     logout();
@@ -41,6 +45,17 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
   const userRole = user?.rol?.toUpperCase();
   const isPendiente = userRole === "PENDIENTE";
   const canCreateRouting = userRole === "ADMINISTRADOR" || userRole === "OPERADOR";
+
+  useEffect(() => {
+    if (userRole === "ADMINISTRADOR" && token) {
+      fetchUsers(token)
+        .then((users) => {
+          const count = users.filter((u) => u.rol === "PENDIENTE" || (u.estado as string) === "PENDIENTE").length;
+          setPendingCount(count);
+        })
+        .catch(() => {});
+    }
+  }, [userRole, token]);
 
   const userInitial = (
     user?.nombres?.charAt(0) ||
@@ -113,7 +128,8 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm"
+          data-testid="sidebar-backdrop"
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm cursor-pointer"
           onClick={closeSidebar}
         />
       )}
@@ -125,6 +141,17 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
           boxShadow: "0 0 20px rgba(0, 0, 0, 0.02)",
         }}
       >
+        {/* Mobile close button */}
+        <button
+          type="button"
+          onClick={closeSidebar}
+          data-testid="sidebar-close-btn"
+          aria-label="Cerrar menú"
+          className="lg:hidden absolute top-4 right-3 p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition-colors border-0 bg-transparent cursor-pointer z-10"
+        >
+          <LuX size={18} />
+        </button>
+
         <div className="flex flex-col flex-1 overflow-y-auto">
           {/* Logo centrado y más prominente de MediFlow */}
           <div className="pt-8 pb-5 px-4 flex justify-center items-center">
@@ -208,6 +235,14 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
                   >
                     <span className="text-[#4B5563] shrink-0">{mod.icon}</span>
                     <span className="text-left truncate">{mod.label}</span>
+                    {mod.path === "/solicitudes" && pendingCount > 0 && (
+                      <span
+                        data-testid="pending-requests-badge"
+                        className="ml-auto bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-1.5 py-0.2 rounded-full"
+                      >
+                        {pendingCount}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </nav>

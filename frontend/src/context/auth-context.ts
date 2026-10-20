@@ -8,7 +8,7 @@ export interface AuthContextValue {
   token: string | null
   isAuthenticated: boolean
   loading: boolean
-  login: (documentoIdentidad: string, password: string) => Promise<LoginResult>
+  login: (correo: string, password: string) => Promise<LoginResult>
   logout: () => void
 }
 

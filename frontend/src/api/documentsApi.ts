@@ -8,6 +8,7 @@ export interface DocumentFilters {
   tipo?: string
   prioridad?: string
   paciente?: string
+  limit?: number
 }
 
 export interface DashboardSummary {
@@ -116,7 +117,10 @@ export const documentsApi = {
   },
 
   async obtenerDocumentos(filters: DocumentFilters = {}): Promise<ClinicalDocument[]> {
-    const data = await apiRequest<{ total: number; items: BackendDocument[] }>('/documents')
+    const params = new URLSearchParams()
+    if (filters.limit) params.set('limit', String(filters.limit))
+    const query = params.toString() ? `?${params.toString()}` : ''
+    const data = await apiRequest<{ total: number; items: BackendDocument[] }>(`/documents${query}`)
     return data.items.map(normalizeBackendDocument).filter((document) => matchesFilters(document, filters))
   },
 

@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   fetchUsers,
   createNewUser,
@@ -38,6 +39,8 @@ const ROLES: Array<{ value: User['rol']; label: string }> = [
 
 export default function UsersManagementView() {
   const { user: currentUser, token: authToken } = useAuth()
+  const location = useLocation()
+  const isSolicitudesRoute = location.pathname.includes('solicitudes')
 
   const [usersList, setUsersList] = useState<User[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
@@ -48,7 +51,13 @@ export default function UsersManagementView() {
   // Filtros y Búsqueda
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('TODOS')
-  const [statusFilter, setStatusFilter] = useState('TODOS')
+  const [statusFilter, setStatusFilter] = useState(isSolicitudesRoute ? 'PENDIENTE' : 'TODOS')
+
+  useEffect(() => {
+    if (isSolicitudesRoute) {
+      setStatusFilter('PENDIENTE')
+    }
+  }, [isSolicitudesRoute])
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -199,7 +208,9 @@ export default function UsersManagementView() {
     const fullText = `${u.nombres} ${u.apellidos} ${u.correo || ''} ${u.documento_identidad}`.toLowerCase()
     const matchesSearch = fullText.includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === 'TODOS' || u.rol === roleFilter
-    const matchesStatus = statusFilter === 'TODOS' || u.estado === statusFilter
+    const matchesStatus =
+      statusFilter === 'TODOS' ||
+      (statusFilter === 'PENDIENTE' ? (u.rol === 'PENDIENTE' || (u.estado as string) === 'PENDIENTE') : u.estado === statusFilter)
     return matchesSearch && matchesRole && matchesStatus
   })
 
@@ -307,6 +318,7 @@ export default function UsersManagementView() {
             style={{ fontSize: '0.85rem' }}
           >
             <option value="TODOS">Todos los estados</option>
+            <option value="PENDIENTE">Pendientes de Aprobación</option>
             <option value="ACTIVO">Habilitados (Activos)</option>
             <option value="INACTIVO">Deshabilitados (Inactivos)</option>
           </select>
@@ -485,7 +497,7 @@ export default function UsersManagementView() {
 
         {/* Paginación Inferior (01 02 03 ... 04 05) */}
         {totalPages > 1 && (
-          <div className="d-flex justify-content-center align-items-center gap-2 mt-4 pt-3 border-top">
+          <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-4 pt-3 border-top">
             {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
               <button
                 key={pageNum}

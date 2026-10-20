@@ -148,6 +148,22 @@ describe('Login - Validación y submit (US2)', () => {
     expect(screen.getByText('Por favor, introduzca una dirección de correo electrónico válida')).toBeInTheDocument()
     expect(mockLogin).not.toHaveBeenCalled()
   })
+
+  it('rechaza el inicio de sesión si se ingresa un DNI en lugar de un correo', async () => {
+    const user = userEvent.setup()
+    render(<Login />)
+
+    const correoInput = screen.getByLabelText(/Correo/i)
+    const passwordInput = screen.getByLabelText(/CONTRASEÑA/i)
+    const button = screen.getByRole('button', { name: /Iniciar sesión/i })
+
+    await user.type(correoInput, '12345678')
+    await user.type(passwordInput, 'testpassword')
+    await user.click(button)
+
+    expect(screen.getByText('Por favor, introduzca una dirección de correo electrónico válida')).toBeInTheDocument()
+    expect(mockLogin).not.toHaveBeenCalled()
+  })
 })
 
 describe('Login - Enlace de registro (US3)', () => {

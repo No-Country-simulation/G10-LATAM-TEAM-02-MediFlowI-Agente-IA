@@ -27,9 +27,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => { active = false }
   }, [initialToken]);
 
-  const login = async (documentoIdentidad: string, password: string): Promise<LoginResult> => {
+  const login = async (correo: string, password: string): Promise<LoginResult> => {
     try {
-      const session = await loginUser(documentoIdentidad, password);
+      const session = await loginUser(correo, password);
       const userData = { ...session.user, token: session.access_token };
       setUser(userData);
       localStorage.setItem(

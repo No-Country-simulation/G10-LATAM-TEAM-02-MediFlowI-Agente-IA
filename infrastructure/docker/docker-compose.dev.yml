@@ -19,6 +19,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     restart: unless-stopped
 
   # ── Backend: Hot-reload con uvicorn --reload ───────────────────────────────
@@ -60,7 +62,7 @@ services:
     container_name: mediflow-frontend-dev
     working_dir: /app
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5175}:5173"
     volumes:
       - ../../frontend:/app:rw
       - /app/node_modules  # Aislar node_modules del host

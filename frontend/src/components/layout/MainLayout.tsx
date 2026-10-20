@@ -1,11 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import EmergencyAlertToast from "../common/EmergencyAlertToast";
+import { useAuth } from "../../hooks/useAuth";
+import {
+  subscribeToAlertsStream,
+  playEmergencyAlertSound,
+  type AlertaGuardia,
+} from "../../services/alertStreamService";
 import logo from "../../assets/login/logo.png";
 import { LuMenu } from "react-icons/lu";
 
+const ROLES_ALERTAS = ["ADMINISTRADOR", "COORDINADOR", "MEDICO"];
+
 const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alerts, setAlerts] = useState<AlertaGuardia[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { user, token } = useAuth();
+
+  const userRole = user?.rol?.toUpperCase();
+
+  useEffect(() => {
+    if (!token || !userRole || !ROLES_ALERTAS.includes(userRole)) return;
+
+    const unsubscribe = subscribeToAlertsStream(token, (newAlert) => {
+      setAlerts((prev) => {
+        if (prev.some((a) => a.id === newAlert.id)) return prev;
+        return [newAlert, ...prev].slice(0, 5); // mantener máx 5 alertas simultáneas
+      });
+      if (soundEnabled) {
+        playEmergencyAlertSound();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [token, userRole, soundEnabled]);
+
+  const handleDismiss = (alertId: string) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled((prev) => !prev);
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => !prev);
@@ -17,6 +57,13 @@ const MainLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f7fb] relative overflow-x-hidden">
+      {/* Toast Flotante de Alertas de Guardia en Tiempo Real (SSE) */}
+      <EmergencyAlertToast
+        alerts={alerts}
+        onDismiss={handleDismiss}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
+      />
       {/* Orbes de ambiente difuminados con los colores distintivos de MediFlow */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden z-0">
         <div className="absolute -top-24 left-[15%] w-[600px] h-[600px] bg-[#ffe4ec] rounded-full blur-[90px] opacity-60" />
@@ -45,7 +92,7 @@ const MainLayout = () => {
 
         {/* Contenido principal de la aplicación con espaciado equilibrado y responsive */}
         <main className="flex-1 w-full lg:ml-[250px] min-h-screen transition-all duration-300 flex flex-col">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 flex-1">
+          <div className="w-full max-w-[1536px] mx-auto px-3 sm:px-5 lg:px-6 py-4 sm:py-6 lg:py-8 flex-1">
             <Outlet />
           </div>
         </main>

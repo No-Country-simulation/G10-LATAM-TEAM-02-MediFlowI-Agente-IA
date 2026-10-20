@@ -33,7 +33,7 @@ const Login = (): JSX.Element => {
       return;
     }
 
-    if (trimmedEmail.includes("@") && !emailRegex.test(trimmedEmail)) {
+    if (!emailRegex.test(trimmedEmail)) {
       setError("Por favor, introduzca una dirección de correo electrónico válida");
       return;
     }

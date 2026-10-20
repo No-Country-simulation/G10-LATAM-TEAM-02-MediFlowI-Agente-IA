@@ -31,6 +31,12 @@
   --dark-shade-5: rgba(31, 32, 65, 0.05);
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+  color-scheme: light;
+}
+
 body {
   font-family: var(--bs-font-sans-serif);
   background-color: var(--bs-body-bg);
@@ -60,12 +66,22 @@ body {
   }
 }
 
-/* Cards UX refinement */
+/* Cards UX refinement - Siempre claro y clínico */
 .card {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
   border-radius: var(--card-border-radius) !important;
   box-shadow: var(--card-shadow) !important;
   border: 1px solid #e2e8f0 !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Tablas e inputs clínicos siempre legibles y claros */
+.table-light,
+.table-light th,
+.table-light td {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
 }
 
 .card-hover:hover {

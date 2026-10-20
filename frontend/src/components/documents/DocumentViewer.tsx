@@ -265,7 +265,7 @@ const DocumentViewer = ({
       {/* Área del visor / Viewport */}
       <div
         className="flex-1 w-full flex flex-col items-center justify-start bg-slate-900 text-slate-100 relative overflow-auto"
-        style={{ minHeight: isExpanded ? "calc(100vh - 60px)" : "460px" }}
+        style={{ minHeight: isExpanded ? "calc(100vh - 60px)" : (minHeight === "100%" ? "100%" : "360px") }}
       >
         {fileUrl ? (
           loadingState === "error" ? (
@@ -345,7 +345,7 @@ const DocumentViewer = ({
                   loadingState === "loading" ? "opacity-0 absolute pointer-events-none" : "opacity-100"
                 }`}
                 style={{
-                  minHeight: isExpanded ? "calc(100vh - 80px)" : "460px"
+                  minHeight: isExpanded ? "calc(100vh - 80px)" : (minHeight === "100%" ? "100%" : "360px")
                 }}
               >
                 <div
@@ -360,8 +360,8 @@ const DocumentViewer = ({
                     ref={iframeRef}
                     src={fileUrl}
                     title="Vista previa del documento PDF"
-                    className="w-full h-full rounded border-0 shadow-md bg-white min-h-[460px]"
-                    style={{ minHeight: isExpanded ? "calc(100vh - 90px)" : "460px" }}
+                    className="w-full h-full rounded border-0 shadow-md bg-white"
+                    style={{ minHeight: isExpanded ? "calc(100vh - 90px)" : (minHeight === "100%" ? "100%" : "360px") }}
                     onLoad={handleDocumentLoad}
                     onError={handleDocumentError}
                   />

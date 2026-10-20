@@ -104,43 +104,35 @@ const Dashboard = () => {
       />
 
       {/* KPI Cards */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatsCard
-            title="Documentos Procesados"
-            value={stats?.procesados ?? 0}
-            icon={<FaCheckCircle size={28} />}
-            variant="success"
-            subtitle="Triados exitosamente"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatsCard
-            title="Casos Urgentes"
-            value={stats?.urgentes ?? 0}
-            icon={<FaExclamationTriangle size={28} />}
-            variant="danger"
-            subtitle="Prioridad roja asignada"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatsCard
-            title="Pendientes de Auditoría"
-            value={stats?.auditoria ?? 0}
-            icon={<FaUserClock size={28} />}
-            variant="warning"
-            subtitle="Confianza baja / ambiguos"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatsCard
-            title="Errores / Rechazados"
-            value={stats?.errores ?? 0}
-            icon={<FaTimesCircle size={28} />}
-            variant="dark"
-            subtitle="Ilegibles o rechazados"
-          />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatsCard
+          title="Documentos Procesados"
+          value={stats?.procesados ?? 0}
+          icon={<FaCheckCircle size={28} />}
+          variant="success"
+          subtitle="Triados exitosamente"
+        />
+        <StatsCard
+          title="Casos Urgentes"
+          value={stats?.urgentes ?? 0}
+          icon={<FaExclamationTriangle size={28} />}
+          variant="danger"
+          subtitle="Prioridad roja asignada"
+        />
+        <StatsCard
+          title="Pendientes de Auditoría"
+          value={stats?.auditoria ?? 0}
+          icon={<FaUserClock size={28} />}
+          variant="warning"
+          subtitle="Confianza baja / ambiguos"
+        />
+        <StatsCard
+          title="Errores / Rechazados"
+          value={stats?.errores ?? 0}
+          icon={<FaTimesCircle size={28} />}
+          variant="dark"
+          subtitle="Ilegibles o rechazados"
+        />
       </div>
 
       <RecentDocuments documents={stats?.recientes || []} />

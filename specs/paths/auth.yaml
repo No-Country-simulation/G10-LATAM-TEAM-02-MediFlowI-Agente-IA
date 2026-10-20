@@ -13,12 +13,13 @@ login:
           schema:
             type: object
             required:
-            - documento_identidad
+            - correo
             - password
             properties:
-              documento_identidad:
+              correo:
                 type: string
-                pattern: ^\d{8}$
+                format: email
+                example: admin@mediflow.local
               password:
                 type: string
                 format: password
