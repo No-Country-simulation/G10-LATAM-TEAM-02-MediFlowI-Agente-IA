@@ -303,6 +303,38 @@ Abre tu navegador en:
 
 ---
 
+### Tarea 2.9: Optimización Pipeline Fusion: Pase Único Multimodal y Latencia < 8s ([IA-09])
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Estado**: ✅ **CONCLUIDO (Consolidado en develop vía PR #77 / commit 6a3f3e9)**
+- **Objetivo**: Optimizar de forma integral el pipeline de triaje para imágenes médicas (JPEG, PNG, WebP) y documentos PDF escaneados/híbridos, reduciendo los tiempos de respuesta a menos de 8 segundos mediante la fusión de transcripción, extracción y clasificación en un pase único multimodal con Gemini Vision (*Pipeline Fusion*), compresión y redimensionado adaptativo en memoria (Pillow a máx 1280 px / JPEG 80 / Base64 < 350 KB), saneamiento de memoria en LangGraph (descartando `documento_base64 = None`), reutilización singleton del grafo compilado y discriminación inteligente de documentos PDF:
+  - **Regla 1: PDF con texto digital suficiente (≥ 50 caracteres clínicos útiles)**: El sistema extrae el texto vectorial directamente con PyMuPDF en ~0.01 segundos. No rasteriza ni consume llamadas de visión artificial innecesarias, preservando 100% de fidelidad y cero riesgo de alucinación.
+  - **Regla 2: PDF escaneado o híbrido con texto insuficiente (< 50 caracteres, ej. solo título o membrete como "Hospital Central - Receta")**: El sistema detecta que la información clínica reside en la imagen incrustada o escaneada, activando automáticamente Pipeline Fusion (rasterizado en memoria con PyMuPDF a JPEG optimizado < 350 KB, llamada única a Gemini Vision y respuesta completa en < 7 segundos).
+- **📦 Lo implementado y alcance de actualización**:
+  1. En `backend/app/services/image_optimizer.py`, implementar compresión adaptativa, auto-orientación EXIF, normalización a RGB con fondo blanco y redimensionado progresivo asegurando Base64 estrictamente menor a 350,000 bytes.
+  2. En `backend/app/agent/fusion.py`, implementar el pase único con Gemini Vision estructurado en `ResultadoFusionVision` y `ClasificacionFusionVision` (modelados en OpenAPI), desacoplando el ciclo con `ContextoTriaje` por solicitud.
+  3. En `backend/app/agent/nodes/extraction.py` y `backend/app/agent/nodes/classification.py`, habilitar cortocircuito reactivo que reutiliza los datos del pase único y valida CIE-10 e identidad sin invocar llamadas LLM redundantes.
+  4. En `backend/app/agent/nodes/ingestion.py`, liberar memoria purgando `documento_base64 = None` al culminar la ingesta y canalizar PDFs escaneados (< 50 caracteres) hacia Pipeline Fusion en memoria.
+  5. En `backend/app/agent/graph.py`, cachear el grafo compilado de forma singleton con `@functools.cache`.
+  6. En `backend/app/services/llm_service.py`, configurar parámetros de resiliencia `max_retries=2` y `timeout=30` en `ChatGoogleGenerativeAI`.
+  7. En `infrastructure/scripts/benchmark_pipeline_fusion.py`, implementar benchmark automatizado sobre 20 muestras clínicas sintéticas garantizando latencia p95 < 8.0 segundos.
+- **🛠️ Verificación y Tests**:
+  ```powershell
+  .venv\Scripts\pytest tests/test_pipeline_fusion.py tests/test_pipeline_fusion_benchmark.py -v
+  ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Optimizacion de rendimiento del pipeline multimodal de triaje mediante pase unico compresion de imagenes y saneamiento de memoria
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
+- **Documentación Técnica**:
+  - `Docs/IA-09_PIPELINE_FUSION.md`
+  - `Docs/IA-09_COMPARACION_DEVELOP_20261016.md`
+  - `Docs/IA-09_BENCHMARK_20261016.json`
+
+---
+
 ## ⚡ Bloque 3: Backend REST APIs & Servicios (Personas 5 y 6)
 
 ### Tarea 3.1: Endpoints de Gestión de Episodios Clínicos (`/api/v1/episodes`)

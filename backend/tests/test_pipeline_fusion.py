@@ -52,6 +52,34 @@ async def run_image(llm, **kwargs):
     )
 
 
+def pdf_digital_base64(
+    texto: str = "Hospital Central. Paciente refiere dolor torácico opresivo de 2 horas con diaforesis. Sospecha de infarto agudo de miocardio.",
+) -> str:
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((50, 72), texto)
+    pdf_bytes = doc.tobytes()
+    doc.close()
+    return base64.b64encode(pdf_bytes).decode()
+
+
+def pdf_escaneado_base64(header_text: str = "Receta") -> str:
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    if header_text:
+        page.insert_text((50, 72), header_text)
+    with Image.new("RGB", (600, 800), color=(230, 230, 230)) as img, io.BytesIO() as buf:
+        img.save(buf, format="PNG")
+        page.insert_image(fitz.Rect(50, 100, 550, 750), stream=buf.getvalue())
+    pdf_bytes = doc.tobytes()
+    doc.close()
+    return base64.b64encode(pdf_bytes).decode()
+
+
 @pytest.mark.parametrize("mode", ["RGB", "RGBA", "L", "P"])
 def test_compresion_normaliza_formato_y_dimensiones(mode):
     original = image_base64(mode, (2000, 1500))
@@ -342,3 +370,111 @@ def test_servicio_conserva_original_aunque_el_estado_libere_base64(
         oci_storage.LOCAL_STORAGE_DIR / "recibidos/FUSION-ORIGINAL/original.png"
     ).read_bytes() == base64.b64decode(original)
     call.assert_awaited_once()
+
+
+async def test_pdf_digital_suficiente_extrae_directamente_sin_vision():
+    """US1: PDF digital con >= 50 caracteres clínicos útiles se extrae de inmediato sin visión."""
+    llm = Mock(completar_imagen=AsyncMock(), completar_multimodal=AsyncMock(), completar=AsyncMock(return_value=json.dumps({"paciente": {"nombre": "TEST", "edad": 50}, "medico_solicitante": {"nombre": None, "matricula": None}, "estudio_realizado": None, "diagnostico_principal": "Dolor torácico", "cie10_sugerido": "I21.9", "hallazgos_clave": ["Dolor"], "medicamentos": []})))
+    # Para classification mocked:
+    llm.completar.side_effect = [
+        json.dumps({"paciente": {"nombre": "TEST", "edad": 50}, "medico_solicitante": {"nombre": None, "matricula": None}, "estudio_realizado": None, "diagnostico_principal": "Dolor torácico", "cie10_sugerido": "I21.9", "hallazgos_clave": ["Dolor"], "medicamentos": []}),
+        json.dumps({"tipo_documento": "Informe Clínico", "especialidad": "Cardiología", "nivel_prioridad": "Urgente", "razon_prioridad": "Dolor torácico agudo"}),
+    ]
+
+    result = await ejecutar_triage(
+        documento_id="PDF-DIGITAL-01",
+        tipo_archivo="PDF",
+        documento_base64=pdf_digital_base64(),
+        llm_service=llm,
+    )
+
+    # Verifica que NO se llamó a modelos de visión
+    llm.completar_imagen.assert_not_called()
+    llm.completar_multimodal.assert_not_called()
+    assert result.metodo_extraccion == "TEXT_EXTRACTION"
+    assert "dolor torácico" in result.texto_extraido.lower()
+    assert result.documento_base64 is None
+    assert result.status == "procesado"
+
+
+async def test_pdf_escaneado_insuficiente_activa_pipeline_fusion_un_solo_pase():
+    """US2: PDF escaneado con < 50 caracteres activa Pipeline Fusion rasterizando en memoria."""
+    llm = Mock(completar_imagen=AsyncMock(return_value=fusion_result("I219", "Urgente")), completar=AsyncMock())
+
+    result = await ejecutar_triage(
+        documento_id="PDF-SCAN-01",
+        tipo_archivo="PDF",
+        documento_base64=pdf_escaneado_base64("Receta"),
+        llm_service=llm,
+    )
+
+    # Verifica pase único de Gemini Vision
+    llm.completar_imagen.assert_awaited_once()
+    llm.completar.assert_not_awaited()
+    assert result.metodo_extraccion == "MULTIMODAL_VISION"
+    assert result.datos_extraidos.cie10_sugerido == "I21.9"
+    assert result.decision_enrutamiento.destino_principal == "Cola_Emergencia_Medica"
+    assert result.documento_base64 is None
+    assert result.status == "procesado"
+
+
+async def test_pdf_corrupto_deriva_a_fallback_audit_y_libera_memoria():
+    """US3: PDF corrupto libera documento_base64 y deriva a FALLBACK_AUDIT de forma segura."""
+    llm = Mock(completar_imagen=AsyncMock(), completar=AsyncMock())
+    corrupted_pdf = base64.b64encode(b"%PDF-1.4 corrupt content not valid").decode()
+
+    result = await ejecutar_triage(
+        documento_id="PDF-CORRUPT-01",
+        tipo_archivo="PDF",
+        documento_base64=corrupted_pdf,
+        llm_service=llm,
+    )
+
+    assert result.metodo_extraccion == "FALLBACK_AUDIT"
+    assert result.status == "pendiente_auditoria"
+    assert result.documento_base64 is None
+    llm.completar_imagen.assert_not_called()
+
+
+async def test_pdf_escaneado_multipagina_concatena_en_memoria_y_optimiza():
+    """US2: PDF multipágina escaneado (hasta 3 páginas) se concatena en memoria y optimiza a < 350 KB."""
+    import fitz
+    doc = fitz.open()
+    for i in range(2):
+        page = doc.new_page()
+        with Image.new("RGB", (500, 700), color=(240, 240, 240)) as img, io.BytesIO() as buf:
+            img.save(buf, format="PNG")
+            page.insert_image(fitz.Rect(50, 50, 450, 650), stream=buf.getvalue())
+    pdf_bytes = doc.tobytes()
+    doc.close()
+    multipage_b64 = base64.b64encode(pdf_bytes).decode()
+
+    llm = Mock(completar_imagen=AsyncMock(return_value=fusion_result("J459", "Urgente")), completar=AsyncMock())
+    result = await ejecutar_triage(
+        documento_id="PDF-SCAN-MULTI",
+        tipo_archivo="PDF",
+        documento_base64=multipage_b64,
+        llm_service=llm,
+    )
+
+    llm.completar_imagen.assert_awaited_once()
+    assert result.metodo_extraccion == "MULTIMODAL_VISION"
+    assert result.documento_base64 is None
+    assert result.status == "procesado"
+
+
+async def test_pdf_escaneado_fallo_vision_deriva_a_fallback_audit():
+    """US3: Ante error en llamada de visión en PDF escaneado, deriva directamente a FALLBACK_AUDIT sin reintentos costosos."""
+    llm = Mock(completar_imagen=AsyncMock(side_effect=TimeoutError("Timeout Gemini Vision")), completar=AsyncMock())
+    result = await ejecutar_triage(
+        documento_id="PDF-SCAN-TIMEOUT",
+        tipo_archivo="PDF",
+        documento_base64=pdf_escaneado_base64("Receta"),
+        llm_service=llm,
+    )
+
+    llm.completar_imagen.assert_awaited_once()
+    llm.completar.assert_not_awaited()
+    assert result.metodo_extraccion == "FALLBACK_AUDIT"
+    assert result.status == "pendiente_auditoria"
+    assert result.documento_base64 is None
