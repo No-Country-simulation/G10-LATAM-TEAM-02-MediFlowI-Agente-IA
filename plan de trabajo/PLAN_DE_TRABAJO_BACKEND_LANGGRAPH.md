@@ -47,10 +47,36 @@ Abre tu navegador en:
 
 ---
 
+## 🗺️ Matriz de Control: Estado Real en la Rama `develop` (100% Cobertura)
+
+| # | Tarea / Módulo | Issue | Archivos Reales en `develop` | Estado Real | % Avance | Cobertura y Tests |
+|---|---|---|---|:---:|:---:|---|
+| **1.1** | Vista `v_episodios_detalle` | `BD-01` | `backend/alembic/versions/*_add_episodios_view.py` | ✅ Concluido | 100% | `test_episodios_db.py` en verde. |
+| **1.2** | Repositorio `episode_repository.py` | `BD-02` | `backend/app/repositories/episode_repository.py` | ✅ Concluido | 100% | `test_episode_repository.py` en verde. |
+| **1.3** | Repositorio `audit_repository.py` | `BD-03` | `backend/app/repositories/audit_repository.py` | ✅ Concluido | 100% | `test_audit_repository.py` en verde. |
+| **1.4** | Datos Semilla Hospitalarios | `BD-04` | `backend/app/scripts/seed_hospital_data.py` | ✅ Concluido | 100% | `test_seed_hospital_data.py` en verde. |
+| **2.1** | Enrutamiento `Farmacia_Hospitalaria` | `IA-01` | `backend/app/agent/nodes/routing.py`, `clinical_catalog.py` | ✅ Concluido | 100% | `test_destinos_triaje_unit.py` en verde. |
+| **2.2** | Resolución Identidad Paciente DNI/HC | `IA-02` | `backend/app/agent/patient_matcher.py`, `extraction.py` | ✅ Concluido | 100% | `test_patient_matcher.py` en verde. |
+| **2.3** | Normalización y Validación CIE-10 | `IA-03` | `backend/app/agent/clinical_catalog.py`, `extraction.py` | ✅ Concluido | 100% | `test_clinical_catalog.py` en verde. |
+| **2.4** | Score de Confianza Ponderado | `IA-04` | `backend/app/agent/nodes/confidence.py` | ✅ Concluido | 100% | `test_confidence_calibration.py` en verde. |
+| **2.5** | Normalización Defensiva AIMessage | `IA-05` | `backend/app/services/llm_service.py`, `agent/state.py` | ✅ Concluido | 100% | `test_llm_service.py` en verde. |
+| **2.6** | Ingesta Híbrida Multimodal Gemini+OCR | `IA-06` | `backend/app/agent/nodes/ingestion.py`, `llm_service.py` | ✅ Concluido | 100% | `test_ingestion_multimodal.py` en verde. |
+| **2.7** | Extracción Medicamentos Prescritos R3 | `IA-07` | `backend/app/agent/state.py`, `nodes/extraction.py` | ✅ Concluido | 100% | PR #76 mergeado, `test_agent_cases.py` en verde. |
+| **2.8** | Emisión Alertas Guardia SSE | `IA-08` | `backend/app/services/alert_service.py`, `api/v1/alerts.py` | ✅ Concluido | 100% | `test_alert_broadcaster.py` en verde. |
+| **2.9** | Pipeline Fusion Pase Único & PDFs | `IA-09` | `backend/app/agent/fusion.py`, `nodes/ingestion.py` | ✅ Concluido | 100% | PR #77 + Spec 015, 45/45 tests en verde (< 8s). |
+| **2.10** | Guardrails de Seguridad Clínica | `IA-10` | `nodes/ingestion.py`, `confidence.py`, `routing.py` | ⏳ Pendiente | 0% | Filtro dominio, PDFs asimétricos y Red Flags. |
+| **3.1** | Endpoints REST `/api/v1/episodes` | `API-01` | `backend/app/api/v1/episodes.py` | ✅ Concluido | 100% | `test_episodes_api.py` en verde. |
+| **3.2** | Auditoría Médica `/api/v1/coordination` | `API-02` | `backend/app/api/v1/coordination.py` | ✅ Concluido | 100% | `test_coordination_api.py` en verde. |
+| **3.3** | Orquestación Triaje y Episodios | `API-03` | `backend/app/services/triage_service.py` | ✅ Concluido | 100% | `test_e2e_hospital_flow.py` en verde. |
+| **3.4** | Métricas Hospitalarias `/api/v1/metrics`| `API-04` | `backend/app/api/v1/metrics.py` | ✅ Concluido | 100% | `test_metrics_api.py` en verde. |
+
+---
+
 ## 🗄️ Bloque 1: Base de Datos & Repositorios (Personas 1 y 2)
 
 ### Tarea 1.1: Vistas y Funciones de Consulta para `episodios_clinicos`
 - **Asignado**: Persona 1 (DBA / Data Engineer)
+- **Estado**: ✅ **CONCLUIDO**
 - **Objetivo**: Crear la vista `v_episodios_detalle` que une pacientes, médicos asignados y documentos de triaje para consultas rápidas sin múltiples joins.
 - **🛠️ Ejecución MANUAL**:
   1. Crear archivo de migración Alembic en `backend/alembic/versions/`:
@@ -332,6 +358,34 @@ Abre tu navegador en:
   - `Docs/IA-09_PIPELINE_FUSION.md`
   - `Docs/IA-09_COMPARACION_DEVELOP_20261016.md`
   - `Docs/IA-09_BENCHMARK_20261016.json`
+
+---
+
+### Tarea 2.10: Guardrails de Seguridad Clínica: Filtro Fuera de Dominio, PDFs Asimétricos y Validación Cruzada ([IA-10])
+- **Asignado**: Persona 3 & Persona 4 (AI / LangGraph Engineers)
+- **Estado**: ⏳ **PENDIENTE**
+- **Objetivo**: Blindar de forma determinista el agente de triaje contra entradas adversarias y alucinaciones del modelo mediante 3 guardrails de seguridad clínica hospitalaria:
+  1. **Filtro Fuera de Dominio (Out-of-Domain Gate)**: Si el documento es clasificado como `No_Clinico`, `Desconocido` o `Otro` (ej. revista de viajes, afiche, publicidad), prohibir taxativamente su derivación a `Cola_Rutina` o `Cola_Emergencia_Medica`; enrutar obligatoriamente a `Cola_Revision_Ambigua` con requerimiento forzado de auditoría humana médica (`requiere_auditoria_humana = True` / `status = "pendiente_auditoria"`).
+  2. **Inspección de PDFs Asimétricos Página por Página**: Evaluar cada página del documento PDF con PyMuPDF (`fitz`) de manera individual. Si en un PDF multipágina una página carece de capa de texto (< 50 caracteres) o contiene imágenes incrustadas sin texto digital, rasterizar y canalizar dichas páginas visuales a visión multimodal para que ninguna prescripción médica u orden de urgencia incrustada en páginas secundarias sea omitida.
+  3. **Guardrail de Coherencia Semántica (Matriz de Red Flags)**: Validar coherencia cruzada entre `hallazgos_clave` / `diagnostico_principal` / `cie10_sugerido` y `nivel_prioridad`. Si se detectan patologías o códigos de riesgo vital crítico (TEP / Tromboembolismo, Infarto / IAM, Shock, Paro cardiorrespiratorio, Hemorragia masiva, ACV / Ictus) y la clasificación asigna "Rutina":
+     - Penalizar inmediatamente el score de confianza final a `0.0` (rompiendo el umbral de 0.75).
+     - Forzar derivación a auditoría médica prioritaria (`pendiente_auditoria` / `Cola_Revision_Ambigua`) o elevar a `Urgente` según política hospitalaria.
+- **🛠️ Ejecución MANUAL**:
+  1. En `backend/app/agent/nodes/ingestion.py`, modificar la inspección de PDFs para analizar el texto página por página en lugar de sumar el total global, rasterizando páginas secundarias escaneadas.
+  2. En `backend/app/agent/nodes/confidence.py`, implementar validador de consistencia semántica contra matriz de *Red Flags* clínicas, anulando la confianza ante discordancias graves.
+  3. En `backend/app/agent/nodes/routing.py`, incorporar regla de exclusión y descarte para documentos fuera de dominio o tipo `Otro`/`No_Clinico`, impidiendo que ingresen a colas operativas sin revisión previa.
+  4. En `backend/tests/test_clinical_guardrails.py`, escribir suite de pruebas cubriendo los 3 casos adversarios.
+  5. Ejecutar suite de pruebas:
+     ```powershell
+     .venv\Scripts\pytest tests/test_clinical_guardrails.py tests/test_pipeline_fusion.py -v
+     ```
+- **⚡ Ejecución con Spec Kit (`/specify`)**:
+  ```text
+  /speckit-specify Guardrails de seguridad clinica filtro fuera de dominio inspeccion de pdfs asimetricos y validacion cruzada de coherencia
+  /speckit-plan
+  /speckit-tasks
+  /speckit-implement
+  ```
 
 ---
 
