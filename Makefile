@@ -128,3 +128,13 @@ clean:
 .PHONY: generate-check
 generate-check:
 	$(PYTHON) infrastructure/scripts/generate.py --check
+
+# ── Producción (stack completo con reverse proxy) ─────────────────────────────
+.PHONY: prod-docker prod-docker-down
+prod-docker:
+	@echo "🚀 Levantando MediFlow en PRODUCCIÓN (:80)..."
+	docker compose -f infrastructure/docker/docker-compose.prod.yml up --build -d
+
+prod-docker-down:
+	@echo "🛑 Deteniendo MediFlow (producción)..."
+	docker compose -f infrastructure/docker/docker-compose.prod.yml down
