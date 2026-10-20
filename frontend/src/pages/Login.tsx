@@ -66,7 +66,7 @@ const Login = (): JSX.Element => {
       {/* Sección interactiva de login */}
       <section
         aria-labelledby="welcome-heading"
-        className="relative w-full md:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-6 sm:px-12 lg:px-20 z-10"
+        className="relative w-full md:w-1/2 min-h-screen flex flex-col items-center justify-center py-6 px-4 sm:px-8 md:px-10 lg:px-12 z-10 overflow-y-auto"
       >
         {/* Orbes de ambiente difuminados de fondo */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
@@ -75,33 +75,38 @@ const Login = (): JSX.Element => {
           <div className="login-orb-3" />
         </div>
 
-        <div className="inline-flex items-center justify-center px-4 py-1.5 mb-1 text-center">
-          <p
-            className="font-bold text-xs sm:text-sm tracking-[1.2px] uppercase text-[rgba(31,32,65,0.5)]"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
-          >
-            SISTEMA AUTÓNOMO DE TRIAJE Y ENRUTAMIENTO CLÍNICO
-          </p>
-        </div>
+        <div className="w-full max-w-[380px] flex flex-col items-center my-auto">
+          {/* Badge institucional superior */}
+          <div className="inline-flex items-center justify-center px-3.5 py-1 mb-2 text-center rounded-full bg-slate-200/60 border border-slate-300/40">
+            <p
+              className="font-bold text-[10px] sm:text-[11px] tracking-wider uppercase text-slate-600"
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
+              SISTEMA AUTÓNOMO DE TRIAJE Y ENRUTAMIENTO CLÍNICO
+            </p>
+          </div>
 
-        <div className="my-2.5 flex justify-center items-center">
-          <img
-            className="w-[260px] sm:w-[320px] md:w-[360px] h-auto aspect-[1.08] object-contain drop-shadow-sm select-none"
-            alt="MediFlow"
-            src={logo}
+          {/* Logo compacto y armonioso de MediFlow */}
+          <div className="my-2 flex justify-center items-center">
+            <img
+              className="w-[160px] sm:w-[180px] md:w-[200px] h-auto aspect-[1.08] object-contain drop-shadow-sm select-none"
+              alt="MediFlow"
+              src={logo}
+            />
+          </div>
+
+          {/* Formulario de autenticación */}
+          <LoginForm
+            email={email}
+            password={password}
+            onEmailChange={setEmail}
+            onPasswordChange={setPassword}
+            onSubmit={handleSubmit}
+            onRegister={handleRegister}
+            isSubmitting={isSubmitting}
+            error={error}
           />
         </div>
-
-        <LoginForm
-          email={email}
-          password={password}
-          onEmailChange={setEmail}
-          onPasswordChange={setPassword}
-          onSubmit={handleSubmit}
-          onRegister={handleRegister}
-          isSubmitting={isSubmitting}
-          error={error}
-        />
       </section>
     </main>
   );
