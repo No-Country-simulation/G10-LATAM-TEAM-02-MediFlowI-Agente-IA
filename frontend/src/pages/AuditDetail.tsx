@@ -204,7 +204,9 @@ const AuditDetail = () => {
       <div className="row g-4">
         {/* Left Column: Original Document */}
         <div className="col-12 col-lg-5">
-          <DocumentViewer fileName={doc.nombre_archivo} fileUrl={doc.url_archivo} />
+          <div className="lg:sticky lg:top-4">
+            <DocumentViewer fileName={doc.nombre_archivo} fileUrl={doc.url_archivo} />
+          </div>
         </div>
 
         {/* Right Column: Editable Fields */}
@@ -329,6 +331,37 @@ const AuditDetail = () => {
                     />
                   </div>
                 </div>
+
+                {/* Medicamentos Prescritos Section */}
+                {doc.datos_extraidos?.medicamentos && doc.datos_extraidos.medicamentos.length > 0 && (
+                  <>
+                    <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">
+                      Medicamentos Prescritos Detectados
+                    </h6>
+                    <div className="table-responsive mb-4">
+                      <table className="table table-sm table-bordered bg-white small mb-0">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Fármaco</th>
+                            <th>Dosis</th>
+                            <th>Frecuencia</th>
+                            <th>Vía</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {doc.datos_extraidos.medicamentos.map((m, idx) => (
+                            <tr key={idx}>
+                              <td className="fw-semibold">{m.medicamento || m.nombre || 'N/D'}</td>
+                              <td>{m.dosis || 'N/D'}</td>
+                              <td>{m.frecuencia || 'N/D'}</td>
+                              <td>{m.via_administracion || 'N/D'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
 
                 {/* Action Buttons Bar */}
                 <div className="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top gap-2">

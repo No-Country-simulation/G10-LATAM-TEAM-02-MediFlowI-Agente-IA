@@ -64,8 +64,17 @@ export function normalizeBackendDocument(item: BackendDocument): ClinicalDocumen
       diagnostico: datos.diagnostico_principal || '',
       cie10: datos.cie10_sugerido || null,
       estudio_solicitado: datos.hallazgos_clave?.join(', ') || null,
-      medicamentos: [],
+      medicamentos: Array.isArray(datos.medicamentos)
+        ? (datos.medicamentos as any[]).map((m: any) => ({
+            nombre: m.medicamento || m.nombre || '',
+            medicamento: m.medicamento || m.nombre || '',
+            dosis: m.dosis || '',
+            frecuencia: m.frecuencia || '',
+            via_administracion: m.via_administracion || '',
+          }))
+        : [],
     },
+    url_archivo: (item as any).url_archivo || `/api/v1/documents/${item.documento_id}/file`,
     texto_ocr: item.texto_extraido || item.texto_ocr || '',
     decision_enrutamiento: {
       destino: (decision.destino_principal || 'Cola_Rutina').replace(/_/g, ' ').replace('Cola ', ''),

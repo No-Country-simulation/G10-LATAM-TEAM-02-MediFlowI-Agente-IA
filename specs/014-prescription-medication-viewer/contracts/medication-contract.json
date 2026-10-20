@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClinicalDocumentWithMedications",
+  "description": "Contrato OpenAPI / JSON Schema para la representación de documentos clínicos y prescripciones de medicamentos en MediFlow",
+  "type": "object",
+  "required": ["documento_id", "clasificacion", "datos_extraidos", "decision_enrutamiento"],
+  "properties": {
+    "documento_id": {
+      "type": "string",
+      "pattern": "^DOC-[0-9]{4}-[A-Z0-9]+$"
+    },
+    "nombre_archivo": {
+      "type": "string"
+    },
+    "canal_origen": {
+      "type": "string"
+    },
+    "fecha_creacion": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "estado": {
+      "type": "string",
+      "enum": ["PROCESADO", "AUDITORIA", "RECHAZADO", "PENDIENTE"]
+    },
+    "clasificacion": {
+      "type": "object",
+      "properties": {
+        "tipo_documento": { "type": "string" },
+        "especialidad": { "type": "string" },
+        "prioridad": { "type": "string", "enum": ["NORMAL", "URGENTE", "PRIORITARIO", "EMERGENCIA"] },
+        "score_confianza": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "datos_extraidos": {
+      "type": "object",
+      "properties": {
+        "paciente": {
+          "type": "object",
+          "properties": {
+            "nombre": { "type": "string" },
+            "dni": { "type": "string" },
+            "edad": { "type": ["integer", "null"] }
+          }
+        },
+        "medico": {
+          "type": "object",
+          "properties": {
+            "nombre": { "type": "string" },
+            "cmp": { "type": ["string", "null"] }
+          }
+        },
+        "diagnostico": { "type": "string" },
+        "cie10": { "type": ["string", "null"] },
+        "estudio_solicitado": { "type": ["string", "null"] },
+        "medicamentos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "nombre": { "type": "string" },
+              "medicamento": { "type": "string" },
+              "dosis": { "type": "string" },
+              "frecuencia": { "type": "string" },
+              "via_administracion": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "decision_enrutamiento": {
+      "type": "object",
+      "properties": {
+        "destino": { "type": "string" },
+        "requiere_auditoria": { "type": "boolean" },
+        "motivo_auditoria": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

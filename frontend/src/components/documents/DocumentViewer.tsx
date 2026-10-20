@@ -106,7 +106,7 @@ const DocumentViewer = ({
   const handleDocumentError = useCallback(() => {
     const errorMsg = isPdf
       ? "Error de visualización del documento PDF"
-      : "No fue posible decodificar o cargar la imagen clínica";
+      : "Error de decodificación de imagen clínica";
     setLoadingState("error");
     setErrorMessage(errorMsg);
     onError?.(new Error(errorMsg));
@@ -145,28 +145,52 @@ const DocumentViewer = ({
       <div
         role="toolbar"
         aria-label="Controles de visualización del documento"
-        className="bg-slate-50 border-b border-slate-200 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-slate-800"
+        className={`sticky top-0 z-20 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 text-slate-800 shadow-xs transition-all ${
+          isExpanded
+            ? "px-4 py-2.5 flex items-center justify-between gap-4"
+            : "px-3.5 py-2.5 flex flex-col gap-2.5"
+        }`}
       >
-        {/* Nombre y tipo de documento */}
-        <span className="font-semibold text-slate-800 flex items-center text-xs sm:text-sm min-w-0">
-          {isPdf ? (
-            <FaFilePdf className="text-rose-600 mr-2 text-base flex-shrink-0" />
-          ) : (
-            <FaFileImage className="text-sky-600 mr-2 text-base flex-shrink-0" />
-          )}
-          <span className="text-slate-500 font-normal mr-1 hidden sm:inline">Documento Original:</span>
-          <span className="text-sky-700 font-medium truncate max-w-[180px] sm:max-w-xs md:max-w-md">
-            {fileName || "Archivo adjunto"}
+        {/* Nivel 1: Metadatos y Nombre Completo del Documento */}
+        <div className={`flex items-center justify-between gap-2 min-w-0 ${isExpanded ? "flex-1" : "w-full"}`}>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="p-1.5 rounded-lg bg-slate-200/80 text-slate-700 flex-shrink-0 shadow-2xs">
+              {isPdf ? (
+                <FaFilePdf className="text-rose-600 text-base" />
+              ) : (
+                <FaFileImage className="text-sky-600 text-base" />
+              )}
+            </span>
+            <span
+              className="text-slate-800 font-semibold text-xs sm:text-sm truncate leading-snug"
+              title={fileName || "Archivo adjunto"}
+            >
+              {fileName || "Archivo adjunto"}
+            </span>
+          </div>
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider flex-shrink-0 border ${
+              isPdf
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : "bg-sky-50 text-sky-700 border-sky-200"
+            }`}
+          >
+            {isPdf ? "PDF" : "IMAGEN"}
           </span>
-        </span>
+        </div>
 
-        {/* Acciones interactivas */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Nivel 2: Controles de Zoom y Acciones */}
+        <div className={`flex items-center justify-between gap-2 ${isExpanded ? "ml-auto" : "w-full pt-1 border-t border-slate-200/60"}`}>
+          {/* Controles de zoom: botones cuadrados [-] y [+], rectángulo para [%] */}
           {fileUrl && loadingState !== "error" && (
-            <div className="inline-flex rounded-md shadow-sm border border-slate-300 bg-white" role="group" aria-label="Controles de zoom">
+            <div
+              className="inline-flex items-center rounded-lg border border-slate-300 bg-white shadow-2xs p-0.5"
+              role="group"
+              aria-label="Controles de zoom"
+            >
               <button
                 type="button"
-                className="px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-l-md disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 onClick={handleZoomOut}
                 disabled={zoomLevel <= 0.5}
                 title="Alejar documento"
@@ -176,7 +200,7 @@ const DocumentViewer = ({
               </button>
               <button
                 type="button"
-                className="px-2 py-1 text-xs font-mono font-medium text-slate-700 hover:bg-slate-100 border-x border-slate-200 transition-colors"
+                className="h-7 sm:h-8 px-2.5 sm:px-3 min-w-[54px] flex items-center justify-center text-xs font-mono font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-x border-slate-200 transition-colors"
                 onClick={handleZoomReset}
                 title="Restablecer tamaño original (100%)"
                 aria-label="Restablecer tamaño original (100%)"
@@ -185,7 +209,7 @@ const DocumentViewer = ({
               </button>
               <button
                 type="button"
-                className="px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-r-md disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 onClick={handleZoomIn}
                 disabled={zoomLevel >= 2.5}
                 title="Acercar documento"
@@ -196,51 +220,51 @@ const DocumentViewer = ({
             </div>
           )}
 
-          {/* Botón de Descarga Directa */}
-          {fileUrl && (
-            <a
-              href={fileUrl}
-              download={fileName || "documento_clinico"}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-sm"
-              title="Descargar archivo original"
-              aria-label="Descargar archivo original"
-            >
-              <FaDownload className="text-slate-500 text-xs" />
-              <span className="hidden sm:inline">Descargar</span>
-            </a>
-          )}
+          {/* Grupo de acciones del documento */}
+          <div className="inline-flex items-center gap-1.5 ml-auto">
+            {fileUrl && (
+              <a
+                href={fileUrl}
+                download={fileName || "documento_clinico"}
+                className="inline-flex items-center gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-2xs"
+                title="Descargar archivo original"
+                aria-label="Descargar archivo original"
+              >
+                <FaDownload className="text-slate-500 text-xs" />
+                <span>Descargar</span>
+              </a>
+            )}
 
-          {/* Botón de apertura en pestaña independiente */}
-          {fileUrl && (
-            <a
-              href={fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-sm"
-              title="Abrir en pestaña independiente"
-              aria-label="Abrir en pestaña independiente"
-            >
-              <FaExternalLinkAlt className="text-slate-500 text-xs" />
-              <span className="hidden sm:inline">Abrir</span>
-            </a>
-          )}
+            {fileUrl && (
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-2xs"
+                title="Abrir en pestaña independiente"
+                aria-label="Abrir en pestaña independiente"
+              >
+                <FaExternalLinkAlt className="text-slate-500 text-xs" />
+                <span>Abrir</span>
+              </a>
+            )}
 
-          {/* Alternancia a Pantalla Completa */}
-          <button
-            type="button"
-            className="inline-flex items-center justify-center p-1.5 text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-sm"
-            onClick={toggleFullscreen}
-            title={isExpanded ? "Reducir tamaño" : "Pantalla completa"}
-            aria-label={isExpanded ? "Reducir tamaño" : "Pantalla completa"}
-          >
-            {isExpanded ? <FaCompress className="text-xs" /> : <FaExpand className="text-xs" />}
-          </button>
+            <button
+              type="button"
+              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-2xs"
+              onClick={toggleFullscreen}
+              title={isExpanded ? "Reducir tamaño" : "Pantalla completa"}
+              aria-label={isExpanded ? "Reducir tamaño" : "Pantalla completa"}
+            >
+              {isExpanded ? <FaCompress className="text-xs" /> : <FaExpand className="text-xs" />}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Área del visor / Viewport */}
       <div
-        className="flex-1 w-full p-2 sm:p-4 flex flex-col items-center justify-center bg-slate-900 text-slate-100 relative overflow-auto"
+        className="flex-1 w-full flex flex-col items-center justify-start bg-slate-900 text-slate-100 relative overflow-auto"
         style={{ minHeight: isExpanded ? "calc(100vh - 60px)" : "460px" }}
       >
         {fileUrl ? (
@@ -281,13 +305,13 @@ const DocumentViewer = ({
             </div>
           ) : isPdf ? (
             /* Visualizador de PDF con Skeleton Loader */
-            <div className="w-full h-full flex flex-col items-center justify-center relative">
+            <div className="w-full h-full flex flex-col items-center justify-start relative p-2 sm:p-3">
               {/* Skeleton Loader animado con Tailwind mientras carga */}
               {loadingState === "loading" && (
                 <div
                   role="status"
                   aria-label="Cargando documento clínico..."
-                  className="w-full max-w-2xl h-full min-h-[420px] p-6 bg-slate-800/80 rounded-xl border border-slate-700/60 shadow-inner flex flex-col justify-between animate-pulse my-auto"
+                  className="w-full max-w-2xl h-full min-h-[420px] p-6 bg-slate-800/80 rounded-xl border border-slate-700/60 shadow-inner flex flex-col justify-between animate-pulse my-4"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-700/60">
@@ -317,7 +341,7 @@ const DocumentViewer = ({
 
               {/* Contenedor embebido del documento con soporte de Zoom */}
               <div
-                className={`w-full h-full flex items-center justify-center transition-opacity duration-200 ${
+                className={`w-full flex-1 flex items-center justify-center transition-opacity duration-200 ${
                   loadingState === "loading" ? "opacity-0 absolute pointer-events-none" : "opacity-100"
                 }`}
                 style={{
@@ -328,7 +352,7 @@ const DocumentViewer = ({
                   className="w-full h-full flex items-center justify-center"
                   style={{
                     transform: `scale(${zoomLevel})`,
-                    transformOrigin: "center center",
+                    transformOrigin: "top center",
                     transition: "transform 0.15s ease-out"
                   }}
                 >
@@ -336,7 +360,7 @@ const DocumentViewer = ({
                     ref={iframeRef}
                     src={fileUrl}
                     title="Vista previa del documento PDF"
-                    className="w-full h-full rounded border-0 shadow-md bg-white"
+                    className="w-full h-full rounded border-0 shadow-md bg-white min-h-[460px]"
                     style={{ minHeight: isExpanded ? "calc(100vh - 90px)" : "460px" }}
                     onLoad={handleDocumentLoad}
                     onError={handleDocumentError}
@@ -347,18 +371,18 @@ const DocumentViewer = ({
           ) : (
             /* Visualizador de Imágenes Clínicas con Zoom */
             <div
-              className="w-full h-full flex items-center justify-center overflow-auto p-2"
+              className="w-full flex-1 flex flex-col items-center justify-start overflow-auto p-4"
               style={{ minHeight: isExpanded ? "calc(100vh - 80px)" : "460px" }}
             >
               <img
                 src={fileUrl}
                 alt="Vista del documento clínico"
-                className="max-w-full max-h-[80vh] object-contain rounded shadow-md"
+                className="max-w-full h-auto object-contain rounded-lg shadow-2xl border border-slate-700/50"
                 onError={handleDocumentError}
                 onLoad={handleDocumentLoad}
                 style={{
                   transform: `scale(${zoomLevel})`,
-                  transformOrigin: "center center",
+                  transformOrigin: "top center",
                   transition: "transform 0.15s ease-out"
                 }}
               />

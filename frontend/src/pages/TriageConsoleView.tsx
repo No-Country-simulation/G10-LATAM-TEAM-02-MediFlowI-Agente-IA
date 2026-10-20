@@ -562,6 +562,40 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                           </ul>
                         </div>
                       )}
+
+                    {/* MEDICAMENTOS PRESCRITOS */}
+                    {resultado.datos_extraidos.medicamentos &&
+                      resultado.datos_extraidos.medicamentos.length > 0 && (
+                        <div className="findings-section" style={{ marginTop: '16px' }}>
+                          <h5 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            💊 Medicamentos Prescritos Extraídos:
+                          </h5>
+                          <div style={{ overflowX: 'auto', marginTop: '8px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#4a5568' }}>
+                                  <th style={{ padding: '8px 12px' }}>Fármaco</th>
+                                  <th style={{ padding: '8px 12px' }}>Dosis</th>
+                                  <th style={{ padding: '8px 12px' }}>Frecuencia / Pauta</th>
+                                  <th style={{ padding: '8px 12px' }}>Vía</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {resultado.datos_extraidos.medicamentos.map((m: any, idx: number) => (
+                                  <tr key={idx} style={{ borderBottom: '1px solid #edf2f7' }}>
+                                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1a202c' }}>
+                                      {m.medicamento || m.nombre || 'No especificado'}
+                                    </td>
+                                    <td style={{ padding: '8px 12px', color: '#4a5568' }}>{m.dosis || 'N/D'}</td>
+                                    <td style={{ padding: '8px 12px', color: '#4a5568' }}>{m.frecuencia || 'N/D'}</td>
+                                    <td style={{ padding: '8px 12px', color: '#4a5568' }}>{m.via_administracion || 'N/D'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 )}
               </section>

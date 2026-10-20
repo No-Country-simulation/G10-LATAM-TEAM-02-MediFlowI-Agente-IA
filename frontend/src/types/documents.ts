@@ -2,8 +2,10 @@ import type { ClinicalDocumentType } from '../constants/clinicalDocumentTypes'
 
 export interface Medication {
   nombre?: string
+  medicamento?: string
   dosis?: string
   frecuencia?: string
+  via_administracion?: string
 }
 
 export interface ClinicalDocument {

@@ -68,14 +68,100 @@ esas validaciones se realizan posteriormente mediante reglas locales.
 """
 
 
+def _rasterizar_pdf_a_imagen_base64(pdf_bytes: bytes, max_paginas: int = 3) -> str:
+    """
+    Renderiza páginas clínicas del PDF en memoria a una imagen JPEG codificada en Base64.
+    Si el documento tiene hasta 3 páginas, las une verticalmente en memoria antes de optimizar.
+    Opera 100% en memoria mediante PyMuPDF (fitz) y Pillow sin tocar el disco.
+    """
+    import fitz
+    from PIL import Image
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    if len(doc) == 0:
+        raise ValueError("El documento PDF no contiene páginas.")
+
+    paginas_a_procesar = min(len(doc), max_paginas)
+    imagenes_pil = []
+
+    for i in range(paginas_a_procesar):
+        page = doc[i]
+        pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        imagenes_pil.append(img)
+    doc.close()
+
+    if len(imagenes_pil) == 1:
+        canvas = imagenes_pil[0]
+    else:
+        ancho_total = max(img.width for img in imagenes_pil)
+        alto_total = sum(img.height for img in imagenes_pil)
+        canvas = Image.new("RGB", (ancho_total, alto_total), color=(255, 255, 255))
+        y_offset = 0
+        for img in imagenes_pil:
+            canvas.paste(img, (0, y_offset))
+            y_offset += img.height
+
+    with io.BytesIO() as buffer:
+        canvas.save(buffer, format="JPEG", quality=85)
+        return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
 async def node_ingestion(
     state: AgentState,
     llm_service=None,
     fusion_context: ContextoTriaje | None = None,
 ) -> dict:
-    """El grafo usa fusión para imágenes; conserva la ingesta convencional de develop."""
-    if fusion_context is not None and state.tipo_archivo == "IMAGEN" and state.documento_base64:
-        return await _node_ingestion_fusion(state, llm_service, fusion_context)
+    """
+    Ingesta inteligente:
+    - IMAGEN: Pipeline Fusion directo con pase único de visión.
+    - PDF Digital (>= 50 chars): PyMuPDF directo en milisegundos sin consumir visión.
+    - PDF Escaneado (< 50 chars): Pipeline Fusion rasterizando páginas en memoria a JPEG < 350 KB.
+    - Saneamiento estricto: documento_base64 = None al finalizar.
+    """
+    if fusion_context is not None and state.documento_base64:
+        if state.tipo_archivo == "IMAGEN":
+            return await _node_ingestion_fusion(state, llm_service, fusion_context)
+        elif state.tipo_archivo == "PDF":
+            try:
+                pdf_bytes = base64.b64decode(state.documento_base64)
+                texto_digital = _extraer_texto_pdf_pymupdf(pdf_bytes)
+                if texto_digital and len(texto_digital.strip()) >= 50:
+                    logger.info(
+                        "nodo.ingestion.pdf_digital_detectado",
+                        documento_id=state.documento_id,
+                        caracteres=len(texto_digital.strip()),
+                    )
+                    return {
+                        "documento_base64": None,
+                        "metodo_extraccion": "TEXT_EXTRACTION",
+                        "texto_extraido": texto_digital.strip(),
+                        "nodos_ejecutados": state.nodos_ejecutados + ["ingestion"],
+                    }
+                else:
+                    logger.info(
+                        "nodo.ingestion.pdf_escaneado_fusion_activada",
+                        documento_id=state.documento_id,
+                        longitud_texto_embebido=len(texto_digital.strip()) if texto_digital else 0,
+                    )
+                    img_b64 = _rasterizar_pdf_a_imagen_base64(pdf_bytes)
+                    return await _node_ingestion_fusion(
+                        state, llm_service, fusion_context, imagen_base64_override=img_b64
+                    )
+            except Exception as exc:
+                logger.error(
+                    "nodo.ingestion.pdf_error",
+                    documento_id=state.documento_id,
+                    error=str(exc),
+                )
+                return {
+                    "documento_base64": None,
+                    "metodo_extraccion": "FALLBACK_AUDIT",
+                    "texto_extraido": "",
+                    "error_mensaje": f"Error en procesamiento de PDF: {exc}",
+                    "nodos_ejecutados": state.nodos_ejecutados + ["ingestion"],
+                }
+
     result = await _node_ingestion_convencional(state, llm_service)
     return {**result, "documento_base64": None}
 
@@ -84,6 +170,7 @@ async def _node_ingestion_fusion(
     state: AgentState,
     llm_service=None,
     fusion_context: ContextoTriaje | None = None,
+    imagen_base64_override: str | None = None,
 ) -> dict:
     """
     Extrae texto del documento según su tipo.
@@ -96,7 +183,8 @@ async def _node_ingestion_fusion(
     try:
         context.fusion_intentada = True
         context.fusion_resultado = None
-        image = await asyncio.to_thread(optimizar_imagen, state.documento_base64)
+        target_b64 = imagen_base64_override if imagen_base64_override is not None else state.documento_base64
+        image = await asyncio.to_thread(optimizar_imagen, target_b64)
         prompt = _PROMPT_VISION_FUSION.format(
             catalogo=CATALOGO_PARA_PROMPT,
         )
