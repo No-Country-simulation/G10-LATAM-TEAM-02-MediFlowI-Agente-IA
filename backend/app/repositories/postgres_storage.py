@@ -239,6 +239,12 @@ class PostgresStorageRepository:
                     "SELECT valor FROM configuracion_sistema WHERE clave = 'modo_almacenamiento'"
                 )
                 storage_prov = modo_row.upper() if modo_row else "LOCAL"
+                metadata_persisted = dict(resultado.metadata or {})
+                if resultado.datos_extraidos and resultado.datos_extraidos.medicamentos:
+                    metadata_persisted["medicamentos"] = [
+                        m.model_dump() if hasattr(m, "model_dump") else dict(m)
+                        for m in resultado.datos_extraidos.medicamentos
+                    ]
 
                 await conn.execute(
                     """
@@ -309,7 +315,7 @@ class PostgresStorageRepository:
                     resultado.almacenamiento_oci.status_backup,
                     json.dumps(resultado.nodos_ejecutados),
                     resultado.tiempo_procesamiento_ms,
-                    json.dumps(resultado.metadata),
+                    json.dumps(metadata_persisted),
                     resultado.error_mensaje,
                     storage_prov,
                     resultado.almacenamiento_oci.archivo_original,

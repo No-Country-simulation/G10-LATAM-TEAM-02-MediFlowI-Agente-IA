@@ -133,14 +133,24 @@ const ExtractedData = ({ data = {}, clasificacion = {} }: ExtractedDataProps) =>
                         <th>Medicamento</th>
                         <th>Dosis</th>
                         <th>Frecuencia</th>
+                        <th>Vía</th>
                       </tr>
                     </thead>
                     <tbody>
                       {medicamentos.map((med, idx) => (
                         <tr key={idx}>
-                          <td className="fw-semibold">{sanitize(med.nombre)}</td>
+                          <td className="fw-semibold">{sanitize(med.nombre || med.medicamento)}</td>
                           <td>{sanitize(med.dosis)}</td>
                           <td>{sanitize(med.frecuencia)}</td>
+                          <td>
+                            {med.via_administracion ? (
+                              <span className="badge bg-secondary-subtle text-secondary small">
+                                {sanitize(med.via_administracion)}
+                              </span>
+                            ) : (
+                              <span className="text-muted small fst-italic">No especificada</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

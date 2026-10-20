@@ -69,6 +69,9 @@ def _format_document_row(row: dict) -> dict:
         doc["datos_extraidos"]["cie10_descripcion"] = validar_y_completar_cie10(
             doc["datos_extraidos"].get("cie10_sugerido")
         )["descripcion"]
+        if "medicamentos" not in doc["datos_extraidos"]:
+            meta = _as_json_value(row.get("metadata"), {})
+            doc["datos_extraidos"]["medicamentos"] = meta.get("medicamentos", [])
         return doc
 
     created_at = _serialize_temporal(row.get("created_at"))
@@ -103,6 +106,7 @@ def _format_document_row(row: dict) -> dict:
                 "descripcion"
             ],
             "hallazgos_clave": _as_json_value(row.get("hallazgos_clave"), []),
+            "medicamentos": _as_json_value(row.get("metadata"), {}).get("medicamentos", []),
         },
         "decision_enrutamiento": {
             "destino_principal": row.get("destino_principal") or "Cola_Rutina",

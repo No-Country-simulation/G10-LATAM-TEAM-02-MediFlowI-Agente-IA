@@ -264,3 +264,36 @@ def test_obtener_documento_uses_postgres_without_physical_json(client, bearer_he
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["texto_extraido"] == "Contenido canónico"
     assert response.json()["almacenamiento_oci"]["status_backup"] == "error"
+
+
+def test_obtener_documento_incluye_medicamentos_prescritos(client, bearer_headers):
+    row = {
+        "documento_id": "DOC-RECETA-001",
+        "status": "procesado",
+        "tipo_documento": "Receta Médica",
+        "nivel_prioridad": "Rutina",
+        "metadata": {
+            "medicamentos": [
+                {
+                    "medicamento": "Amoxicilina",
+                    "dosis": "500 mg",
+                    "frecuencia": "c/8h",
+                    "via_administracion": "Oral",
+                }
+            ]
+        },
+    }
+    with patch(
+        "app.api.v1.documents.PostgresStorageRepository.obtener_por_id",
+        new_callable=AsyncMock,
+        return_value=row,
+    ):
+        response = client.get("/api/v1/documents/DOC-RECETA-001", headers=bearer_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert "medicamentos" in data["datos_extraidos"]
+    assert len(data["datos_extraidos"]["medicamentos"]) == 1
+    assert data["datos_extraidos"]["medicamentos"][0]["medicamento"] == "Amoxicilina"
+    assert data["datos_extraidos"]["medicamentos"][0]["via_administracion"] == "Oral"
+

@@ -106,7 +106,7 @@ const DocumentViewer = ({
   const handleDocumentError = useCallback(() => {
     const errorMsg = isPdf
       ? "Error de visualización del documento PDF"
-      : "No fue posible decodificar o cargar la imagen clínica";
+      : "Error de decodificación de imagen clínica";
     setLoadingState("error");
     setErrorMessage(errorMsg);
     onError?.(new Error(errorMsg));

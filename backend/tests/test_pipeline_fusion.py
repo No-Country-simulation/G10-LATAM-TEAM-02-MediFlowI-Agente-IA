@@ -178,7 +178,12 @@ async def test_grafo_singleton_aisla_solicitudes_concurrentes():
 
 async def test_cliente_multimodal_construye_un_mensaje_con_jpeg():
     service = LLMService(
-        Settings(google_api_key="your-test", openai_api_key="", allow_mock_llm=True)
+        Settings(
+            google_api_key="your-test",
+            openai_api_key="",
+            allow_mock_llm=True,
+            gemini_model="gemini-1.5-flash",
+        )
     )
     service._provider = "gemini"
     service._client = Mock(ainvoke=AsyncMock(return_value=Mock(content=fusion_result())))
