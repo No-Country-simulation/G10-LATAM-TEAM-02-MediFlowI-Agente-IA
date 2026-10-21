@@ -75,6 +75,7 @@ class DecisionEnrutamientoState(BaseModel):
     requiere_auditoria_humana: bool = False
     justificacion_enrutamiento: str | None = None
     notificacion_generada: dict | None = None
+    motivo_retencion: str | None = None
 
 
 class AlmacenamientoOCIState(BaseModel):

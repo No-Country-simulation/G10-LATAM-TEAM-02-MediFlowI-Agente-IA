@@ -107,6 +107,144 @@ def _rasterizar_pdf_a_imagen_base64(pdf_bytes: bytes, max_paginas: int = 3) -> s
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
+def _evaluar_paginas_pdf(pdf_bytes: bytes) -> tuple[dict[int, str], list[int]]:
+    """
+    Evalúa página por página un PDF para identificar folios digitales y visuales.
+    Retorna:
+    - textos_digitales: {indice_0_based: texto_extraido}
+    - paginas_visuales: [indices_0_based_con_imagenes_o_texto_escaso]
+    """
+    import fitz
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    textos_digitales: dict[int, str] = {}
+    paginas_visuales: list[int] = []
+
+    for i in range(len(doc)):
+        page = doc[i]
+        page_text = page.get_text().strip()
+        num_caracteres = len(page_text)
+        has_images = len(page.get_images()) > 0
+
+        # Página escaneada / visual:
+        # - Tiene imagen incrustada y poco texto embebido (< 50 caracteres)
+        # - O carece totalmente de texto vectorial
+        if (has_images and num_caracteres < 50) or num_caracteres == 0:
+            paginas_visuales.append(i)
+        else:
+            textos_digitales[i] = page_text
+
+    doc.close()
+    return textos_digitales, paginas_visuales
+
+
+async def _procesar_pdf_asimetrico(
+    state: AgentState,
+    pdf_bytes: bytes,
+    textos_digitales: dict[int, str],
+    paginas_visuales: list[int],
+    llm_service,
+) -> dict:
+    """
+    Procesa un PDF híbrido/asimétrico:
+    - Rasteriza en memoria hasta 3 páginas escaneadas (< 350 KB por página).
+    - Ejecuta llamada multimodal a Gemini Vision (o fallback local OCR).
+    - Consolida las páginas digitales nativas y las páginas visuales en orden correlativo.
+    - Sanea documento_base64 e inyecta metadatos de asimetría clínica.
+    """
+    import fitz
+
+    total_paginas = len(textos_digitales) + len(paginas_visuales)
+    paginas_a_rasterizar = paginas_visuales[:3]
+    textos_visuales: dict[int, str] = {}
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    payload_imgs = []
+    indices_en_orden = []
+
+    for idx in paginas_a_rasterizar:
+        if idx < len(doc):
+            page = doc[idx]
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+            img_bytes = pix.tobytes("jpeg")
+            b64_str = base64.b64encode(img_bytes).decode("utf-8")
+            payload_imgs.append({"mime_type": "image/jpeg", "data_base64": b64_str})
+            indices_en_orden.append(idx)
+    doc.close()
+
+    exito_vision = False
+    if llm_service and getattr(llm_service, "disponible", False):
+        try:
+            if len(payload_imgs) == 1:
+                texto_vis = await llm_service.completar_multimodal(
+                    prompt=_PROMPT_VISION_TRANSCRIPCION,
+                    imagenes=payload_imgs,
+                )
+                if texto_vis and texto_vis.strip():
+                    textos_visuales[indices_en_orden[0]] = texto_vis.strip()
+                    exito_vision = True
+            elif len(payload_imgs) > 1:
+                for idx, img_payload in zip(indices_en_orden, payload_imgs):
+                    texto_vis = await llm_service.completar_multimodal(
+                        prompt=_PROMPT_VISION_TRANSCRIPCION,
+                        imagenes=[img_payload],
+                    )
+                    if texto_vis and texto_vis.strip():
+                        textos_visuales[idx] = texto_vis.strip()
+                if textos_visuales:
+                    exito_vision = True
+        except Exception as exc:
+            logger.warning("nodo.ingestion.pdf_asimetrico_vision_fallo", error=str(exc))
+
+    if not exito_vision or len(textos_visuales) < len(paginas_a_rasterizar):
+        try:
+            import pytesseract
+            from PIL import Image
+
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            for idx in paginas_a_rasterizar:
+                if idx not in textos_visuales and idx < len(doc):
+                    pix = doc[idx].get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+                    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                    ocr_res = pytesseract.image_to_string(img, lang="spa").strip()
+                    if ocr_res:
+                        textos_visuales[idx] = ocr_res
+            doc.close()
+        except Exception as ocr_err:
+            logger.warning("nodo.ingestion.pdf_asimetrico_ocr_fallo", error=str(ocr_err))
+
+    # Consolidar en orden original
+    partes_ordenadas = []
+    for i in range(total_paginas):
+        if i in textos_digitales:
+            partes_ordenadas.append(textos_digitales[i])
+        elif i in textos_visuales:
+            partes_ordenadas.append(textos_visuales[i])
+
+    texto_extraido = "\n\n".join(partes_ordenadas).strip()
+
+    metadata = dict(state.metadata)
+    metadata["documento_asimetrico_detectado"] = True
+    metadata["paginas_visuales_procesadas"] = len(paginas_a_rasterizar)
+    metadata["paginas_rasterizadas_ocr"] = [p + 1 for p in paginas_a_rasterizar]
+
+    logger.info(
+        "nodo.ingestion.pdf_asimetrico_completado",
+        documento_id=state.documento_id,
+        paginas_digitales=len(textos_digitales),
+        paginas_visuales=len(paginas_a_rasterizar),
+        caracteres_totales=len(texto_extraido),
+    )
+
+    return {
+        "texto_extraido": texto_extraido,
+        "metodo_extraccion": "MULTIMODAL_VISION",
+        "metadata": metadata,
+        "documento_base64": None,
+        "nodos_ejecutados": state.nodos_ejecutados + ["ingestion"],
+    }
+
+
 async def node_ingestion(
     state: AgentState,
     llm_service=None,
@@ -125,24 +263,29 @@ async def node_ingestion(
         elif state.tipo_archivo == "PDF":
             try:
                 pdf_bytes = base64.b64decode(state.documento_base64)
-                texto_digital = _extraer_texto_pdf_pymupdf(pdf_bytes)
-                if texto_digital and len(texto_digital.strip()) >= 50:
+                textos_digitales, paginas_visuales = _evaluar_paginas_pdf(pdf_bytes)
+                if textos_digitales and not paginas_visuales:
+                    texto_digital = "\n\n".join(textos_digitales.values()).strip()
                     logger.info(
                         "nodo.ingestion.pdf_digital_detectado",
                         documento_id=state.documento_id,
-                        caracteres=len(texto_digital.strip()),
+                        caracteres=len(texto_digital),
                     )
                     return {
                         "documento_base64": None,
                         "metodo_extraccion": "TEXT_EXTRACTION",
-                        "texto_extraido": texto_digital.strip(),
+                        "texto_extraido": texto_digital,
                         "nodos_ejecutados": state.nodos_ejecutados + ["ingestion"],
                     }
+                elif textos_digitales and paginas_visuales:
+                    return await _procesar_pdf_asimetrico(
+                        state, pdf_bytes, textos_digitales, paginas_visuales, llm_service
+                    )
                 else:
                     logger.info(
                         "nodo.ingestion.pdf_escaneado_fusion_activada",
                         documento_id=state.documento_id,
-                        longitud_texto_embebido=len(texto_digital.strip()) if texto_digital else 0,
+                        longitud_texto_embebido=0,
                     )
                     img_b64 = _rasterizar_pdf_a_imagen_base64(pdf_bytes)
                     return await _node_ingestion_fusion(
@@ -257,18 +400,23 @@ async def _node_ingestion_convencional(
             metodo_extraccion = "TEXT_EXTRACTION"
 
         elif state.tipo_archivo == "PDF" and state.documento_base64:
-            # Caso 2: Documento PDF (digital o escaneado)
+            # Caso 2: Documento PDF (digital, asimétrico o escaneado)
             pdf_bytes = base64.b64decode(state.documento_base64)
-            texto_digital = _extraer_texto_pdf_pymupdf(pdf_bytes)
+            textos_digitales, paginas_visuales = _evaluar_paginas_pdf(pdf_bytes)
 
-            if texto_digital and len(texto_digital.strip()) >= 50:
-                texto_extraido = texto_digital.strip()
+            if textos_digitales and not paginas_visuales:
+                texto_extraido = "\n\n".join(textos_digitales.values()).strip()
                 metodo_extraccion = "TEXT_EXTRACTION"
+            elif textos_digitales and paginas_visuales:
+                return await _procesar_pdf_asimetrico(
+                    state, pdf_bytes, textos_digitales, paginas_visuales, llm_service
+                )
             else:
                 # PDF escaneado (< 50 caracteres): intentar Vision multimodal
+                texto_digital = "\n\n".join(textos_digitales.values()).strip()
                 logger.info(
                     "nodo.ingestion.pdf_escaneado_detectado",
-                    longitud_texto_embebido=len(texto_digital or ""),
+                    longitud_texto_embebido=len(texto_digital),
                 )
                 exito_vision = False
                 if llm_service and getattr(llm_service, "disponible", False):

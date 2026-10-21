@@ -9,6 +9,7 @@ from typing import Any
 
 import structlog
 
+from app.agent.clinical_guardrails import evaluar_red_flags
 from app.agent.state import AgentState, DatosExtraidosState
 
 logger = structlog.get_logger(__name__)
@@ -85,6 +86,7 @@ def calcular_score_confianza(
 async def node_confidence(state: AgentState) -> dict[str, Any]:
     """
     Nodo LangGraph: calcula el score de confianza final y actualiza ClasificacionState y metadata.
+    Aplica validación cruzada determinista contra la Matriz de Red Flags Clínicas.
     """
     logger.info("nodo.confidence.inicio", documento_id=state.documento_id)
 
@@ -99,11 +101,40 @@ async def node_confidence(state: AgentState) -> dict[str, Any]:
         error_mensaje=state.error_mensaje,
     )
 
+    metadata_actualizada = dict(state.metadata)
+
+    # ── Validación Cruzada de Coherencia Semántica (Guardrail Red Flags) ─────
+    es_rf, red_flag_detectada = evaluar_red_flags(
+        hallazgos=datos.hallazgos_clave if datos else None,
+        diagnostico=datos.diagnostico_principal if datos else None,
+        cie10=datos.cie10_sugerido if datos else None,
+        texto_completo=texto,
+    )
+
+    prioridad = state.clasificacion.nivel_prioridad
+    if es_rf and prioridad == "Rutina":
+        # Discordancia crítica: afección de riesgo vital clasificada erróneamente como Rutina
+        score_final = 0.0
+        factores["score_final"] = 0.0
+        factores["retenido_por_confianza"] = True
+        factores["discordancia_critica_red_flags"] = True
+        factores["red_flag_detectada"] = red_flag_detectada
+
+        metadata_actualizada["discordancia_critica_red_flags"] = True
+        metadata_actualizada["red_flag_detectada"] = red_flag_detectada
+        metadata_actualizada["motivo_retencion"] = "discordancia_critica_red_flags"
+
+        logger.warning(
+            "nodo.confidence.discordancia_red_flag_detectada",
+            documento_id=state.documento_id,
+            red_flag=red_flag_detectada,
+            prioridad=prioridad,
+        )
+
     clasificacion_actualizada = state.clasificacion.model_copy(
         update={"score_confianza_clasificacion": score_final},
     )
 
-    metadata_actualizada = dict(state.metadata)
     metadata_actualizada["factores_confianza"] = factores
 
     logger.info(

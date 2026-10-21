@@ -7,6 +7,7 @@ clasificación y score de confianza. Genera alertas para urgencias.
 import structlog
 
 from app.agent.clinical_catalog import es_medicamento_controlado, normalizar_tipo_documento
+from app.agent.clinical_guardrails import es_documento_fuera_de_dominio
 from app.agent.state import AgentState, DecisionEnrutamientoState
 from app.core.alerts import MENSAJE_GUARDIA
 
@@ -48,19 +49,43 @@ async def node_routing(state: AgentState) -> dict:
         tiene_medicamentos=tiene_medicamentos,
     )
 
-    if state.metadata.get("cie10_codigos_invalidos"):
+    new_metadata = dict(state.metadata)
+    motivo_retencion: str | None = None
+
+    if tipo_doc and es_documento_fuera_de_dominio(tipo_doc):
+        new_metadata["fuera_de_dominio_clinico"] = True
+        new_metadata["motivo_retencion"] = "fuera_de_dominio_clinico"
+        motivo_retencion = "fuera_de_dominio_clinico"
+    elif discrepancia_identidad:
+        motivo_retencion = "discrepancia_identidad"
+    elif state.metadata.get("cie10_codigos_invalidos"):
         destino = "Cola_Auditoria_Humana"
         justificacion = (
             "Código CIE-10 sugerido inexistente o mal formado. Requiere revisión humana."
         )
         notificacion = None
         requiere_auditoria = True
+        motivo_retencion = "cie10_invalido"
+    elif state.metadata.get("discordancia_critica_red_flags"):
+        destino = "Cola_Revision_Ambigua"
+        rf_nombre = state.metadata.get("red_flag_detectada", "Red Flag")
+        justificacion = (
+            f"Discordancia crítica detectada: Hallazgo de riesgo vital ({rf_nombre}) "
+            "clasificado como Rutina. Requiere auditoría médica urgente."
+        )
+        notificacion = None
+        requiere_auditoria = True
+        motivo_retencion = "discordancia_critica_red_flags"
+        new_metadata["motivo_retencion"] = "discordancia_critica_red_flags"
+    elif score < 0.75:
+        motivo_retencion = "baja_confianza"
 
     decision = DecisionEnrutamientoState(
         destino_principal=destino,
         requiere_auditoria_humana=requiere_auditoria,
         justificacion_enrutamiento=justificacion,
         notificacion_generada=notificacion,
+        motivo_retencion=motivo_retencion,
     )
 
     # Determinar status global
@@ -79,6 +104,7 @@ async def node_routing(state: AgentState) -> dict:
     return {
         "decision_enrutamiento": decision,
         "status": status_final,
+        "metadata": new_metadata,
         "nodos_ejecutados": state.nodos_ejecutados + ["routing"],
     }
 
@@ -95,6 +121,7 @@ def _calcular_destino(
 ) -> tuple:
     """
     Lógica de decisión condicional:
+    - fuera_de_dominio → Cola_Revision_Ambigua + requiere_auditoria=True (US1)
     - discrepancia_identidad → Cola_Revision_Ambigua + requiere_auditoria=True (Issue #29)
     - Ambiguo → Cola_Revision_Ambigua + requiere_auditoria=True
     - nivel Urgente → Cola_Emergencia_Medica + alerta (Precedencia clínica absoluta)
@@ -102,6 +129,14 @@ def _calcular_destino(
     - Receta_Medica / prescripciones / farmacoterapia → Farmacia_Hospitalaria (Issue #28 / R3)
     - Rutina → Cola_Rutina
     """
+    if tipo_documento and es_documento_fuera_de_dominio(tipo_documento):
+        return (
+            "Cola_Revision_Ambigua",
+            f"Documento fuera de dominio clínico ({tipo_documento}). Requiere revisión y clasificación manual.",
+            None,
+            True,
+        )
+
     if discrepancia_identidad:
         return (
             "Cola_Revision_Ambigua",
