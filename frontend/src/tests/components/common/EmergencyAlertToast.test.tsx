@@ -43,7 +43,8 @@ describe('EmergencyAlertToast - Alertas de Guardia en Tiempo Real (FE-15 / Issue
     expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(screen.getByText('Doc: DOC-EMERGENCIA-001')).toBeInTheDocument()
     expect(screen.getByText(/dolor torácico opresivo/i)).toBeInTheDocument()
-    expect(screen.getByText('Atender caso')).toBeInTheDocument()
+    const link = screen.getByText('Atender caso').closest('a')
+    expect(link).toHaveAttribute('href', '/auditoria/DOC-EMERGENCIA-001')
   })
 
   it('invoca onDismiss al hacer click en el botón de cerrar', async () => {

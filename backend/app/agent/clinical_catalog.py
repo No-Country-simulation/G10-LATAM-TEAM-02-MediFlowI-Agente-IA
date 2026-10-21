@@ -109,6 +109,8 @@ _ALIAS.update(
         "nota de evolucion": "Evolución Clínica",
         "receta": "Receta Médica",
         "prescripcion medica": "Receta Médica",
+        "solicitud": "Orden Médica",
+        "solicitud medica": "Orden Médica",
         "desconocido": "Otro",
         "error": "Otro",
     }

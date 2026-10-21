@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClinicalSafetyGuardrailsContract",
+  "description": "Contrato de validación para las decisiones de guardrails de seguridad clínica hospitalaria en MediFlow.",
+  "type": "object",
+  "properties": {
+    "documento_id": {
+      "type": "string",
+      "description": "Identificador único del documento de triaje."
+    },
+    "fuera_de_dominio_clinico": {
+      "type": "boolean",
+      "description": "True si el documento fue interceptado por no pertenecer al flujo médico."
+    },
+    "tipo_documento_rechazado": {
+      "type": ["string", "null"],
+      "description": "Categoría que provocó el bloqueo de enrutamiento a colas operativas (ej. 'Otro', 'No_Clinico')."
+    },
+    "documento_asimetrico_detectado": {
+      "type": "boolean",
+      "description": "True si se identificaron páginas con texto vectorial y páginas secundarias escaneadas."
+    },
+    "paginas_visuales_procesadas": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "Número de folios visuales procesados con Gemini Vision (máximo 3)."
+    },
+    "discordancia_critica_red_flags": {
+      "type": "boolean",
+      "description": "True si se detectó una patología de riesgo vital clasificada como Rutina."
+    },
+    "red_flag_detectada": {
+      "type": ["string", "null"],
+      "description": "Término o código CIE-10 de riesgo vital involucrado en la discordancia."
+    },
+    "score_confianza_final": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Puntaje de confianza final (penalizado a 0.0 si hay discordancia crítica de red flag)."
+    },
+    "destino_enrutamiento": {
+      "type": "string",
+      "enum": [
+        "Cola_Revision_Ambigua",
+        "Cola_Emergencia_Medica",
+        "Cola_Rutina",
+        "Farmacia_Hospitalaria",
+        "Cola_Auditoria_Humana"
+      ],
+      "description": "Destino asignado. Para documentos fuera de dominio o con discordancia, DEBE ser Cola_Revision_Ambigua."
+    },
+    "requiere_auditoria_humana": {
+      "type": "boolean",
+      "description": "True de forma obligatoria cuando se activa cualquiera de los guardrails de contención."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pendiente_auditoria", "procesado", "fallido"],
+      "description": "Estado operacional del documento."
+    }
+  },
+  "required": [
+    "documento_id",
+    "fuera_de_dominio_clinico",
+    "documento_asimetrico_detectado",
+    "discordancia_critica_red_flags",
+    "score_confianza_final",
+    "destino_enrutamiento",
+    "requiere_auditoria_humana",
+    "status"
+  ]
+}

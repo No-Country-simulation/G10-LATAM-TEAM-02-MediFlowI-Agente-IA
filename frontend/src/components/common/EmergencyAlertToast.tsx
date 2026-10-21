@@ -83,7 +83,7 @@ export default function EmergencyAlertToast({
                   {new Date(alert.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 <Link
-                  to={`/documentos/${encodeURIComponent(alert.documento_id)}`}
+                  to={`/auditoria/${encodeURIComponent(alert.documento_id)}`}
                   onClick={() => onDismiss(alert.id)}
                   className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-800 hover:underline"
                 >
