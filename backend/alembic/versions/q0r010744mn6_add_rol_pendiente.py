@@ -8,13 +8,14 @@ Agrega el rol PENDIENTE al enum rol_enum para dar soporte a solicitudes
 de acceso de nuevos usuarios a la espera de asignación de rol por el administrador.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
+
 from alembic import op
 
 revision: str = "q0r010744mn6"
-down_revision: Union[str, Sequence[str], None] = "p9q909633lm5"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "p9q909633lm5"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 UPGRADE_STATEMENTS = [
     "ALTER TYPE rol_enum ADD VALUE IF NOT EXISTS 'PENDIENTE';",

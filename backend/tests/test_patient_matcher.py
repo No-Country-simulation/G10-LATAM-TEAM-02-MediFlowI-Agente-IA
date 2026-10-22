@@ -8,22 +8,19 @@ Valida:
 """
 
 from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from app.agent.nodes.extraction import node_extraction
 from app.agent.nodes.routing import _calcular_destino, node_routing
 from app.agent.patient_matcher import (
-    ResultadoMatchingPaciente,
     verificar_identidad_paciente,
 )
 from app.agent.state import (
     AgentState,
     ClasificacionState,
-    DatosExtraidosState,
-    PacienteState,
 )
 from app.repositories.postgres_storage import DatabaseUnavailableError
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

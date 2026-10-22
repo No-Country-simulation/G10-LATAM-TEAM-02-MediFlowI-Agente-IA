@@ -85,9 +85,22 @@ export function normalizeBackendDocument(item: BackendDocument): ClinicalDocumen
   }
 }
 
+function randomSuffix(): string {
+  // crypto.randomUUID() solo existe en contextos seguros (HTTPS o localhost).
+  // En producción por HTTP queda undefined, por eso usamos fallbacks.
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID().split('-')[0].toUpperCase()
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(4)
+    crypto.getRandomValues(bytes)
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+  }
+  return Math.random().toString(16).slice(2, 10).padEnd(8, '0').toUpperCase()
+}
+
 function createDocumentId(): string {
-  const suffix = crypto.randomUUID().split('-')[0].toUpperCase()
-  return `DOC-${new Date().getFullYear()}-${suffix}`
+  return `DOC-${new Date().getFullYear()}-${randomSuffix()}`
 }
 
 function matchesFilters(document: ClinicalDocument, filters: DocumentFilters): boolean {

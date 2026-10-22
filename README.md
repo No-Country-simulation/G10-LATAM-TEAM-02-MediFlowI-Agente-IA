@@ -1,5 +1,7 @@
 # 🏥 MediFlow — Agente Autónomo de Triaje Clínico
 
+[![CI](https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/actions/workflows/ci.yml/badge.svg)](https://github.com/No-Country-simulation/G10-LATAM-TEAM-02-MediFlowI-Agente-IA/actions/workflows/ci.yml)
+
 > **Hackathon ONE G10 · Oracle Next Education & Alura**
 
 Agente autónomo que recibe documentos clínicos (PDF, imagen, texto), los clasifica con **LLMs multimodales (Google Gemini)**, extrae entidades estructuradas y los enruta automáticamente a la cola correcta, persistiendo todo en **OCI Object Storage** (Always Free).

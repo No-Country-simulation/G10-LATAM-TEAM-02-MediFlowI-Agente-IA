@@ -9,13 +9,14 @@ de atención médica relacionando episodios_clinicos con pacientes (incluyendo c
 dinámico de edad en tiempo real) y usuarios (operador de admisión, médico general y especialista).
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
+
 from alembic import op
 
 revision: str = "p9q909633lm5"
-down_revision: Union[str, Sequence[str], None] = "o8p808522kl4"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "o8p808522kl4"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 UPGRADE_STATEMENTS = [
     """CREATE OR REPLACE VIEW v_episodios_detalle AS

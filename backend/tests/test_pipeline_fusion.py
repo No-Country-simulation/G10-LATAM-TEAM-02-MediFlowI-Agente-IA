@@ -440,7 +440,7 @@ async def test_pdf_escaneado_multipagina_concatena_en_memoria_y_optimiza():
     """US2: PDF multipágina escaneado (hasta 3 páginas) se concatena en memoria y optimiza a < 350 KB."""
     import fitz
     doc = fitz.open()
-    for i in range(2):
+    for _ in range(2):
         page = doc.new_page()
         with Image.new("RGB", (500, 700), color=(240, 240, 240)) as img, io.BytesIO() as buf:
             img.save(buf, format="PNG")

@@ -5,8 +5,8 @@ Encapsula la persistencia en la tabla `episodios_clinicos` y las consultas agreg
 sobre la vista SQL `v_episodios_detalle` en PostgreSQL con asyncpg.
 """
 
-from datetime import datetime, timezone
 import secrets
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -54,7 +54,7 @@ VISTA_EPISODIOS_COLUMNS = """
 
 def _generate_episode_code() -> str:
     """Genera un código clínico único determinista (ej. EP-20261005-A1B2)."""
-    date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+    date_str = datetime.now(UTC).strftime("%Y%m%d")
     suffix = secrets.token_hex(2).upper()
     return f"EP-{date_str}-{suffix}"
 

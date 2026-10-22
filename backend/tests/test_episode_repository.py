@@ -6,13 +6,13 @@ filtros y manejo de fallos sin mutar la base de datos de desarrollo (Regla de Or
 """
 
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
+
 import pytest
 
 from app.repositories.episode_repository import (
-    ESTADOS_VALIDOS,
     _ensure_uuid,
     _generate_episode_code,
     _require_pool,
@@ -83,7 +83,7 @@ async def test_create_episode_success():
         "estado_atencion": "ingresado",
         "nivel_prioridad": "Urgencia",
         "motivo_consulta": "Dolor torácico agudo",
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
     }
 
     mock_conn = AsyncMock()

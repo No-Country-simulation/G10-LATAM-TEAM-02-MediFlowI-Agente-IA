@@ -40,6 +40,7 @@ services:
       - "8000"                 # interno, NO publicado
     volumes:
       - mediflow-storage:/app/storage
+      - ../../backend/oci_private_key.pem:/app/oci_private_key.pem:ro
     networks:
       - mediflow-net
     depends_on:

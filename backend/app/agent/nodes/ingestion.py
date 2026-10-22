@@ -184,7 +184,7 @@ async def _procesar_pdf_asimetrico(
                     textos_visuales[indices_en_orden[0]] = texto_vis.strip()
                     exito_vision = True
             elif len(payload_imgs) > 1:
-                for idx, img_payload in zip(indices_en_orden, payload_imgs):
+                for idx, img_payload in zip(indices_en_orden, payload_imgs, strict=False):
                     texto_vis = await llm_service.completar_multimodal(
                         prompt=_PROMPT_VISION_TRANSCRIPCION,
                         imagenes=[img_payload],
@@ -363,7 +363,10 @@ async def _node_ingestion_fusion(
 
     except Exception as exc:
         logger.error(
-            "nodo.ingestion.error", documento_id=state.documento_id, tipo_error=type(exc).__name__
+            "nodo.ingestion.error",
+            documento_id=state.documento_id,
+            tipo_error=type(exc).__name__,
+            error_detalle=str(exc),
         )
         return {
             "documento_base64": None,

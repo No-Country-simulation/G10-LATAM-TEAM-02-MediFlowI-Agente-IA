@@ -1,5 +1,5 @@
-import pytest
 from app.core.security import hash_password, verify_password
+
 
 def test_hash_password_generates_different_hashes_for_same_password():
     password = "MySecurePassword123!"
