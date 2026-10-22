@@ -9,12 +9,12 @@ import re
 import secrets
 import subprocess
 import sys
-from time import perf_counter, perf_counter_ns
-from uuid import uuid4
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from decimal import Decimal, ROUND_HALF_UP
+from time import perf_counter, perf_counter_ns
 from unittest.mock import AsyncMock
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import asyncpg
 import bcrypt
@@ -561,7 +561,7 @@ async def metrics_transition(conn, auditor, read):
             assert await sample("uncommitted") == old
             barrier = asyncio.Event()
             async def concurrent():
-                await barrier.wait()
+                await barrier.wait()  # noqa: B023  # barrier se consume en la misma iteración
                 return await sample("around-commit")
             requests = [asyncio.create_task(concurrent()) for _ in range(5)]
             barrier.set()

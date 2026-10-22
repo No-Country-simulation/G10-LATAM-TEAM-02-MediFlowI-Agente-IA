@@ -1,7 +1,7 @@
 """Comparación de JSON reales del API con el contrato, con persistencia simulada."""
 
-import json
 import importlib
+import json
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import yaml
-from pydantic import ValidationError
 from jsonschema import Draft202012Validator
+from pydantic import ValidationError
 
 from app._generated.models import DocumentoClinico, ResultadoTriaje
 
@@ -164,7 +164,7 @@ def metrics_design():
 
 def metrics_generated_model():
     # Import here: absence of the new model must not prevent existing test collection.
-    return getattr(importlib.import_module("app._generated.models"), "MetricsResponse")
+    return importlib.import_module("app._generated.models").MetricsResponse
 
 
 def test_metrics_contract_matches_approved_design(contract, metrics_design):

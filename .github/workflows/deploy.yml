@@ -1,0 +1,89 @@
+name: CI/CD Pipeline - MediFlow Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    name: Backend Tests & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          pytest tests/ -m "not postgres_integration" -q
+
+  test-frontend:
+    name: Frontend Build & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Verify build
+        run: |
+          cd frontend
+          npm run build
+
+  deploy:
+    name: Deploy to OCI Instance
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Execute deployment commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 Iniciando despliegue de MediFlow en OCI..."
+            cd ~/mediflow
+            
+            # Sincronizar cambios de git
+            git fetch origin
+            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            echo "Rama actual en el servidor: $CURRENT_BRANCH"
+            git pull origin $CURRENT_BRANCH
+            
+            # Reconstruir y levantar contenedores en producción
+            echo "🐳 Reconstruyendo contenedores de producción..."
+            docker compose -f infrastructure/docker/docker-compose.prod.yml up --build -d
+            
+            # Limpiar imágenes huérfanas
+            docker image prune -f
+            
+            echo "✅ Despliegue completado exitosamente."

@@ -7,8 +7,6 @@ resiliente de fallos de base de datos.
 
 from unittest.mock import AsyncMock
 
-import pytest
-
 from app.agent import patient_matcher
 from app.agent.patient_matcher import verificar_identidad_paciente
 from app.repositories.postgres_storage import DatabaseUnavailableError

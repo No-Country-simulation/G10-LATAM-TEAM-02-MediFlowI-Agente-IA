@@ -5,7 +5,6 @@ Consulta de documentos procesados y registro de decisiones de auditoría humana 
 """
 
 import mimetypes
-from pathlib import Path
 from typing import Literal
 
 import structlog

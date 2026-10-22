@@ -184,7 +184,7 @@ async def _procesar_pdf_asimetrico(
                     textos_visuales[indices_en_orden[0]] = texto_vis.strip()
                     exito_vision = True
             elif len(payload_imgs) > 1:
-                for idx, img_payload in zip(indices_en_orden, payload_imgs):
+                for idx, img_payload in zip(indices_en_orden, payload_imgs, strict=False):
                     texto_vis = await llm_service.completar_multimodal(
                         prompt=_PROMPT_VISION_TRANSCRIPCION,
                         imagenes=[img_payload],

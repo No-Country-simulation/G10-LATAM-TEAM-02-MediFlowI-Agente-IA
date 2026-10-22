@@ -3,12 +3,11 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class DecisionAuditoriaEnum(str, Enum):
+class DecisionAuditoriaEnum(str, Enum):  # noqa: UP042  # (str, Enum) por compatibilidad de serialización
     APROBAR = "aprobar"
     RECLASIFICAR = "reclasificar"
     RECHAZAR = "rechazar"

@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -32,7 +33,7 @@ def test_patient_create_request_valid_gender_and_phone():
 
 def test_patient_create_request_invalid_gender_rejected():
     """Verifica que se rechaza cualquier género fuera de FEMENINO o MASCULINO."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         PatientCreateRequest(
             numero_documento="12345678",
             nombres="Carlos",

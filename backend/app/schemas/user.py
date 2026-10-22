@@ -1,5 +1,7 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
 
 class UserCreate(BaseModel):
     documento_identidad: str = Field(..., min_length=8, max_length=8, description="DNI de 8 dígitos")

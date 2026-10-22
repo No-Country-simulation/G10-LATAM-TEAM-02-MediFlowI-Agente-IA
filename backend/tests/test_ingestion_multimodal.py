@@ -12,8 +12,6 @@ from langchain_core.messages import AIMessage
 from PIL import Image
 
 from app.agent.nodes.ingestion import (
-    _extraer_texto_imagen,
-    _extraer_texto_pdf,
     node_ingestion,
 )
 from app.agent.state import AgentState

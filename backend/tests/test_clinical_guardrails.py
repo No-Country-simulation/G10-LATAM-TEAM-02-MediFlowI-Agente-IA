@@ -11,23 +11,20 @@ Verifica:
 import base64
 import io
 import json
-import pytest
 from unittest.mock import AsyncMock, Mock
-from PIL import Image
+
 import fitz
+import pytest
+from PIL import Image
 
 from app.agent.clinical_guardrails import (
-    MATRIZ_RED_FLAGS,
     es_documento_fuera_de_dominio,
     evaluar_red_flags,
 )
-from app.agent.graph import ejecutar_triage
-from app.agent.state import AgentState, ClasificacionState, DatosExtraidosState
+from app.agent.nodes.confidence import node_confidence
 from app.agent.nodes.ingestion import node_ingestion
 from app.agent.nodes.routing import node_routing
-from app.agent.nodes.confidence import node_confidence
-from tests.test_pipeline_fusion import fusion_result, image_base64
-
+from app.agent.state import AgentState, ClasificacionState, DatosExtraidosState
 
 # ── Fixtures y Generadores de Casos Adversarios ─────────────────────────────
 
@@ -326,8 +323,9 @@ async def test_us3_red_flag_con_urgente_no_es_discordancia():
 
 def test_cumplimiento_contrato_guardrails():
     """Valida que los resultados de guardrails cumplen estrictamente el contrato JSON schema."""
-    import jsonschema
     from pathlib import Path
+
+    import jsonschema
 
     contract_path = (
         Path(__file__).parents[2]
