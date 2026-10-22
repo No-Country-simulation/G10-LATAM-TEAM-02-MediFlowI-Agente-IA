@@ -363,7 +363,10 @@ async def _node_ingestion_fusion(
 
     except Exception as exc:
         logger.error(
-            "nodo.ingestion.error", documento_id=state.documento_id, tipo_error=type(exc).__name__
+            "nodo.ingestion.error",
+            documento_id=state.documento_id,
+            tipo_error=type(exc).__name__,
+            error_detalle=str(exc),
         )
         return {
             "documento_base64": None,

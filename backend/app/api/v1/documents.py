@@ -254,6 +254,8 @@ async def obtener_archivo_documento(
 
     # Resolver tipo MIME
     mime_type, _ = mimetypes.guess_type(nombre_original)
+    if not mime_type and archivo_original_rel:
+        mime_type, _ = mimetypes.guess_type(archivo_original_rel)
     if not mime_type:
         tipo = (row.get("tipo_archivo") or "").upper()
         if "PDF" in tipo:
