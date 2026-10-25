@@ -25,6 +25,7 @@ from app.api.v1 import (
 )
 from app.api.v1 import settings as settings_router
 from app.core.config import get_settings
+from app.core.openapi import use_explicit_response_codes
 from app.repositories.postgres_storage import DatabaseUnavailableError
 
 logger = structlog.get_logger(__name__)
@@ -135,6 +136,7 @@ def create_app() -> FastAPI:
     app.include_router(coordination.router, prefix=api_prefix)  # GET|POST /api/v1/coordination
     app.include_router(metrics.router, prefix=api_prefix)  # GET /api/v1/metrics
 
+    use_explicit_response_codes(app)
     return app
 
 

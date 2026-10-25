@@ -11,7 +11,9 @@ import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 
 from app._generated.models import DocumentoClinico as DocumentoClinicoRequest
+from app._generated.models import ResultadoTriaje
 from app.core.config import Settings, get_settings
+from app.core.openapi import error_responses
 from app.core.security import require_current_user
 from app.repositories.oci_storage import OCIStorageRepository, StoragePersistenceError
 from app.repositories.postgres_storage import DatabaseUnavailableError
@@ -19,7 +21,15 @@ from app.services.llm_service import LLMService, LLMUnavailableError
 from app.services.triage_service import TriageService
 
 logger = structlog.get_logger(__name__)
-router = APIRouter(prefix="/triage", tags=["triage"])
+router = APIRouter(
+    prefix="/triage",
+    tags=["triage"],
+    responses={
+        200: {"description": "Documento procesado exitosamente", "model": ResultadoTriaje},
+        207: {"description": "Documento derivado a auditoría humana", "model": ResultadoTriaje},
+        **error_responses(400, 401, 422, 500, 503),
+    },
+)
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 ALLOWED_UPLOAD_MIME_TYPES = {
     "application/pdf",
@@ -149,6 +159,7 @@ async def procesar_documento(
     "/upload",
     summary="Procesar documento clínico desde archivo",
     status_code=status.HTTP_200_OK,
+    responses=error_responses(413, 415),
 )
 async def procesar_documento_upload(
     response: Response,

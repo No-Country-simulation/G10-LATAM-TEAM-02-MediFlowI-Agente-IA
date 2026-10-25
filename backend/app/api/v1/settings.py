@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.core.config import Settings, get_settings
+from app.core.openapi import error_responses
 from app.core.security import require_roles
 from app.repositories.postgres_storage import (
     DatabaseUnavailableError,
@@ -18,7 +19,7 @@ from app.repositories.postgres_storage import (
 )
 
 logger = structlog.get_logger(__name__)
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"], responses=error_responses(403, 503))
 
 
 class ConfigRequest(BaseModel):
@@ -84,7 +85,7 @@ async def obtener_configuracion(
     )
 
 
-@router.post("", response_model=ConfigResponse, summary="Actualizar configuración del sistema")
+@router.post("", response_model=ConfigResponse, summary="Actualizar configuración del sistema", responses=error_responses(400))
 async def actualizar_configuracion(
     payload: ConfigRequest,
     _current_user: dict = Depends(require_roles("ADMINISTRADOR")),

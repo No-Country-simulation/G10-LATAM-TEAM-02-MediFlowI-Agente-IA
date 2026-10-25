@@ -9,6 +9,7 @@ from typing import Annotated
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.openapi import error_responses
 from app.core.security import require_roles
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.postgres_storage import DatabaseUnavailableError
@@ -25,6 +26,7 @@ router = APIRouter(
     prefix="/coordination",
     tags=["Coordinación y Auditoría Médica (HITL)"],
     dependencies=[Depends(require_roles("COORDINADOR", "ADMINISTRADOR"))],
+    responses=error_responses(401, 403, 503),
 )
 
 
@@ -62,6 +64,7 @@ async def obtener_pendientes(
     response_model=ResolveTriageResponse,
     summary="Resolución médica de triaje HITL",
     description="Registra el dictamen médico formal, reasignación y justificación clínica de un caso en revisión.",
+    responses=error_responses(404, 422),
 )
 async def resolver_triaje(
     documento_id: str,

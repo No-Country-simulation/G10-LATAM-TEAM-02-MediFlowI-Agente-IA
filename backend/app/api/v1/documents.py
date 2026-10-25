@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.agent.clinical_catalog import normalizar_tipo_documento, validar_y_completar_cie10
 from app.core.config import Settings, get_settings
+from app.core.openapi import error_responses
 from app.core.security import require_current_user, require_roles
 from app.repositories.oci_storage import LOCAL_STORAGE_DIR, OCIStorageRepository
 from app.repositories.postgres_storage import PostgresStorageRepository
@@ -179,7 +180,7 @@ def _aplicar_correcciones(doc: dict, payload: DecisionAuditoriaRequest) -> None:
         datos["cie10_sugerido"] = correcciones["cie10"]
 
 
-@router.get("", summary="Listar documentos procesados")
+@router.get("", summary="Listar documentos procesados", responses=error_responses(401, 403, 422, 503))
 async def listar_documentos(
     estado: str | None = Query(None, pattern="^(procesado|pendiente_auditoria|error)$"),
     nivel_prioridad: str | None = Query(None, pattern="^(Urgente|Rutina|Ambiguo)$"),
@@ -194,7 +195,7 @@ async def listar_documentos(
     return {"total": len(formatted), "items": formatted}
 
 
-@router.get("/{documento_id}/historial", summary="Consultar trazabilidad funcional del documento")
+@router.get("/{documento_id}/historial", summary="Consultar trazabilidad funcional del documento", responses=error_responses(401, 422, 503))
 async def obtener_historial_documento(
     documento_id: str,
     _current_user: dict = Depends(require_current_user),
@@ -206,7 +207,7 @@ async def obtener_historial_documento(
     return {"documento_id": documento_id, "items": eventos}
 
 
-@router.get("/{documento_id}", summary="Obtener documento por ID")
+@router.get("/{documento_id}", summary="Obtener documento por ID", responses=error_responses(401, 404, 422, 503))
 async def obtener_documento(
     documento_id: str,
     _current_user: dict = Depends(require_current_user),
@@ -322,7 +323,7 @@ async def obtener_archivo_documento(
     )
 
 
-@router.patch("/{documento_id}", summary="Registrar decisión de auditoría humana (HITL)")
+@router.patch("/{documento_id}", summary="Registrar decisión de auditoría humana (HITL)", responses=error_responses(400, 401, 403, 404, 409, 422, 503))
 async def registrar_decision_auditoria(
     documento_id: str,
     payload: DecisionAuditoriaRequest,

@@ -40,6 +40,78 @@ def assert_response(contract, route, method, response):
     Draft202012Validator({**schema, "components": contract["components"]}).validate(response.json())
 
 
+def test_runtime_response_codes_match_contract(contract, client):
+    """Igualdad estricta, incluido 422; no se invocan endpoints de negocio.
+
+    El servidor SDD ya incluye /api/v1: se antepone a cada path relativo.
+    /health es un alias adicional de /api/v1/health y se verifica también.
+    Las operaciones exclusivas del runtime (episodes, file, PATCH users) no
+    están cubiertas por este contrato y no se exige igualdad inversa.
+    """
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    runtime = response.json()
+    methods = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+    differences = []
+    for path, item in contract["paths"].items():
+        for method, operation in resolve(contract, item).items():
+            if method not in methods:
+                continue
+            expected = set(resolve(contract, operation)["responses"])
+            runtime_paths = [f"/api/v1{path}"]
+            if path == "/health":
+                runtime_paths.append("/health")
+            for runtime_path in runtime_paths:
+                actual_operation = runtime["paths"].get(runtime_path, {}).get(method)
+                actual = set(actual_operation["responses"]) if actual_operation else set()
+                if actual_operation is None or expected != actual:
+                    differences.append(
+                        f"{method.upper()} {runtime_path} (SDD {path}): "
+                        f"faltantes={sorted(expected - actual)}, "
+                        f"sobrantes={sorted(actual - expected)}"
+                        + ("; operación ausente" if actual_operation is None else "")
+                    )
+    assert not differences, "Códigos de respuesta divergentes:\n" + "\n".join(differences)
+
+
+def test_response_code_policy_preserves_fastapi_schema_and_cache():
+    from fastapi import APIRouter, FastAPI
+
+    from app.core.openapi import error_responses, use_explicit_response_codes
+
+    app = FastAPI()
+    router = APIRouter()
+
+    async def endpoint(payload: DocumentoClinico):
+        return payload
+
+    router.add_api_route("/explicit", endpoint, methods=["POST"], responses=error_responses(400))
+    router.add_api_route("/validation", endpoint, methods=["POST"], responses=error_responses(422))
+    router.add_api_route("/uncovered", endpoint, methods=["POST"])
+    app.include_router(router, prefix="/api/v1")
+    expected = deepcopy(app.openapi())
+    del expected["paths"]["/api/v1/explicit"]["post"]["responses"]["422"]
+
+    use_explicit_response_codes(app)
+    assert app.openapi() == expected
+    assert app.openapi() is app.openapi_schema
+    app.openapi_schema = None
+    assert app.openapi() == expected
+
+
+@pytest.mark.parametrize("path", ["/api/v1/triage", "/api/v1/triage/upload"])
+def test_triage_response_documentation_keeps_useful_models(client, path):
+    runtime = client.get("/openapi.json").json()
+    responses = runtime["paths"][path]["post"]["responses"]
+    for code, response in responses.items():
+        assert response["description"]
+        schema = resolve(runtime, response["content"]["application/json"]["schema"])
+        if code in {"200", "207"}:
+            assert "decision_enrutamiento" in schema["properties"]
+        else:
+            assert "detail" in schema["properties"]
+
+
 @pytest.mark.parametrize(
     "text",
     [

@@ -12,6 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.openapi import error_responses
 from app.core.security import (
     create_access_token,
     hash_password,
@@ -92,7 +93,7 @@ class LoginResponse(BaseModel):
     user: UserResponse
     mensaje: str = "Inicio de sesión exitoso"
 
-@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Registro de usuario")
+@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Registro de usuario", responses=error_responses(400, 409, 500))
 async def signup(req: UserCreate):
     """
     Registra un nuevo usuario en la base de datos.
@@ -156,7 +157,7 @@ async def signup(req: UserCreate):
     return UserResponse(**user_payload)
 
 
-@router.post("/login", response_model=LoginResponse, summary="RF-01 — Inicio de Sesión")
+@router.post("/login", response_model=LoginResponse, summary="RF-01 — Inicio de Sesión", responses=error_responses(401, 403, 503))
 async def login(req: LoginRequest):
     """
     Permite a un trabajador de la clínica iniciar sesión ingresando:
@@ -226,7 +227,7 @@ async def login(req: LoginRequest):
     )
 
 
-@router.post("/logout", summary="RF-02 — Cierre de Sesión")
+@router.post("/logout", summary="RF-02 — Cierre de Sesión", responses=error_responses(503))
 async def logout(authorization: str | None = Header(None)):
     """
     Invalida el token/sesión activa del usuario y desautoriza accesos posteriores.
@@ -245,7 +246,7 @@ async def logout(authorization: str | None = Header(None)):
     return {"mensaje": "Cierre de sesión exitoso. Token invalidado."}
 
 
-@router.get("/me", response_model=UserResponse, summary="Consultar usuario autenticado")
+@router.get("/me", response_model=UserResponse, summary="Consultar usuario autenticado", responses=error_responses(401, 503))
 async def get_current_user(current_user: dict = Depends(require_current_user)):
     """Retorna los datos del usuario de la sesión activa."""
     user_payload = dict(current_user)
