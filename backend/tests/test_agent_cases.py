@@ -252,6 +252,7 @@ def test_parsear_respuesta_clasificacion_defensiva():
 async def test_ejecutar_triage_con_llm_multimodal_lista():
     """Verifica que el pipeline de triaje complete exitosamente con LLM devolviendo bloques multiformato."""
     from unittest.mock import AsyncMock, MagicMock
+
     from langchain_core.messages import AIMessage
 
     settings = get_settings()

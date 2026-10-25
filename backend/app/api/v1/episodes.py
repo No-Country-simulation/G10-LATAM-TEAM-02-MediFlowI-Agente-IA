@@ -1,5 +1,5 @@
+
 from fastapi import APIRouter, HTTPException, status
-from typing import List
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/episodes", tags=["Episodios Clínicos"])
@@ -23,7 +23,7 @@ def create_episode(episode: EpisodeCreate):
         estado="activo"
     )
 
-@router.get("/", response_model=List[EpisodeResponse])
+@router.get("/", response_model=list[EpisodeResponse])
 def list_episodes():
     return []
 

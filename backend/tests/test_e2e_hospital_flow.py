@@ -9,7 +9,7 @@ Prueba End-to-End (E2E) del flujo clínico completo en MediFlow:
 """
 
 from unittest.mock import AsyncMock, patch
-import pytest
+
 from fastapi.testclient import TestClient
 
 

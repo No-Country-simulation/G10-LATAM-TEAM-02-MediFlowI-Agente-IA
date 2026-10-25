@@ -9,8 +9,8 @@ conflictos de identidad clínica (DNI perteneciente a un paciente y HC a otro).
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel
 
 from app.repositories import patient_repository
 from app.repositories.postgres_storage import DatabaseUnavailableError

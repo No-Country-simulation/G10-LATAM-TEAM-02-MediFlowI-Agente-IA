@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass, field
-from pydantic import BaseModel, Field
+from dataclasses import dataclass
 
-from app.agent.clinical_catalog import normalizar_tipo_documento, TIPOS_DOCUMENTO_CLINICO
+from pydantic import BaseModel
+
+from app.agent.clinical_catalog import TIPOS_DOCUMENTO_CLINICO, normalizar_tipo_documento
 
 
 @dataclass(frozen=True)

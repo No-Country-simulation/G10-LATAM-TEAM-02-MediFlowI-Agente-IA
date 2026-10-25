@@ -100,12 +100,15 @@ docs:
 test: test-backend test-contract
 
 test-backend:
-	@echo "🧪 Ejecutando tests del backend..."
-	cd backend && python -m pytest tests/ -v --tb=short
+	@echo "🧪 Ejecutando tests del backend con reporte de cobertura (mínimo 75%)..."
+	cd backend && python -m pytest tests/ -m "not postgres_integration" \
+		--cov=app --cov-report=term-missing --cov-report=html --cov-fail-under=75 --tb=short
 
 test-contract:
-	@echo "🔗 Ejecutando contract tests (schemathesis)..."
-	cd backend && python -m schemathesis.cli run ../specs/openapi.yaml --url http://localhost:8000/api/v1 --header "X-API-Key: mediflow-dev-secret-key-change-in-prod"
+	@echo "🔗 Contract testing con Schemathesis + pruebas de borde..."
+	@echo "   Property-based: exporta CONTRACT_BASE_URL (API corriendo, p. ej. http://localhost:8000/api/v1)"
+	@echo "   y opcionalmente CONTRACT_BEARER=<token>. Sin ellas, se ejecutan las pruebas de borde."
+	cd backend && python -m pytest tests/test_contract.py -v
 
 # ── Producción ────────────────────────────────────────────────────────────────
 build:

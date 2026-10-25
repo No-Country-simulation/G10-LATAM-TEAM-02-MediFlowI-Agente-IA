@@ -5,11 +5,12 @@ Maneja el hashing seguro de contraseñas con PBKDF2-HMAC-SHA256,
 generación y validación de tokens de sesión y contraseñas.
 """
 
-import bcrypt
+import hashlib
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from fastapi import Depends, Header, HTTPException, status
 
 from app.repositories.session_repository import (
@@ -17,9 +18,6 @@ from app.repositories.session_repository import (
     get_active_session_user,
     revoke_session,
 )
-
-
-import hashlib
 
 
 def hash_password(password: str) -> tuple[str, str]:

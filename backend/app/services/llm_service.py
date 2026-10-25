@@ -41,7 +41,7 @@ class LLMService:
                     model=self._settings.gemini_model,
                     google_api_key=g_key,
                     temperature=0.1,  # Baja temperatura para extracción estructurada
-                    timeout=30,
+                    timeout=90,
                     max_retries=2,
                 )
                 self._provider = "gemini"

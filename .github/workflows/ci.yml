@@ -1,0 +1,96 @@
+name: CI
+
+# Integración Continua (US-15): valida cada Pull Request antes de fusionar a
+# develop/main. Corre lint, validación del contrato SDD y tests.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend · Ruff + Pytest (cobertura ≥75%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependencias (Python + Node)
+        run: |
+          npm ci
+          cd backend && pip install ".[dev,sdd]"
+
+      - name: Lint (Ruff)
+        run: cd backend && ruff check .
+
+      - name: Tests + cobertura (pytest, mínimo 75%)
+        run: cd backend && pytest tests/ -m "not postgres_integration" --cov=app --cov-report=term-missing --cov-fail-under=75
+
+  contrato-sdd:
+    name: Contrato · Spectral (make validate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar herramientas del contrato (Spectral + SDD)
+        run: |
+          npm ci
+          cd backend && pip install ".[dev,sdd]"
+
+      - name: Validar contrato OpenAPI (Spectral)
+        run: make validate
+
+  frontend:
+    name: Frontend · oxlint + vitest + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: cd frontend && npm ci
+
+      - name: Lint (oxlint)
+        run: cd frontend && npm run lint
+
+      - name: Tests (vitest)
+        run: cd frontend && npm test
+
+      - name: Build
+        run: cd frontend && npm run build

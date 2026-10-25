@@ -155,15 +155,15 @@ class OCIStorageRepository:
                 f"No se pudo guardar '{objeto_key}' en OCI Object Storage."
             ) from exc
 
-    async def obtener_documento(self, objeto_key: str) -> str | None:
-        """Obtiene el contenido de un objeto del bucket o del disco local."""
+    async def obtener_documento(self, objeto_key: str) -> bytes | str | None:
+        """Obtiene el contenido binario o de texto de un objeto del bucket o del disco local."""
         await self._inicializar()
         if self._storage_mode == "LOCAL":
             if objeto_key in self._mock_store:
                 return self._mock_store[objeto_key]
             local_file = LOCAL_STORAGE_DIR / objeto_key
             if local_file.exists():
-                return local_file.read_text(encoding="utf-8")
+                return local_file.read_bytes()
             return None
 
         client = self._client
@@ -175,7 +175,7 @@ class OCIStorageRepository:
                 bucket_name=self._settings.oci_bucket_name,
                 object_name=objeto_key,
             )
-            return response.data.text
+            return response.data.content
         except Exception as exc:
             if getattr(exc, "status", None) == 404:
                 return None
