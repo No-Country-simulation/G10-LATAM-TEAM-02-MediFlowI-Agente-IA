@@ -3,10 +3,11 @@
 from fastapi import APIRouter, Depends
 
 from app._generated.models import MetricsResponse
+from app.core.openapi import error_responses
 from app.core.security import require_current_user
 from app.repositories import metrics_repository
 
-router = APIRouter(prefix="/metrics", tags=["metrics"])
+router = APIRouter(prefix="/metrics", tags=["metrics"], responses=error_responses(401, 503))
 
 
 @router.get("", response_model=MetricsResponse, summary="Consultar métricas agregadas de documentos de triaje")

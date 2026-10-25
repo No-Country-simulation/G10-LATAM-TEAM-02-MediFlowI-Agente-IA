@@ -11,10 +11,11 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.openapi import error_responses
 from app.core.security import require_current_user
 from app.repositories import patient_repository
 
-router = APIRouter(prefix="/patients", tags=["Gestión de Pacientes"])
+router = APIRouter(prefix="/patients", tags=["Gestión de Pacientes"], responses=error_responses(503))
 
 
 def _serialize_temporal(value: Any) -> str | None:
@@ -155,7 +156,7 @@ async def listar_documentos_disponibles(
     return {"total": len(formatted), "items": formatted}
 
 
-@router.post("", summary="RF-06 — Registro de nuevo paciente", status_code=status.HTTP_201_CREATED)
+@router.post("", summary="RF-06 — Registro de nuevo paciente", status_code=status.HTTP_201_CREATED, responses=error_responses(400))
 async def registrar_paciente(
     payload: PatientCreateRequest,
     _user: dict = Depends(require_current_user),
@@ -233,7 +234,7 @@ async def registrar_paciente(
     }
 
 
-@router.get("/{id}", summary="Obtener detalle de paciente")
+@router.get("/{id}", summary="Obtener detalle de paciente", responses=error_responses(404))
 async def obtener_paciente(
     id: str,
     _user: dict = Depends(require_current_user),
@@ -266,7 +267,7 @@ async def obtener_paciente(
     }
 
 
-@router.put("/{id}", summary="Actualizar paciente")
+@router.put("/{id}", summary="Actualizar paciente", responses=error_responses(404))
 async def actualizar_paciente(
     id: str,
     payload: PatientUpdateRequest,
@@ -324,7 +325,7 @@ async def actualizar_paciente(
 
 
 
-@router.get("/{id}/documents", summary="RF-08 & RF-09 — Historial de documentos del paciente")
+@router.get("/{id}/documents", summary="RF-08 & RF-09 — Historial de documentos del paciente", responses=error_responses(404))
 async def listar_documentos_paciente(
     id: str,
     _user: dict = Depends(require_current_user),
@@ -377,7 +378,8 @@ async def listar_documentos_paciente(
 
 
 @router.post(
-    "/{id}/documents/{documento_id}/associate", summary="RF-08 — Asociar documento a paciente"
+    "/{id}/documents/{documento_id}/associate", summary="RF-08 — Asociar documento a paciente",
+    responses=error_responses(404),
 )
 async def asociar_documento(
     id: str,

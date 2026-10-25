@@ -14,6 +14,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.openapi import error_responses
 from app.core.security import hash_password, require_roles
 from app.repositories.user_repository import (
     create_user,
@@ -148,7 +149,7 @@ class UserResponse(BaseModel):
 require_admin = require_roles("ADMINISTRADOR")
 
 
-@router.get("", response_model=list[UserResponse], summary="RF-03 — Consultar Usuarios Registrados")
+@router.get("", response_model=list[UserResponse], summary="RF-03 — Consultar Usuarios Registrados", responses=error_responses(403))
 async def list_users(admin: dict = Depends(require_admin)):
     """Retorna la lista completa de usuarios del sistema (solo Administrador)."""
     users = await list_all_users()
@@ -167,6 +168,7 @@ async def list_users(admin: dict = Depends(require_admin)):
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="RF-03 — Registrar Usuario",
+    responses=error_responses(400, 403),
 )
 async def create_new_user(req: UserCreateRequest, admin: dict = Depends(require_admin)):
     """Permite al Administrador registrar un nuevo trabajador con su DNI de 8 cifras y rol."""
@@ -210,6 +212,7 @@ async def create_new_user(req: UserCreateRequest, admin: dict = Depends(require_
     "/{user_id}",
     response_model=UserResponse,
     summary="RF-03 & RF-04 — Modificar/Activar/Desactivar Usuario",
+    responses=error_responses(404),
 )
 async def update_user_details(
     user_id: str, req: UserUpdateRequest, admin: dict = Depends(require_admin)

@@ -3,13 +3,22 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from app._generated.models import HealthResponse
 from app.core.config import get_settings
 from app.repositories.postgres_storage import get_db_pool
 
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", summary="Estado del servicio", include_in_schema=True)
+@router.get(
+    "/health",
+    summary="Estado del servicio",
+    include_in_schema=True,
+    responses={
+        200: {"description": "Servicio operativo", "model": HealthResponse},
+        503: {"description": "PostgreSQL no disponible", "model": HealthResponse},
+    },
+)
 async def health_check():
     """Verifica que el servicio está operativo y sus dependencias disponibles."""
     settings = get_settings()
