@@ -8,6 +8,19 @@ import {
 } from '../api/triage.api'
 import { useAuth } from '../hooks/useAuth'
 import { normalizeClinicalDocumentType } from '../constants/clinicalDocumentTypes'
+import {
+  FaClock,
+  FaUser,
+  FaUserMd,
+  FaNotesMedical,
+  FaStethoscope,
+  FaPills,
+  FaExclamationTriangle,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaRedo,
+  FaShieldAlt,
+} from 'react-icons/fa'
 import '../App.css'
 
 const PRESET_CASES = [
@@ -419,10 +432,15 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
 
               {/* PANEL DE RESULTADOS DE DIAGNÓSTICO Y ACCIÓN HITL */}
               <section className="card result-card">
-                <div className="card-header">
-                  <h3>Decisión y Diagnóstico del Agente</h3>
+                <div className="card-header result-card-header">
+                  <div className="header-title-wrap">
+                    <span className="status-indicator-dot"></span>
+                    <h3>Decisión y Diagnóstico del Agente</h3>
+                  </div>
                   {resultado && (
-                    <span className="result-time">{resultado.tiempo_procesamiento_ms} ms</span>
+                    <span className="result-time" title="Tiempo de procesamiento autónomo">
+                      <FaClock className="time-icon" /> {resultado.tiempo_procesamiento_ms} ms
+                    </span>
                   )}
                 </div>
 
@@ -452,29 +470,60 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                       }`}
                     >
                       <div className="banner-top">
-                        <span className="destination-title">
-                          {resultado.decision_enrutamiento.destino_principal.replace(/_/g, ' ').toUpperCase()}
-                        </span>
-                        <span className="confidence-score">
-                          Score Confianza:{' '}
-                          {(
-                            resultado.clasificacion.score_confianza_clasificacion * 100
-                          ).toFixed(0)}
-                          %
-                        </span>
+                        <div className="destination-badge-wrap">
+                          <span className="destination-pill">
+                            {resultado.clasificacion.nivel_prioridad === 'Urgente' && (
+                              <FaExclamationTriangle className="banner-icon" />
+                            )}
+                            {resultado.clasificacion.nivel_prioridad === 'Rutina' && (
+                              <FaCheckCircle className="banner-icon" />
+                            )}
+                            {resultado.clasificacion.nivel_prioridad !== 'Urgente' &&
+                              resultado.clasificacion.nivel_prioridad !== 'Rutina' && (
+                                <FaShieldAlt className="banner-icon" />
+                              )}
+                            <span className="destination-title">
+                              {resultado.decision_enrutamiento.destino_principal.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="confidence-badge-wrap">
+                          <span
+                            className={`confidence-score ${
+                              resultado.clasificacion.score_confianza_clasificacion >= 0.8
+                                ? 'score-high'
+                                : resultado.clasificacion.score_confianza_clasificacion >= 0.5
+                                  ? 'score-med'
+                                  : 'score-low'
+                            }`}
+                          >
+                            Score Confianza:{' '}
+                            <strong>
+                              {(resultado.clasificacion.score_confianza_clasificacion * 100).toFixed(0)}%
+                            </strong>
+                          </span>
+                        </div>
                       </div>
 
-                      <p className="justification-text">
-                        <strong>Motivo:</strong>{' '}
-                        {resultado.decision_enrutamiento.justificacion_enrutamiento}
-                      </p>
+                      <div className="justification-box">
+                        <span className="justification-label">Motivo Clínico / Enrutamiento:</span>
+                        <p className="justification-text">
+                          {resultado.decision_enrutamiento.justificacion_enrutamiento}
+                        </p>
+                      </div>
                     </div>
 
                     {/* HITL AUDITORÍA HUMANA SI APLICA (RF-05) */}
                     {resultado.decision_enrutamiento.requiere_auditoria_humana && canAuditHITL && (
                       <div className="hitl-action-box">
-                        <h4>Intervención Requerida (Human-in-the-Loop)</h4>
-                        <p>El score de confianza o ambigüedad requiere confirmación médica:</p>
+                        <div className="hitl-header">
+                          <div className="hitl-title-row">
+                            <FaShieldAlt className="hitl-alert-icon" />
+                            <h4>Intervención Requerida (Human-in-the-Loop)</h4>
+                          </div>
+                          <p>El score de confianza o ambigüedad del documento requiere confirmación o resolución médica:</p>
+                        </div>
 
                         {!isSupervisorReadOnly ? (
                           <div className="hitl-btn-group">
@@ -483,21 +532,21 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                               className="btn-hitl btn-hitl-aprobar"
                               onClick={() => handleAuditoria('aprobar')}
                             >
-                              Aprobar
+                              <FaCheckCircle className="btn-icon" /> Aprobar
                             </button>
                             <button
                               type="button"
                               className="btn-hitl btn-hitl-reclasificar"
                               onClick={() => handleAuditoria('reclasificar')}
                             >
-                              Reclasificar
+                              <FaRedo className="btn-icon" /> Reclasificar
                             </button>
                             <button
                               type="button"
                               className="btn-hitl btn-hitl-rechazar"
                               onClick={() => handleAuditoria('rechazar')}
                             >
-                              Rechazar
+                              <FaTimesCircle className="btn-icon" /> Rechazar
                             </button>
                           </div>
                         ) : (
@@ -505,48 +554,72 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                             (Rol SUPERVISOR: Solo consulta de decisiones de auditoría)
                           </div>
                         )}
-                        {auditSuccess && <div className="audit-success-msg">{auditSuccess}</div>}
+                        {auditSuccess && (
+                          <div className="audit-success-msg">
+                            <FaCheckCircle /> {auditSuccess}
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {/* ENTIDADES EXTRAÍDAS */}
                     <div className="entities-grid">
                       <div className="entity-card">
-                        <h5>Paciente</h5>
-                        <div className="entity-val">
+                        <h5>
+                          <FaUser className="entity-icon" /> Paciente
+                        </h5>
+                        <div
+                          className={`entity-val ${
+                            !resultado.datos_extraidos.paciente?.nombre ? 'entity-val-unspecified' : ''
+                          }`}
+                        >
                           {resultado.datos_extraidos.paciente?.nombre || 'No especificado'}
                         </div>
                         <div className="entity-sub">
-                          Edad:{' '}
-                          {resultado.datos_extraidos.paciente?.edad !== undefined &&
-                          resultado.datos_extraidos.paciente?.edad !== null
-                            ? `${resultado.datos_extraidos.paciente.edad} años`
-                            : 'N/D'}
+                          <span className="sub-label">Edad:</span>{' '}
+                          <span className="sub-value">
+                            {resultado.datos_extraidos.paciente?.edad !== undefined &&
+                            resultado.datos_extraidos.paciente?.edad !== null
+                              ? `${resultado.datos_extraidos.paciente.edad} años`
+                              : 'N/D'}
+                          </span>
                         </div>
                       </div>
 
                       <div className="entity-card">
-                        <h5>Médico Solicitante</h5>
-                        <div className="entity-val">
+                        <h5>
+                          <FaUserMd className="entity-icon" /> Médico Solicitante
+                        </h5>
+                        <div
+                          className={`entity-val ${
+                            !resultado.datos_extraidos.medico_solicitante?.nombre ? 'entity-val-unspecified' : ''
+                          }`}
+                        >
                           {resultado.datos_extraidos.medico_solicitante?.nombre || 'No especificado'}
                         </div>
                         <div className="entity-sub">
-                          Matrícula:{' '}
-                          {resultado.datos_extraidos.medico_solicitante?.matricula || 'N/D'}
+                          <span className="sub-label">Matrícula:</span>{' '}
+                          <span className="sub-value">
+                            {resultado.datos_extraidos.medico_solicitante?.matricula || 'N/D'}
+                          </span>
                         </div>
                       </div>
 
                       <div className="entity-card entity-card-wide">
-                        <h5>Diagnóstico & CIE-10</h5>
-                        <div className="entity-val highlight-diag">
-                          {resultado.datos_extraidos.diagnostico_principal ||
-                            normalizeClinicalDocumentType(resultado.clasificacion.tipo_documento)}
+                        <h5>
+                          <FaNotesMedical className="entity-icon" /> Diagnóstico Principal & CIE-10
+                        </h5>
+                        <div className="diag-header-row">
+                          <div className="entity-val highlight-diag">
+                            {resultado.datos_extraidos.diagnostico_principal ||
+                              normalizeClinicalDocumentType(resultado.clasificacion.tipo_documento)}
+                          </div>
+                          {resultado.datos_extraidos.cie10_sugerido && (
+                            <span className="cie10-pill">
+                              CIE-10: <strong>{resultado.datos_extraidos.cie10_sugerido}</strong>
+                            </span>
+                          )}
                         </div>
-                        {resultado.datos_extraidos.cie10_sugerido && (
-                          <span className="cie10-pill">
-                            CIE-10: {resultado.datos_extraidos.cie10_sugerido}
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -554,7 +627,9 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                     {resultado.datos_extraidos.hallazgos_clave &&
                       resultado.datos_extraidos.hallazgos_clave.length > 0 && (
                         <div className="findings-section">
-                          <h5>Hallazgos Clínicos Clave Detectados:</h5>
+                          <h5>
+                            <FaStethoscope className="entity-icon" /> Hallazgos Clínicos Clave Detectados:
+                          </h5>
                           <ul className="findings-list">
                             {resultado.datos_extraidos.hallazgos_clave.map((h, i) => (
                               <li key={i}>{h}</li>
@@ -566,29 +641,35 @@ export default function TriageConsoleView({ initialTab = 'triage', hideInnerMenu
                     {/* MEDICAMENTOS PRESCRITOS */}
                     {resultado.datos_extraidos.medicamentos &&
                       resultado.datos_extraidos.medicamentos.length > 0 && (
-                        <div className="findings-section" style={{ marginTop: '16px' }}>
-                          <h5 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            💊 Medicamentos Prescritos Extraídos:
+                        <div className="medications-table-card">
+                          <h5>
+                            <FaPills className="entity-icon" /> Medicamentos Prescritos Extraídos:
                           </h5>
-                          <div style={{ overflowX: 'auto', marginTop: '8px' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <div className="med-table-wrapper">
+                            <table className="med-table">
                               <thead>
-                                <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#4a5568' }}>
-                                  <th style={{ padding: '8px 12px' }}>Fármaco</th>
-                                  <th style={{ padding: '8px 12px' }}>Dosis</th>
-                                  <th style={{ padding: '8px 12px' }}>Frecuencia / Pauta</th>
-                                  <th style={{ padding: '8px 12px' }}>Vía</th>
+                                <tr>
+                                  <th>Fármaco</th>
+                                  <th>Dosis</th>
+                                  <th>Frecuencia / Pauta</th>
+                                  <th>Vía</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {resultado.datos_extraidos.medicamentos.map((m: any, idx: number) => (
-                                  <tr key={idx} style={{ borderBottom: '1px solid #edf2f7' }}>
-                                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1a202c' }}>
+                                  <tr key={idx}>
+                                    <td className="med-name">
                                       {m.medicamento || m.nombre || 'No especificado'}
                                     </td>
-                                    <td style={{ padding: '8px 12px', color: '#4a5568' }}>{m.dosis || 'N/D'}</td>
-                                    <td style={{ padding: '8px 12px', color: '#4a5568' }}>{m.frecuencia || 'N/D'}</td>
-                                    <td style={{ padding: '8px 12px', color: '#4a5568' }}>{m.via_administracion || 'N/D'}</td>
+                                    <td>{m.dosis || 'N/D'}</td>
+                                    <td>{m.frecuencia || 'N/D'}</td>
+                                    <td>
+                                      {m.via_administracion ? (
+                                        <span className="med-badge-route">{m.via_administracion}</span>
+                                      ) : (
+                                        'N/D'
+                                      )}
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
